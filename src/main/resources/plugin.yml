@@ -1,0 +1,31 @@
+name: SellGUI
+version: 1.6.2
+api-version: 1.16
+author: Aov,SaneNuyan
+main: me.aov.sellgui.SellGUIMain
+depend: [Vault]
+softdepend: [Essentials]
+commands:
+  sellgui:
+    description: SellGUI Command
+    usage: /sellgui
+    permission: sellgui.use
+  customitems:
+    description: custom items menu
+    usage: /customitems
+    permission: sellgui.customitems
+  sellall:
+    description: Sells All Items in Inventory
+    usage: /sellall
+    permission: sellgui.sellall
+permissions:
+  sellgui.reload:
+    description: Allows you to use /sellgui reload
+  sellgui.createsign:
+    description: Allows you to create a sign
+  sellgui.usesign:
+    description: Allows you to use a SellGUI sign
+  sellgui.sellall:
+    description: Allows you to Sell your Inventory Items
+  sellgui.others:
+    description: Allows you to open the SellGUI for others

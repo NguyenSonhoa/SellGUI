@@ -1,0 +1,28 @@
+menu-title: '&e&lSell Menu'
+#Title of /sellgui
+menu-pane-name: ''
+#The filler item name
+sell-item-name: '&a&lSell Items'
+#The name of the item you click to sell items
+sell-item-lore:
+  - '&7Add your items above to sell'
+  - '&dNo Refunds!'
+#The Lore of the item that you click to sell
+not-a-command: 'Not a valid command!'
+#When you enter an invalid command
+confirm-item-name: '&e&lClick to Confirm'
+#Name of the item you click to finalize your sell
+item-total-format: '&7%amount%&r&7x %item%&f: &6&l$&a&l%total%'
+#Placeholders: %amount%, %total%, %item%, %price%, %total% | In the GUI confirm item
+total-format: '&f&lTotal: $&r&b%total%'
+#Placeholders: %total% | At the bottom of all the items
+sold-message: '&7Sold items for &e&l$&r&f%total%'
+#Placeholders: total | After you sell the items.
+sellall-confirm-message: '&cAre you sure you want to sell your inventory? Anything with worth will be sold and there are no refunds. To confirm please type &e/sellall confirm'
+#Message to confirm sellall
+sign-lines:
+  - '&aSell Items'
+  - 'Right Click'
+  - 'to'
+  - 'Sell Items'
+#What a SellGUI sign would say.
