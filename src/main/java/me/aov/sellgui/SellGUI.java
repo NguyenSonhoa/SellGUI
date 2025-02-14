@@ -13,12 +13,9 @@ import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.listeners.InventoryListeners;
 import org.apache.commons.lang.WordUtils;
 import org.bukkit.*;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
@@ -33,7 +30,7 @@ public class SellGUI implements Listener {
     private static ItemStack sellItem;
     private static ItemStack filler;
     private String menuTitle;
-    private Inventory menu;
+    private static Inventory menu;
     private ItemStack confirmItem;
     private int sellItemSlot;
 
@@ -41,9 +38,9 @@ public class SellGUI implements Listener {
         this.main = main;
         this.player = p;
         this.createItems();
-        this.createMenu();
+        this.   createMenu();
         this.addCustomItems();
-        p.openInventory(this.menu);
+        p.openInventory(menu);
     }
 
     private void createMenu() {
@@ -88,151 +85,77 @@ public class SellGUI implements Listener {
                 (!meta1.hasCustomModelData() || meta1.getCustomModelData() == meta2.getCustomModelData());
     }
     private void addCustomItems() {
-
         for (String itemPath : this.main.getCustomMenuItemsConfig().getKeys(false)) {
-            System.out.println(this.main.getCustomMenuItemsConfig().getKeys(false));
             ItemStack customItem = new ItemStack(Material.valueOf(this.main.getCustomMenuItemsConfig().getString(itemPath + ".material")));
             ItemMeta itemMeta = customItem.getItemMeta();
+
+            if (this.main.getCustomMenuItemsConfig().contains(itemPath + ".custom-model-data")) {
+                itemMeta.setCustomModelData(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".custom-model-data"));
+            }
+
             if (!this.main.getCustomMenuItemsConfig().getString(itemPath + ".name").isEmpty()) {
                 itemMeta.setDisplayName(color(this.main.getCustomMenuItemsConfig().getString(itemPath + ".name")));
             }
 
             if (this.main.getCustomMenuItemsConfig().getBoolean(itemPath + ".glimmer")) {
                 itemMeta.addEnchant(Enchantment.INFINITY, 1, false);
-                itemMeta.addItemFlags(new ItemFlag[]{ItemFlag.HIDE_ENCHANTS});
+                itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
 
             if (!this.main.getCustomMenuItemsConfig().getStringList(itemPath + ".lore").isEmpty()) {
                 ArrayList<String> lore = new ArrayList<>();
-
                 for (String s : this.main.getCustomMenuItemsConfig().getStringList(itemPath + ".lore")) {
                     lore.add(color(s));
                 }
-
                 itemMeta.setLore(lore);
             }
 
             NamespacedKey key = new NamespacedKey(this.main, "custom-menu-item");
             StringBuilder sb = new StringBuilder();
-
             for (String command : this.main.getCustomMenuItemsConfig().getStringList(itemPath + ".commands")) {
-                String var10001 = command.replaceAll("%player%", this.player.getName());
-                sb.append(var10001).append(";");
+                sb.append(command.replaceAll("%player%", this.player.getName())).append(";");
             }
-
-            sb.deleteCharAt(sb.length() - 1);
             itemMeta.getPersistentDataContainer().set(key, PersistentDataType.STRING, sb.toString());
             customItem.setItemMeta(itemMeta);
-            this.menu.setItem(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".slot"), customItem);
+            menu.setItem(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".slot"), customItem);
         }
-
     }
 
     public void addSellItem() {
-        String s = this.main.getConfig().getString("menu-filler-location");
-        String z = this.main.getConfig().getString("sell-item-location");
-        assert s != null;
-        if (!s.equalsIgnoreCase("none") && !s.equalsIgnoreCase("round")) {
-            if (s.equalsIgnoreCase("bottom")) {
-                this.bottom(z);
-            } else if (s.equalsIgnoreCase("left")) {
-                this.left(z);
-            } else if (s.equalsIgnoreCase("right")) {
-                this.right(z);
-            } else if (s.equalsIgnoreCase("top")) {
-                assert z != null;
-                if (z.equalsIgnoreCase("left")) {
-                    this.menu.setItem(0, sellItem);
-                } else if (z.equalsIgnoreCase("middle")) {
-                    this.menu.setItem(4, sellItem);
-                } else if (z.equalsIgnoreCase("right")) {
-                    this.menu.setItem(8, sellItem);
-                }
-            }
-        } else if (Objects.requireNonNull(this.main.getConfig().getString("sell-item-side")).equalsIgnoreCase("bottom")) {
-            this.bottom(z);
-        } else if (Objects.requireNonNull(this.main.getConfig().getString("sell-item-side")).equalsIgnoreCase("top")) {
-            this.top(z);
-        } else if (Objects.requireNonNull(this.main.getConfig().getString("sell-item-side")).equalsIgnoreCase("left")) {
-            this.left(z);
-        } else if (Objects.requireNonNull(this.main.getConfig().getString("sell-item-side")).equalsIgnoreCase("right")) {
-            this.right(z);
+        int slot = this.main.getConfig().getInt("sell-item-slot", 4);  //
+        int maxSlot = menu.getSize() - 1;
+
+        if (slot < 0 || slot > maxSlot) {
+            this.player.sendMessage(ChatColor.RED + "Invalid sell-item slot! It must be between 0 and " + maxSlot + ".");
+            return;
         }
 
+        menu.setItem(slot, sellItem);
+        this.sellItemSlot = slot;
         this.makeConfirmItem();
     }
 
     private void right(String z) {
         if (z.equalsIgnoreCase("left")) {
-            this.menu.setItem(this.menu.getSize() - 1, (ItemStack)null);
-            this.menu.setItem(this.menu.getSize() - 1, sellItem);
-            this.sellItemSlot = this.menu.getSize() - 1;
+            menu.setItem(menu.getSize() - 1, (ItemStack)null);
+            menu.setItem(menu.getSize() - 1, sellItem);
+            this.sellItemSlot = menu.getSize() - 1;
         } else if (z.equalsIgnoreCase("middle")) {
-            this.menu.setItem(8 + 9 * this.menu.getSize() / 9 / 2, (ItemStack)null);
-            this.menu.setItem(8 + 9 * this.menu.getSize() / 9 / 2, sellItem);
-            this.sellItemSlot = 8 + 9 * this.menu.getSize() / 9 / 2;
+            menu.setItem(8 + 9 * menu.getSize() / 9 / 2, (ItemStack)null);
+            menu.setItem(8 + 9 * menu.getSize() / 9 / 2, sellItem);
+            this.sellItemSlot = 8 + 9 * menu.getSize() / 9 / 2;
         } else if (z.equalsIgnoreCase("right")) {
-            this.menu.setItem(8, (ItemStack)null);
-            this.menu.setItem(8, sellItem);
+            menu.setItem(8, (ItemStack)null);
+            menu.setItem(8, sellItem);
             this.sellItemSlot = 8;
         }
 
     }
 
-    private void top(String z) {
-        if (z.equalsIgnoreCase("left")) {
-            this.menu.setItem(0, (ItemStack)null);
-            this.menu.setItem(0, sellItem);
-            this.sellItemSlot = 0;
-        } else if (z.equalsIgnoreCase("middle")) {
-            this.menu.setItem(4, (ItemStack)null);
-            this.menu.setItem(4, sellItem);
-            this.sellItemSlot = 4;
-        } else if (z.equalsIgnoreCase("right")) {
-            this.menu.setItem(8, (ItemStack)null);
-            this.menu.setItem(8, sellItem);
-            this.sellItemSlot = 8;
-        }
-
-    }
-
-    private void left(String z) {
-        if (z.equalsIgnoreCase("left")) {
-            this.menu.setItem(0, (ItemStack)null);
-            this.menu.setItem(0, sellItem);
-            this.sellItemSlot = 0;
-        } else if (z.equalsIgnoreCase("middle")) {
-            this.menu.setItem(this.menu.getSize() / 9 / 2 * 9, (ItemStack)null);
-            this.menu.setItem(this.menu.getSize() / 9 / 2 * 9, sellItem);
-            this.sellItemSlot = 9 * this.menu.getSize() / 9 / 2;
-        } else if (z.equalsIgnoreCase("right")) {
-            this.menu.setItem(this.menu.getSize() - 9, (ItemStack)null);
-            this.menu.setItem(this.menu.getSize() - 9, sellItem);
-            this.sellItemSlot = this.menu.getSize() - 9;
-        }
-
-    }
-
-    private void bottom(String z) {
-        if (z.equalsIgnoreCase("middle")) {
-            this.menu.setItem(this.menu.getSize() - 5, (ItemStack)null);
-            this.menu.setItem(this.menu.getSize() - 5, sellItem);
-            this.sellItemSlot = this.menu.getSize() - 5;
-        } else if (z.equalsIgnoreCase("left")) {
-            this.menu.setItem(this.menu.getSize() - 9, (ItemStack)null);
-            this.menu.setItem(this.menu.getSize() - 9, sellItem);
-            this.sellItemSlot = this.menu.getSize() - 9;
-        } else if (z.equalsIgnoreCase("right")) {
-            this.menu.setItem(this.menu.getSize() - 1, (ItemStack)null);
-            this.menu.setItem(this.menu.getSize() - 1, sellItem);
-            this.sellItemSlot = this.menu.getSize() - 1;
-        }
-
-    }
 
     private void createItems() {
-        if (this.menuTitle == null || sellItem == null || filler == null) {
-            this.menuTitle = this.main.getLangConfig().getString("menu-title");
+        if (menuTitle == null || sellItem == null || filler == null) {
+            menuTitle = this.main.getLangConfig().getString("menu-title");
             NamespacedKey key = new NamespacedKey(this.main, "sellgui-item");
 
             //
@@ -277,36 +200,36 @@ public class SellGUI implements Listener {
     private void addFiller(String s) {
         int i;
         if (s.equalsIgnoreCase("bottom")) {
-            for(i = this.menu.getSize() - 9; i < this.menu.getSize(); ++i) {
-                this.menu.setItem(i, filler);
+            for(i = menu.getSize() - 9; i < menu.getSize(); ++i) {
+                menu.setItem(i, filler);
             }
         } else if (s.equalsIgnoreCase("left")) {
-            for(i = 0; i < this.menu.getSize(); i += 9) {
-                this.menu.setItem(i, filler);
+            for(i = 0; i < menu.getSize(); i += 9) {
+                menu.setItem(i, filler);
             }
         } else if (s.equalsIgnoreCase("right")) {
-            for(i = 8; i < this.menu.getSize(); i += 9) {
-                this.menu.setItem(i, filler);
+            for(i = 8; i < menu.getSize(); i += 9) {
+                menu.setItem(i, filler);
             }
         } else if (s.equalsIgnoreCase("top")) {
             for(i = 0; i < 9; ++i) {
-                this.menu.setItem(i, filler);
+                menu.setItem(i, filler);
             }
         } else if (s.equalsIgnoreCase("round")) {
-            for(i = this.menu.getSize() - 9; i < this.menu.getSize(); ++i) {
-                this.menu.setItem(i, filler);
+            for(i = menu.getSize() - 9; i < menu.getSize(); ++i) {
+                menu.setItem(i, filler);
             }
 
-            for(i = 0; i < this.menu.getSize(); i += 9) {
-                this.menu.setItem(i, filler);
+            for(i = 0; i < menu.getSize(); i += 9) {
+                menu.setItem(i, filler);
             }
 
-            for(i = 8; i < this.menu.getSize(); i += 9) {
-                this.menu.setItem(i, filler);
+            for(i = 8; i < menu.getSize(); i += 9) {
+                menu.setItem(i, filler);
             }
 
             for(i = 0; i < 9; ++i) {
-                this.menu.setItem(i, filler);
+                menu.setItem(i, filler);
             }
         }
 
@@ -333,63 +256,33 @@ public class SellGUI implements Listener {
         this.confirmItem.setItemMeta(itemMeta);
     }
     public ArrayList<String> makeLore() {
-        HashMap<ItemStack, Integer> hashMap = new HashMap();
-        ItemStack[] var2 = this.getMenu().getContents();
-        int var3 = var2.length;
+        HashMap<String, Integer> itemCounts = new HashMap<>();
+        HashMap<String, Double> itemPrices = new HashMap<>();
+        ItemStack[] contents = this.getMenu().getContents();
 
-        for(int var4 = 0; var4 < var3; ++var4) {
-            ItemStack i = var2[var4];
-            if (i != null && !InventoryListeners.sellGUIItem(i, this.player)) {
-                ItemStack tempItemStack = i.clone();
-                tempItemStack.setAmount(1);
-                if (!hashMap.containsKey(tempItemStack)) {
-                    hashMap.put(tempItemStack, i.getAmount());
-                } else {
-                    int amount = (Integer)hashMap.get(tempItemStack);
-                    hashMap.put(tempItemStack, amount + i.getAmount());
-                }
+        for (ItemStack item : contents) {
+            if (item != null && !InventoryListeners.sellGUIItem(item, this.player) && !isCustomMenuItem(item)) {
+                String itemName = getItemName(item);
+                double price = getPrice(item);
+
+                itemCounts.put(itemName, itemCounts.getOrDefault(itemName, 0) + item.getAmount());
+                itemPrices.put(itemName, price);
             }
         }
 
-        ArrayList<String> lore = new ArrayList();
-        Iterator var9 = hashMap.keySet().iterator();
-
-        String var12;
-        String var10001;
-        FileConfiguration var10004;
-        while(var9.hasNext()) {
-            ItemStack i = (ItemStack)var9.next();
-            double var11;
-            Object var10003;
-            if (this.main.getConfig().getBoolean("round-places")) {
-                var10001 = this.main.getLangConfig().getString("item-total-format").replaceAll("%item%", this.getItemName(i));
-                var10003 = hashMap.get(i);
-                var10001 = var10001.replaceAll("%amount%", "" + var10003);
-                var11 = this.getPrice(i);
-                var10001 = var10001.replaceAll("%price%", "" + var11);
-                var12 = (new BigDecimal((double)i.getAmount() * this.getPrice(i))).toPlainString();
-                var10004 = this.main.getConfig();
-                lore.add(color(var10001.replaceAll("%total%", "" + roundString(var12, var10004.getInt("places-to-round")))));
-            } else {
-                var10001 = this.main.getLangConfig().getString("item-total-format").replaceAll("%item%", this.getItemName(i));
-                var10003 = hashMap.get(i);
-                var10001 = var10001.replaceAll("%amount%", "" + var10003);
-                var11 = this.getPrice(i);
-                var10001 = var10001.replaceAll("%price%", "" + var11);
-                var11 = (double)i.getAmount();
-                double var13 = this.getPrice(i);
-                lore.add(color(var10001.replaceAll("%total%", "" + var11 * var13)));
-            }
+        ArrayList<String> lore = new ArrayList<>();
+        for (String itemName : itemCounts.keySet()) {
+            String formatted = this.main.getLangConfig().getString("item-total-format")
+                    .replace("%item%", itemName)
+                    .replace("%amount%", String.valueOf(itemCounts.get(itemName)))
+                    .replace("%price%", String.valueOf(itemPrices.get(itemName)))
+                    .replace("%total%", String.valueOf(itemPrices.get(itemName) * itemCounts.get(itemName)));
+            lore.add(ChatColor.translateAlternateColorCodes('&', formatted));
         }
 
-        if (this.main.getConfig().getBoolean("round-places")) {
-            var10001 = this.main.getLangConfig().getString("total-format");
-            var12 = "" + this.getTotal(this.menu);
-            var10004 = this.main.getConfig();
-            lore.add(color(var10001.replaceAll("%total%", "" + roundString(var12, var10004.getInt("places-to-round")))));
-        } else {
-            lore.add(color(this.main.getLangConfig().getString("total-format").replaceAll("%total%", "" + this.getTotal(this.menu))));
-        }
+        String totalFormatted = this.main.getLangConfig().getString("total-format")
+                .replace("%total%", String.valueOf(getTotal(this.menu)));
+        lore.add(ChatColor.translateAlternateColorCodes('&', totalFormatted));
 
         return lore;
     }
@@ -533,17 +426,19 @@ public class SellGUI implements Listener {
         double total = 0.0;
         ItemStack[] var4 = inventory.getContents();
         int var5 = var4.length;
-
         for(int var6 = 0; var6 < var5; ++var6) {
             ItemStack itemStack = var4[var6];
-            if (!InventoryListeners.sellGUIItem(itemStack, this.player) && itemStack != null) {
+            if (itemStack != null && !isCustomMenuItem(itemStack) && !InventoryListeners.sellGUIItem(itemStack, this.player)) {
                 total += this.getPrice(itemStack) * (double)itemStack.getAmount();
             }
         }
-
         return total;
     }
 
+    private boolean isCustomMenuItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return false;
+        return item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(this.main, "custom-menu-item"), PersistentDataType.STRING);
+    }
     public void logSell(ItemStack itemStack) {
         if (itemStack != null) {
             BufferedWriter writer = null;
@@ -570,34 +465,15 @@ public class SellGUI implements Listener {
     }
 
     public void sellItems(Inventory inventory) {
-        this.main.getEcon().depositPlayer(this.player, this.getTotal(inventory));
-        Player var10000;
-        String var10001;
-        double var10003;
-        if (this.main.getConfig().getBoolean("round-places")) {
-            var10000 = this.player;
-            var10001 = this.main.getLangConfig().getString("sold-message");
-            var10003 = this.getTotal(inventory);
-            FileConfiguration var10004 = this.main.getConfig();
-            var10000.sendMessage(color(var10001.replaceAll("%total%", "" + round(var10003, var10004.getInt("places-to-round")))));
-        } else {
-            var10000 = this.player;
-            var10001 = this.main.getLangConfig().getString("sold-message");
-            var10003 = this.getTotal(inventory);
-            var10000.sendMessage(color(var10001.replaceAll("%total%", "" + var10003)));
-        }
+        double total = getTotal(inventory);
+        this.main.getEcon().depositPlayer(this.player, total);
 
-        ItemStack[] var2 = inventory.getContents();
-        int var3 = var2.length;
-
-        for(int var4 = 0; var4 < var3; ++var4) {
-            ItemStack itemStack = var2[var4];
-            if (itemStack != null && !InventoryListeners.sellGUIItem(itemStack, this.player) && this.getPrice(itemStack) != 0.0) {
+        for (ItemStack item : inventory.getContents()) {
+            if (item != null && !InventoryListeners.sellGUIItem(item, this.player) && !isCustomMenuItem(item)) {
                 if (this.main.getConfig().getBoolean("log-transactions")) {
-                    this.logSell(itemStack);
+                    logSell(item);
                 }
-
-                inventory.remove(itemStack);
+                inventory.remove(item);
             }
         }
 
@@ -606,9 +482,10 @@ public class SellGUI implements Listener {
             this.player.closeInventory();
             SellCommand.getSellGUIs().remove(this);
         } else {
-            this.addSellItem();
+            addSellItem();
         }
 
+        player.sendMessage(color(this.main.getLangConfig().getString("sold-message").replace("%total%", String.valueOf(total))));
     }
 
     public ItemStack getConfirmItem() {
@@ -628,11 +505,11 @@ public class SellGUI implements Listener {
     }
 
     public String getMenuTitle() {
-        return this.menuTitle;
+        return menuTitle;
     }
 
     public Inventory getMenu() {
-        return this.menu;
+        return menu;
     }
 
     public SellGUIMain getMain() {

@@ -28,10 +28,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class SellGUIMain extends JavaPlugin {
     private static Economy econ;
-    private ConsoleCommandSender console = this.getServer().getConsoleSender();
+    private final ConsoleCommandSender console = this.getServer().getConsoleSender();
     private File itemPrices;
     private FileConfiguration itemPricesConfig;
-    private File lang;
     private FileConfiguration langConfig;
     private File customItems;
     private FileConfiguration customItemsConfig;
@@ -87,7 +86,7 @@ public class SellGUIMain extends JavaPlugin {
     }
     public void checkConfigVersion() {
         String currentVersion = this.getConfig().getString("config-version");
-        String expectedVersion = "1.2";
+        String expectedVersion = "1.3";
 
         if (currentVersion == null || !currentVersion.equals(expectedVersion)) {
             this.getLogger().warning("Config version mismatch! Expected: " + expectedVersion + ", found: " + currentVersion);
@@ -208,10 +207,10 @@ public class SellGUIMain extends JavaPlugin {
     }
 
     public void createConfigs() {
-        this.itemPrices = new File(this.getDataFolder(), "item prices.yml");
+        this.itemPrices = new File(this.getDataFolder(), "itemprices.yml");
         if (!this.itemPrices.exists()) {
             this.itemPrices.getParentFile().mkdirs();
-            this.saveResource("item prices.yml", false);
+            this.saveResource("itemprices.yml", false);
         }
 
         this.itemPricesConfig = new YamlConfiguration();
@@ -222,10 +221,10 @@ public class SellGUIMain extends JavaPlugin {
             var7.printStackTrace();
         }
 
-        this.customMenuItems = new File(this.getDataFolder(), "custom menu items.yml");
+        this.customMenuItems = new File(this.getDataFolder(), "custommenuitems.yml");
         if (!this.customMenuItems.exists()) {
             this.customMenuItems.getParentFile().mkdirs();
-            this.saveResource("custom menu items.yml", false);
+            this.saveResource("custommenuitems.yml", false);
         }
 
         this.customMenuItemsConfig = new YamlConfiguration();
@@ -236,24 +235,24 @@ public class SellGUIMain extends JavaPlugin {
             var6.printStackTrace();
         }
 
-        this.lang = new File(this.getDataFolder(), "lang.yml");
-        if (!this.lang.exists()) {
-            this.lang.getParentFile().mkdirs();
+        File lang = new File(this.getDataFolder(), "lang.yml");
+        if (!lang.exists()) {
+            lang.getParentFile().mkdirs();
             this.saveResource("lang.yml", false);
         }
 
         this.langConfig = new YamlConfiguration();
 
         try {
-            this.langConfig.load(this.lang);
+            this.langConfig.load(lang);
         } catch (InvalidConfigurationException | IOException var5) {
             var5.printStackTrace();
         }
 
-        this.customItems = new File(this.getDataFolder(), "custom items.yml");
+        this.customItems = new File(this.getDataFolder(), "customitems.yml");
         if (!this.customItems.exists()) {
             this.customItems.getParentFile().mkdirs();
-            this.saveResource("custom items.yml", false);
+            this.saveResource("customitems.yml", false);
         }
 
         this.customItemsConfig = new YamlConfiguration();

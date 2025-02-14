@@ -50,26 +50,22 @@ public class SellCommand implements CommandExecutor {
             return true;
         }
 
-        // Kiểm tra nếu có một tham số (tên người chơi)
-        if (strings.length == 1 && player.hasPermission("sellgui.use")) {
+        //
+        if (strings.length == 1 && commandSender.hasPermission("sellgui.use")) {
             if (ifPlayer(strings[0])) {
-                if (player.hasPermission("sellgui.others")) {
-                    Player target = main.getServer().getPlayer(strings[0]);
-                    if (target != null) {
-                        sellGUIS.add(new SellGUI(this.main, target));
-                        player.sendMessage(color("Opened SellGUI for player: " + target.getName()));
-                    } else {
-                        player.sendMessage(color("&cPlayer not found: " + strings[0]));
-                    }
+                Player target = main.getServer().getPlayer(strings[0]);
+                if (target != null) {
+                    sellGUIS.add(new SellGUI(this.main, target));
+                    commandSender.sendMessage(color("Opened SellGUI for player: " + target.getName()));
                 } else {
-                    player.sendMessage(color("&8No Permission"));
+                    commandSender.sendMessage(color("&cPlayer not found: " + strings[0]));
                 }
-                return true;
+            } else {
+                commandSender.sendMessage(color("&cInvalid player name."));
             }
-            player.sendMessage(color("&cInvalid command."));
-        } else {
-            player.sendMessage(color("&8No Permission"));
+            return true;
         }
+        commandSender.sendMessage(color("&8No Permission"));
         return true;
     }
 

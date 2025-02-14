@@ -1,4 +1,4 @@
-config-version: 1.2 #DON'T CHANGE
+config-version: 1.3 #DON'T CHANGE
 #Use commands.yml to set aliases.
 #Menu Config
 menu-size: 54
@@ -8,23 +8,16 @@ menu-filler-location: 'bottom'
 menu-filler-type: 'BLACK_STAINED_GLASS_PANE'
 # Model data of item?
 menu-filler-custom-model-data: 67890
-
+sell-item-slot: 45  # 0 - 53 like gui
 #Material https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
 sell-item: 'EMERALD'
 #Material https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
 sell-item-glimmer: true
-# Model data of item?
+#Model data of item?
 sell-item-custom-model-data: 12345
 #enchanted effect | true, false
-sell-item-location: 'middle'
-#left, middle, right
-sell-item-side: 'bottom'
-#top, left, bottom, right | Only matters if filler is set to none or round.
-#
 sell-item-command: "say %player% clicked on sell item!"
 confirm-item-command: "say %player% clicked on confirm item!"
-
-
 confirm-item: 'EMERALD_BLOCK'
 #Material https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
 confirm-item-glimmer: true

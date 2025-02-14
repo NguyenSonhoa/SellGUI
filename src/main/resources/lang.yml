@@ -1,8 +1,8 @@
-menu-title: '&e&lSell Menu'
+menu-title: '&8Sell Menu'
 #Title of /sellgui
 menu-pane-name: ''
 #The filler item name
-sell-item-name: '&a&lSell Items'
+sell-item-name: '&aSell Items'
 #The name of the item you click to sell items
 sell-item-lore:
   - '&7Add your items above to sell'
@@ -14,12 +14,20 @@ confirm-item-name: '&e&lClick to Confirm'
 #Name of the item you click to finalize your sell
 item-total-format: '&7%amount%&r&7x %item%&f: &6&l$&a&l%total%'
 #Placeholders: %amount%, %total%, %item%, %price%, %total% | In the GUI confirm item
-total-format: '&f&lTotal: $&r&b%total%'
+total-format: '&fTotal: %total%'
 #Placeholders: %total% | At the bottom of all the items
 sold-message: '&7Sold items for &e&l$&r&f%total%'
 #Placeholders: total | After you sell the items.
 sellall-confirm-message: '&cAre you sure you want to sell your inventory? Anything with worth will be sold and there are no refunds. To confirm please type &e/sellall confirm'
 #Message to confirm sellall
+# message will be notified when player click sell but not have item in gui to sell
+no-items-title: "&cNo items to sell!"
+no-items-subtitle: ""
+
+no-items-sound: "BLOCK_NOTE_BLOCK_BASS"
+no-items-volume: 1.0
+no-items-pitch: 1.0
+
 sign-lines:
   - '&aSell Items'
   - 'Right Click'
