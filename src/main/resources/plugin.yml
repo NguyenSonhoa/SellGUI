@@ -1,19 +1,18 @@
 name: SellGUI
-version: 1.6.3
+version: 2.0-SNAPSHOT
 api-version: 1.16
 author: Aov,SaneNuyan
 main: me.aov.sellgui.SellGUIMain
 depend: [Vault]
-softdepend: [Essentials]
+softdepend: [Essentials,MMOItems]
 commands:
   sellgui:
     description: SellGUI Command
     usage: /sellgui
     permission: sellgui.use
-  customitems:
-    description: custom items menu
-    usage: /customitems
-    permission: sellgui.customitems
+  sellgui.mmoitems:
+    description: Opens the MMOItems Price Editor
+    usage: /sellgui
   sellall:
     description: Sells All Items in Inventory
     usage: /sellall

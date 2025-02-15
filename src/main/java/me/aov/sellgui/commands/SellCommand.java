@@ -29,6 +29,8 @@ public class SellCommand implements CommandExecutor {
         if (strings.length == 1 && strings[0].equalsIgnoreCase("reload")) {
             if (commandSender.hasPermission("sellgui.reload")) {
                 main.reload();
+                main.reloadMMOItemsConfig();  // ✅ Reloads `mmoitems.yml`
+                main.getMMOItemsPriceEditor().loadPrices();
                 commandSender.sendMessage(color("&7Configs reloaded."));
             } else {
                 commandSender.sendMessage(color("&8No Permission"));
@@ -68,6 +70,10 @@ public class SellCommand implements CommandExecutor {
         commandSender.sendMessage(color("&8No Permission"));
         return true;
     }
+
+    private void reloadMMOItemsConfig() {
+    }
+
 
     public ArrayList<SellGUI> getSellGUIS() {
         return sellGUIS;

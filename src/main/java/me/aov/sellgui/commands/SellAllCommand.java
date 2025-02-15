@@ -44,8 +44,6 @@ public class SellAllCommand implements CommandExecutor {
         if(!main.getConfig().getBoolean("sell-all-command-sell-enchanted") && itemStack.getEnchantments().size() > 0){
             return price;
         }
-        if (CustomItemsCommand.getPrice(itemStack) != -1.0D)
-            return CustomItemsCommand.getPrice(itemStack);
         this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus");
         ArrayList<String> flatBonus = new ArrayList<>(this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus"));
         this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus");

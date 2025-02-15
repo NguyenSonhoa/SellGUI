@@ -5,7 +5,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Iterator;
 import javax.annotation.Nullable;
-import me.aov.sellgui.commands.CustomItemsCommand;
+import io.lumine.mythic.lib.api.item.NBTItem;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -21,10 +21,17 @@ public class SellGUIAPI {
 
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
         double price = 0.0;
+        if (itemStack != null && itemStack.getType() != Material.AIR) {
+            NBTItem nbtItem = NBTItem.get(itemStack);
+            if (nbtItem.hasType()) {  //
+                String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
+                if (this.main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
+                    return this.main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
+                }
+            }
+        }
         if (!this.main.getConfig().getBoolean("sell-all-command-sell-enchanted") && itemStack.getEnchantments().size() > 0) {
             return price;
-        } else if (CustomItemsCommand.getPrice(itemStack) != -1.0) {
-            return CustomItemsCommand.getPrice(itemStack);
         } else {
             ArrayList<String> flatBonus = new ArrayList();
             if (this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus") != null) {

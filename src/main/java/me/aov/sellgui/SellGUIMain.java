@@ -6,12 +6,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.ListIterator;
-import me.aov.sellgui.commands.CustomItemsCommand;
+
 import me.aov.sellgui.commands.SellAllCommand;
 import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.listeners.InventoryListeners;
 import me.aov.sellgui.listeners.SignListener;
+import me.aov.sellgui.mmoitems.MMOItemsCommand;
 import me.aov.sellgui.listeners.UpdateWarning;
+import me.aov.sellgui.mmoitems.MMOItemsPriceEditor;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -27,34 +29,58 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class SellGUIMain extends JavaPlugin {
+    private static SellGUIMain instance;
     private static Economy econ;
+    public boolean isMMOItemsEnabled;
+    private MMOItemsPriceEditor mmoItemsPriceEditor;
+
     private final ConsoleCommandSender console = this.getServer().getConsoleSender();
     private File itemPrices;
     private FileConfiguration itemPricesConfig;
     private FileConfiguration langConfig;
-    private File customItems;
-    private FileConfiguration customItemsConfig;
     private File customMenuItems;
     private FileConfiguration customMenuItemsConfig;
     private boolean useEssentials;
     private EssentialsHolder essentialsHolder;
     private File log;
     private SellCommand sellCommand;
+    private boolean hasMMOItems = false;
     private FileConfiguration logConfiguration;
+    private FileConfiguration mmoItemsConfig;
 
     public SellGUIMain() {
+    }
+
+    public static SellGUIMain getInstance() {
+        return instance; //
+    }
+    public boolean isMMOItemsEnabled() {
+        return hasMMOItems;
     }
 
     public void onEnable() {
         this.registerConfig();
         this.createConfigs();
         checkConfigVersion();
+        if (getServer().getPluginManager().getPlugin("MMOItems") != null) {
+            hasMMOItems = true;
+            getLogger().info("MMOItems detected! Enabling MMOItems support.");
+            MMOItemsPriceEditor editor = new MMOItemsPriceEditor(this);
+            this.getCommand("sellgui.mmoitems").setExecutor(new MMOItemsCommand(editor));
+            this.mmoItemsPriceEditor = new MMOItemsPriceEditor(this);
+            this.getServer().getPluginManager().registerEvents(this.mmoItemsPriceEditor, this);
+        } else {
+            hasMMOItems = false;
+            getLogger().warning("MMOItems not found! Disabling MMOItems support.");
+        }
         this.createPrices();
         this.getServer().getPluginManager().registerEvents(new InventoryListeners(this), this);
         this.getServer().getPluginManager().registerEvents(new SignListener(this), this);
         this.sellCommand = new SellCommand(this);
+        this.mmoItemsPriceEditor.loadPrices();
+        this.getServer().getPluginManager().registerEvents(this.mmoItemsPriceEditor, this);
+
         this.getCommand("sellgui").setExecutor(this.sellCommand);
-        this.getCommand("customitems").setExecutor(new CustomItemsCommand(this));
         this.getCommand("sellall").setExecutor(new SellAllCommand(this));
         this.setupEconomy();
         this.useEssentials = this.essentials();
@@ -65,7 +91,6 @@ public class SellGUIMain extends JavaPlugin {
                 this.getLogger().info("There is a new update available.");
                 this.getServer().getPluginManager().registerEvents(new UpdateWarning(this), this);
             }
-
         });
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             Iterator var1 = this.getServer().getOnlinePlayers().iterator();
@@ -84,6 +109,9 @@ public class SellGUIMain extends JavaPlugin {
 
         }, 100L, 80L);
     }
+    public MMOItemsPriceEditor getMMOItemsPriceEditor() {
+        return this.mmoItemsPriceEditor;
+    }
     public void checkConfigVersion() {
         String currentVersion = this.getConfig().getString("config-version");
         String expectedVersion = "1.3";
@@ -99,10 +127,9 @@ public class SellGUIMain extends JavaPlugin {
 
     public void saveCustom() {
         try {
-            this.customItemsConfig.save(this.customItems);
             this.customMenuItemsConfig.save(this.customMenuItems);
-        } catch (IOException var2) {
-            var2.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
     }
@@ -152,6 +179,10 @@ public class SellGUIMain extends JavaPlugin {
         this.reloadConfig();
         this.saveDefaultConfig();
         this.createConfigs();
+        if (hasMMOItems && this.mmoItemsPriceEditor != null) {
+            this.mmoItemsPriceEditor.reloadMMOItemsConfig(); //
+            getLogger().info("Reloaded MMOItems prices successfully.");
+        }
     }
 
     private boolean setupEconomy() {
@@ -177,7 +208,6 @@ public class SellGUIMain extends JavaPlugin {
             return true;
         }
     }
-
     public SellCommand getSellCommand() {
         return this.sellCommand;
     }
@@ -197,13 +227,18 @@ public class SellGUIMain extends JavaPlugin {
     public FileConfiguration getLangConfig() {
         return this.langConfig;
     }
-
-    public FileConfiguration getCustomItemsConfig() {
-        return this.customItemsConfig;
-    }
-
     public FileConfiguration getCustomMenuItemsConfig() {
         return this.customMenuItemsConfig;
+    }
+
+    public void reloadMMOItemsConfig() {
+        File file = new File(getDataFolder(), "mmoitems.yml");
+        if (!file.exists()) {
+            saveResource("mmoitems.yml", false);
+        }
+
+        this.mmoItemsConfig = YamlConfiguration.loadConfiguration(file);
+        getLogger().info("Reloaded mmoitems.yml successfully!");
     }
 
     public void createConfigs() {
@@ -228,6 +263,7 @@ public class SellGUIMain extends JavaPlugin {
         }
 
         this.customMenuItemsConfig = new YamlConfiguration();
+        this.mmoItemsConfig = new YamlConfiguration();
 
         try {
             this.customMenuItemsConfig.load(this.customMenuItems);
@@ -249,19 +285,8 @@ public class SellGUIMain extends JavaPlugin {
             var5.printStackTrace();
         }
 
-        this.customItems = new File(this.getDataFolder(), "customitems.yml");
-        if (!this.customItems.exists()) {
-            this.customItems.getParentFile().mkdirs();
-            this.saveResource("customitems.yml", false);
-        }
 
-        this.customItemsConfig = new YamlConfiguration();
 
-        try {
-            this.customItemsConfig.load(this.customItems);
-        } catch (InvalidConfigurationException | IOException var4) {
-            var4.printStackTrace();
-        }
 
         this.log = new File(this.getDataFolder(), "log.txt");
         if (!this.log.exists()) {
