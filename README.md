@@ -13,5 +13,10 @@ Need Vault & Spigot 1.20+ to use
 + Added Support Custom Model Data changing Menu Sell.
 + Added Command Execute when you click sell & confirm sell.
 + Fixed Some Console Sender error.
-# Next Update should be?
 + Support MMOItems
++ Edit ingame GUI (Beta)
++ Notify when you not input item in gui sell!
++ Can use cross Essentials + MMOItems
+# Next Update should be?
++ Supported MMOItems
++ Support MMOCore???
