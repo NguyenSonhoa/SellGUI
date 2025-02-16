@@ -317,7 +317,7 @@ public class SellGUI implements Listener {
         if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
             String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
 
-            if (main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
+            if (main.getMMOItemsPriceEditor() != null && main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
                 return main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
             }
         }

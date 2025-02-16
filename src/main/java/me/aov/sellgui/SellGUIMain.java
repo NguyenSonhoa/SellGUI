@@ -65,21 +65,22 @@ public class SellGUIMain extends JavaPlugin {
         if (getServer().getPluginManager().getPlugin("MMOItems") != null) {
             hasMMOItems = true;
             getLogger().info("MMOItems detected! Enabling MMOItems support.");
-            MMOItemsPriceEditor editor = new MMOItemsPriceEditor(this);
-            this.getCommand("sellgui.mmoitems").setExecutor(new MMOItemsCommand(editor));
             this.mmoItemsPriceEditor = new MMOItemsPriceEditor(this);
+            this.getCommand("sellgui.mmoitems").setExecutor(new MMOItemsCommand(this.mmoItemsPriceEditor));
             this.getServer().getPluginManager().registerEvents(this.mmoItemsPriceEditor, this);
         } else {
             hasMMOItems = false;
             getLogger().warning("MMOItems not found! Disabling MMOItems support.");
+            this.mmoItemsPriceEditor = null;
+        }
+
+        if (this.mmoItemsPriceEditor != null) {
+            this.mmoItemsPriceEditor.loadPrices();
         }
         this.createPrices();
         this.getServer().getPluginManager().registerEvents(new InventoryListeners(this), this);
         this.getServer().getPluginManager().registerEvents(new SignListener(this), this);
         this.sellCommand = new SellCommand(this);
-        this.mmoItemsPriceEditor.loadPrices();
-        this.getServer().getPluginManager().registerEvents(this.mmoItemsPriceEditor, this);
-
         this.getCommand("sellgui").setExecutor(this.sellCommand);
         this.getCommand("sellall").setExecutor(new SellAllCommand(this));
         this.setupEconomy();
