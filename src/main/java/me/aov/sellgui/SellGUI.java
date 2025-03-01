@@ -326,17 +326,16 @@ public class SellGUI implements Listener {
             }
         }
 
-        if (main.hasEssentials() && main.getConfig().getBoolean("use-essentials-price") &&
-                main.getEssentialsHolder().getEssentials() != null) {
-
-            double temp = round(main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
-                    main.getConfig().getInt("places-to-round"));
-
-            if (temp > 0) {
-                price = temp;
+        if (price == 0 && this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
+            double essentialsPrice = round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
+                    this.main.getConfig().getInt("places-to-round"));
+            if (essentialsPrice > 0) {
+                price = essentialsPrice;
             }
         }
-
+        if (price == 0 && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
+            price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
+        }
         price = applyPermissionBonuses(player, price);
 
         return round(price, this.main.getConfig().getInt("places-to-round"));
@@ -345,16 +344,23 @@ public class SellGUI implements Listener {
     private double applyPermissionBonuses(Player player, double price) {
         if (player == null || price <= 0) return price;
 
+        double bonusPercent = 0.0;
+        double multiplier = 1.0;
+
         for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
             if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
-                double bonusPercent = Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
-                price += price * (bonusPercent / 100);
-            } else if (pai.getPermission().startsWith("sellgui.multiplier.") && pai.getValue()) {
-                price *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
+                double percent = Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
+                bonusPercent += percent;
+            }
+            if (pai.getPermission().startsWith("sellgui.multiplier.") && pai.getValue()) {
+                multiplier *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
             }
         }
+
+        price = price * (1 + bonusPercent / 100) * multiplier;
         return price;
     }
+
 
 
 
@@ -396,7 +402,7 @@ public class SellGUI implements Listener {
                     if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
                         itemName = nbtItem.getString("MMOITEMS_ITEM_ID");
                     } else {
-                        // Fallback to vanilla item name if it's not a MMOItem
+                        // fall to vanilla item name if not an MMOItem
                         itemName = getItemName(itemStack);
                         this.getMain().getLogger().warning("Item doesn't have MMOITEMS_ITEM_ID tag: " + itemStack.getType());
                     }

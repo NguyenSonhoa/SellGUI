@@ -3,8 +3,8 @@ package me.aov.sellgui.mmoitems;
 import io.lumine.mythic.lib.api.item.NBTItem;
 import me.aov.sellgui.SellGUIMain;
 import net.Indyuce.mmoitems.MMOItems;
+import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.item.mmoitem.MMOItem;
-import net.Indyuce.mmoitems.manager.TypeManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -21,11 +21,17 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.jetbrains.annotations.Nullable;
 
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 
 import static io.lumine.mythic.lib.api.util.ui.SilentNumbers.getItemName;
 
@@ -131,8 +137,9 @@ public class MMOItemsPriceEditor implements Listener {
         meta.setDisplayName(ChatColor.GOLD + "MMOItems Price Editor Instructions");
         meta.setLore(Arrays.asList(
                 ChatColor.YELLOW + "Click on a paper to edit its price.",
-                ChatColor.YELLOW + "Place an MMOItems in gui",
-                ChatColor.YELLOW + "then click it to set a price!"
+                ChatColor.YELLOW + "Click an mmoitems in inventory",
+                ChatColor.YELLOW + "then to set a price!",
+                ChatColor.YELLOW + "Beta!!"
         ));
         book.setItemMeta(meta);
         return book;
@@ -140,54 +147,38 @@ public class MMOItemsPriceEditor implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getClickedInventory() == null || !event.getView().getTitle().equals(ChatColor.GOLD + "MMOItems Price Editor")) {
+        Player player = (Player) event.getWhoClicked();
+        Inventory clickedInventory = event.getClickedInventory();
+        ItemStack clickedItem = event.getCurrentItem();
+        if (!event.getView().getTitle().equals(ChatColor.GOLD + "MMOItems Price Editor")) {
             return;
         }
 
-        Player player = (Player) event.getWhoClicked();
-        int slot = event.getSlot();
-        if (slot == 51) {
-            if (currentPage > 0) {
-                currentPage--;
-                openEditor(player);
-            }
-        } else if (slot == 52) {
-            if ((currentPage + 1) * MAX_ITEMS_PER_PAGE < itemPrices.size()) {
-                currentPage++;
-                openEditor(player);
-            }
-        }
 
-        ItemStack clickedItem = event.getCurrentItem();
         if (clickedItem == null || clickedItem.getType() == Material.AIR) {
             return;
         }
-        event.setCancelled(true);
 
-        ItemStack draggedItem = event.getCursor();
-        if (draggedItem != null && draggedItem.getType() != Material.AIR) {
-            NBTItem nbtItem = NBTItem.get(draggedItem);
+        if (clickedInventory.equals(player.getInventory())) {
+            NBTItem nbtItem = NBTItem.get(clickedItem);
             if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
                 String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
-                String type = nbtItem.getString("MMOITEMS_TYPE"); // Nếu cần lấy loại vật phẩm
 
-                String fullItemId = type + "." + itemId;
-                itemPrices.put(fullItemId, 0.0);
-                config.set("mmoitems." + fullItemId, 0.0);
-                saveConfig();
+                if (!itemPrices.containsKey(itemId)) {
+                    itemPrices.put(itemId, 0.0);
+                    config.set("mmoitems." + itemId, 0.0);
+                    saveConfig();
 
-                event.getClickedInventory().setItem(event.getSlot(), draggedItem.clone());
-                player.setItemOnCursor(null);
-                player.closeInventory();
-
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    player.sendMessage(ChatColor.YELLOW + "Enter a price for this new MMOItem in chat.");
-                }, 5L);
-                priceSetMap.put(player, fullItemId);
+                    player.sendMessage(ChatColor.GREEN + "✔ Added MMOItem: " + itemId);
+                    player.sendMessage(ChatColor.YELLOW + "Enter a price for this item in chat.");
+                    priceSetMap.put(player, itemId);
+                } else {
+                    player.sendMessage(ChatColor.RED + "This item already has a price.");
                 }
             }
+            event.setCancelled(true);
+        }
 
-        // Xử lý chỉnh sửa giá của item
         if (clickedItem.getType() == Material.PAPER) {
             ItemMeta meta = clickedItem.getItemMeta();
             if (meta != null && meta.getPersistentDataContainer().has(new NamespacedKey(plugin, "mmoitems_id"), PersistentDataType.STRING)) {
@@ -200,60 +191,48 @@ public class MMOItemsPriceEditor implements Listener {
                     }, 5L);
                 }
             }
+            event.setCancelled(true);
         }
     }
 
-    public static ItemStack item(String type, String id) {
-        if (checkItems(type, id)) {
-            MMOItem mmoitem = MMOItems.plugin.getMMOItem(MMOItems.plugin.getTypes().get(type), id);
-            return Objects.requireNonNull(mmoitem).newBuilder().build();
-        }
-        return null;
-    }
 
-    private static boolean checkItems(String type, String id) {
-        MMOItem mmoitem = MMOItems.plugin.getMMOItem(MMOItems.plugin.getTypes().get(type), id);
-        if (mmoitem == null) {
-            return false;
-        }
-        return mmoitem.newBuilder().build() != null;
-    }
+
+
 
 
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
 
-        // Check if the player is in the process of setting a price for an item
         if (priceSetMap.containsKey(player)) {
-            event.setCancelled(true); // Cancel the chat event to prevent it from being sent to others
+            event.setCancelled(true);
 
             try {
                 double newPrice = Double.parseDouble(event.getMessage());
+                newPrice = Math.max(0, newPrice);
+
                 String itemId = priceSetMap.get(player);
 
-                // Check if the item ID is valid
                 if (!itemPrices.containsKey(itemId)) {
                     player.sendMessage(ChatColor.RED + "Error: This is not a valid MMOItem.");
                     return;
                 }
 
-                // Update price for the existing item
                 itemPrices.put(itemId, newPrice);
                 config.set("mmoitems." + itemId, newPrice);
                 saveConfig();
 
-                player.sendMessage(ChatColor.GREEN + "Price set to: " + newPrice);
-                priceSetMap.remove(player); // Clear the map since the price has been set
+                player.sendMessage(ChatColor.GREEN + "✔ Price set to: " + newPrice);
+                priceSetMap.remove(player);
 
-                // Reopen the editor to reflect the changes
                 Bukkit.getScheduler().runTask(plugin, () -> openEditor(player));
 
             } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "Invalid number. Please enter a valid price.");
+                player.sendMessage(ChatColor.RED + "❌ Invalid number. Please enter a valid price.");
             }
         }
     }
+
 
 
 
@@ -268,9 +247,9 @@ public class MMOItemsPriceEditor implements Listener {
     }
 
     private boolean pricesChanged() {
-        for (String fullItemId : itemPrices.keySet()) {
-            double currentPrice = itemPrices.get(fullItemId);
-            double savedPrice = config.getDouble("mmoitems." + fullItemId, -1);
+        for (String itemId : itemPrices.keySet()) {
+            double currentPrice = itemPrices.get(itemId);
+            double savedPrice = config.getDouble("mmoitems." + itemId, -1);
             if (currentPrice != savedPrice) {
                 return true;
             }
@@ -293,8 +272,8 @@ public class MMOItemsPriceEditor implements Listener {
         }
 
         if (config.contains("mmoitems")) {
-            for (String fullItemId : config.getConfigurationSection("mmoitems").getKeys(false)) {
-                itemPrices.put(fullItemId, config.getDouble("mmoitems." + fullItemId));
+            for (String itemId : config.getConfigurationSection("mmoitems").getKeys(false)) {
+                itemPrices.put(itemId, config.getDouble("mmoitems." + itemId));
             }
         }
     }
@@ -306,9 +285,9 @@ public class MMOItemsPriceEditor implements Listener {
         for (Map.Entry<String, Double> entry : itemPrices.entrySet()) {
             config.set("mmoitems." + entry.getKey(), entry.getValue());
         }
-        for (String fullItemId : config.getConfigurationSection("mmoitems").getKeys(false)) {
-            if (!itemPrices.containsKey(fullItemId)) {
-                config.set("mmoitems." + fullItemId, null);
+        for (String itemId : config.getConfigurationSection("mmoitems").getKeys(false)) {
+            if (!itemPrices.containsKey(itemId)) {
+                config.set("mmoitems." + itemId, null);
             }
         }
 

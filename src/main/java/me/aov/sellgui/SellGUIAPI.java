@@ -68,14 +68,26 @@ public class SellGUIAPI extends PlaceholderExpansion {
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
         double price = 0.0;
 
-        if (itemStack != null && itemStack.getType() != Material.AIR) {
-            if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
-                price = round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
-                        this.main.getConfig().getInt("places-to-round"));
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return price;
+        }
+        NBTItem nbtItem = NBTItem.get(itemStack);
+        if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
+            String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
+            if (this.main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
+                price = this.main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
             }
-            if (price == 0 && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
-                price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
+        }
+        if (price == 0 && this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
+            double essentialsPrice = round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
+                    this.main.getConfig().getInt("places-to-round"));
+            if (essentialsPrice > 0) {
+                price = essentialsPrice;
             }
+        }
+
+        if (price == 0 && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
+            price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
         }
 
         if (!this.main.getConfig().getBoolean("sell-all-command-sell-enchanted") && itemStack.getEnchantments().size() > 0) {
