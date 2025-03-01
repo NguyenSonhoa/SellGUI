@@ -1,11 +1,13 @@
 
 ![sellguilogo](https://github.com/user-attachments/assets/8500df19-aed9-48f3-a7b2-edafbe0c0a99)
-![slogo](https://github.com/user-attachments/assets/f172783f-748c-4a77-b81a-66aba6f2be65)
+
 
 
 A plugin forked from original
 
 Need Vault & Spigot 1.20+ to use
+
+![slogo](https://github.com/user-attachments/assets/30afe54c-36f9-40df-ab9d-6c804ca5b27f)
 
  ! Support EssentialsX
  ! You can set it on config.yml
