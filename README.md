@@ -1,5 +1,7 @@
-# SellGUI v2.0 Minecraft plugin for Spigot.
-A plugin forked from original https://github.com/aoov/SellGUI
+
+![sellguilogo](https://github.com/user-attachments/assets/8500df19-aed9-48f3-a7b2-edafbe0c0a99)
+
+A plugin forked from original
 
 Need Vault & Spigot 1.20+ to use
 
