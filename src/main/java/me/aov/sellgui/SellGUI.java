@@ -297,7 +297,6 @@ public class SellGUI implements Listener {
     public String getItemName(ItemStack itemStack) {
         if (itemStack == null) return "Unknown Item";
 
-        // Check if the item is an MMOItem
         NBTItem nbtItem = NBTItem.get(itemStack);
         if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
             MMOItem mmoItem = MMOItems.plugin.getMMOItem(Type.get(nbtItem.getType()), nbtItem.getString("MMOITEMS_ITEM_ID"));
@@ -314,6 +313,7 @@ public class SellGUI implements Listener {
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
         if (!main.isMMOItemsEnabled()) return 0.0;
         double price = 0.0;
+
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return price;
         }
@@ -325,24 +325,31 @@ public class SellGUI implements Listener {
                 price = this.main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
             }
         }
+
         if (main.hasEssentials() && main.getConfig().getBoolean("use-essentials-price") &&
                 main.getEssentialsHolder().getEssentials() != null) {
 
             double temp = round(main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
                     main.getConfig().getInt("places-to-round"));
+
+            if (temp > 0) {
+                price = temp;
+            }
         }
+
         price = applyPermissionBonuses(player, price);
+
         return round(price, this.main.getConfig().getInt("places-to-round"));
     }
 
     private double applyPermissionBonuses(Player player, double price) {
-        if (player == null) {
-            return price;
-        }
+        if (player == null || price <= 0) return price;
+
         for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
             if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
-                price += Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
-            } else if (pai.getPermission().startsWith("sellgui.multiplier.")) {
+                double bonusPercent = Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
+                price += price * (bonusPercent / 100);
+            } else if (pai.getPermission().startsWith("sellgui.multiplier.") && pai.getValue()) {
                 price *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
             }
         }

@@ -67,22 +67,17 @@ public class SellGUIAPI extends PlaceholderExpansion {
 
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
         double price = 0.0;
+
         if (itemStack != null && itemStack.getType() != Material.AIR) {
-            NBTItem nbtItem = NBTItem.get(itemStack);
-            if (nbtItem.hasType()) {  //
-                String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
-                if (this.main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
-                    for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
-                        if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
-                            price += Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
-                        } else if (pai.getPermission().startsWith("sellgui.multiplier.")) {
-                            price *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
-                        }
-                        return this.main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
-                    }
-                }
+            if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
+                price = round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
+                        this.main.getConfig().getInt("places-to-round"));
+            }
+            if (price == 0 && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
+                price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
             }
         }
+
         if (!this.main.getConfig().getBoolean("sell-all-command-sell-enchanted") && itemStack.getEnchantments().size() > 0) {
             return price;
         } else {
@@ -121,12 +116,12 @@ public class SellGUIAPI extends PlaceholderExpansion {
                         while (true) {
                             while (var9.hasNext()) {
                                 PermissionAttachmentInfo pai = (PermissionAttachmentInfo) var9.next();
-                                if (pai.getPermission().contains("sellgui.bonus.") && pai.getValue()) {
-                                    if (temp != 0.0) {
-                                        temp += Double.parseDouble(pai.getPermission().replaceAll("sellgui.bonus.", ""));
-                                    }
-                                } else if (pai.getPermission().contains("sellgui.multiplier.") && pai.getValue()) {
-                                    temp *= Double.parseDouble(pai.getPermission().replaceAll("sellgui.multiplier.", ""));
+                                if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
+                                    double bonusPercent = Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
+                                    temp += (temp * (bonusPercent / 100));
+                                }
+                                if (pai.getPermission().startsWith("sellgui.multiplier.") && pai.getValue()) {
+                                    temp *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
                                 }
                             }
 
