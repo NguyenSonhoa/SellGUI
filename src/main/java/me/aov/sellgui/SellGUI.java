@@ -27,6 +27,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.persistence.PersistentDataType;
 
+import javax.annotation.Nullable;
+
 public class SellGUI implements Listener {
     private final SellGUIMain main;
     private final Player player;
@@ -47,7 +49,7 @@ public class SellGUI implements Listener {
     }
 
     private void createMenu() {
-        menu = Bukkit.createInventory((InventoryHolder)null, this.main.getConfig().getInt("menu-size"), color(this.main.getLangConfig().getString("menu-title")));
+        menu = Bukkit.createInventory((InventoryHolder) null, this.main.getConfig().getInt("menu-size"), color(this.main.getLangConfig().getString("menu-title")));
         this.addFiller(Objects.requireNonNull(this.main.getConfig().getString("menu-filler-location")));
         this.addSellItem();
     }
@@ -82,6 +84,7 @@ public class SellGUI implements Listener {
         return meta1.hasCustomModelData() == meta2.hasCustomModelData() &&
                 (!meta1.hasCustomModelData() || meta1.getCustomModelData() == meta2.getCustomModelData());
     }
+
     private void addCustomItems() {
         for (String itemPath : this.main.getCustomMenuItemsConfig().getKeys(false)) {
             ItemStack customItem = new ItemStack(Material.valueOf(this.main.getCustomMenuItemsConfig().getString(itemPath + ".material")));
@@ -118,6 +121,7 @@ public class SellGUI implements Listener {
             menu.setItem(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".slot"), customItem);
         }
     }
+
     public void addSellItem() {
         int slot = this.main.getConfig().getInt("sell-item-slot", 4);  //
         int maxSlot = menu.getSize() - 1;
@@ -134,15 +138,15 @@ public class SellGUI implements Listener {
 
     private void right(String z) {
         if (z.equalsIgnoreCase("left")) {
-            menu.setItem(menu.getSize() - 1, (ItemStack)null);
+            menu.setItem(menu.getSize() - 1, (ItemStack) null);
             menu.setItem(menu.getSize() - 1, sellItem);
             this.sellItemSlot = menu.getSize() - 1;
         } else if (z.equalsIgnoreCase("middle")) {
-            menu.setItem(8 + 9 * menu.getSize() / 9 / 2, (ItemStack)null);
+            menu.setItem(8 + 9 * menu.getSize() / 9 / 2, (ItemStack) null);
             menu.setItem(8 + 9 * menu.getSize() / 9 / 2, sellItem);
             this.sellItemSlot = 8 + 9 * menu.getSize() / 9 / 2;
         } else if (z.equalsIgnoreCase("right")) {
-            menu.setItem(8, (ItemStack)null);
+            menu.setItem(8, (ItemStack) null);
             menu.setItem(8, sellItem);
             this.sellItemSlot = 8;
         }
@@ -197,35 +201,35 @@ public class SellGUI implements Listener {
     private void addFiller(String s) {
         int i;
         if (s.equalsIgnoreCase("bottom")) {
-            for(i = menu.getSize() - 9; i < menu.getSize(); ++i) {
+            for (i = menu.getSize() - 9; i < menu.getSize(); ++i) {
                 menu.setItem(i, filler);
             }
         } else if (s.equalsIgnoreCase("left")) {
-            for(i = 0; i < menu.getSize(); i += 9) {
+            for (i = 0; i < menu.getSize(); i += 9) {
                 menu.setItem(i, filler);
             }
         } else if (s.equalsIgnoreCase("right")) {
-            for(i = 8; i < menu.getSize(); i += 9) {
+            for (i = 8; i < menu.getSize(); i += 9) {
                 menu.setItem(i, filler);
             }
         } else if (s.equalsIgnoreCase("top")) {
-            for(i = 0; i < 9; ++i) {
+            for (i = 0; i < 9; ++i) {
                 menu.setItem(i, filler);
             }
         } else if (s.equalsIgnoreCase("round")) {
-            for(i = menu.getSize() - 9; i < menu.getSize(); ++i) {
+            for (i = menu.getSize() - 9; i < menu.getSize(); ++i) {
                 menu.setItem(i, filler);
             }
 
-            for(i = 0; i < menu.getSize(); i += 9) {
+            for (i = 0; i < menu.getSize(); i += 9) {
                 menu.setItem(i, filler);
             }
 
-            for(i = 8; i < menu.getSize(); i += 9) {
+            for (i = 8; i < menu.getSize(); i += 9) {
                 menu.setItem(i, filler);
             }
 
-            for(i = 0; i < 9; ++i) {
+            for (i = 0; i < 9; ++i) {
                 menu.setItem(i, filler);
             }
         }
@@ -252,6 +256,7 @@ public class SellGUI implements Listener {
         itemMeta.getPersistentDataContainer().set(new NamespacedKey(this.main, "sellgui-item"), PersistentDataType.BYTE, (byte) 1);
         this.confirmItem.setItemMeta(itemMeta);
     }
+
     public ArrayList<String> makeLore() {
         HashMap<String, Integer> itemCounts = new HashMap<>();
         HashMap<String, Double> itemPrices = new HashMap<>();
@@ -285,7 +290,7 @@ public class SellGUI implements Listener {
     }
 
     public void setConfirmItem() {
-        this.menu.setItem(this.sellItemSlot, (ItemStack)null);
+        this.menu.setItem(this.sellItemSlot, (ItemStack) null);
         this.menu.setItem(this.sellItemSlot, this.confirmItem);
     }
 
@@ -306,82 +311,42 @@ public class SellGUI implements Listener {
     }
 
 
-
-
-    public double getPrice(ItemStack itemStack, Player player) {
+    public double getPrice(ItemStack itemStack, @Nullable Player player) {
         if (!main.isMMOItemsEnabled()) return 0.0;
-
         double price = 0.0;
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return price;
+        }
 
         NBTItem nbtItem = NBTItem.get(itemStack);
         if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
             String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
-
-            if (main.getMMOItemsPriceEditor() != null && main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
-                return main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
+            if (this.main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
+                price = this.main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
             }
         }
-
         if (main.hasEssentials() && main.getConfig().getBoolean("use-essentials-price") &&
                 main.getEssentialsHolder().getEssentials() != null) {
 
             double temp = round(main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
                     main.getConfig().getInt("places-to-round"));
-
-            if (player != null && main.getConfig().getBoolean("use-permission-bonuses-on-essentials")) {
-                for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
-                    if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
-                        temp += Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
-                    }
-                    if (pai.getPermission().startsWith("sellgui.multiplier.") && pai.getValue()) {
-                        temp *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
-                    }
-                }
-            }
-
-            return main.getConfig().getBoolean("round-places") ? round(temp, main.getConfig().getInt("places-to-round")) : temp;
         }
+        price = applyPermissionBonuses(player, price);
+        return round(price, this.main.getConfig().getInt("places-to-round"));
+    }
 
-        if (itemStack != null && !itemStack.getType().isAir() &&
-                main.getItemPricesConfig().contains(itemStack.getType().name())) {
-            price = main.getItemPricesConfig().getDouble(itemStack.getType().name());
+    private double applyPermissionBonuses(Player player, double price) {
+        if (player == null) {
+            return price;
         }
-
-        if (itemStack != null && itemStack.getItemMeta().hasEnchants()) {
-            for (Enchantment enchantment : itemStack.getItemMeta().getEnchants().keySet()) {
-                for (String s : main.getItemPricesConfig().getStringList("flat-enchantment-bonus")) {
-                    String[] parts = s.split(":");
-                    if (parts[0].equalsIgnoreCase(enchantment.getKey().getKey()) &&
-                            parts[1].equalsIgnoreCase(String.valueOf(itemStack.getEnchantmentLevel(enchantment)))) {
-                        price += Double.parseDouble(parts[2]);
-                    }
-                }
-            }
-
-            for (Enchantment enchantment : itemStack.getItemMeta().getEnchants().keySet()) {
-                for (String s : main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus")) {
-                    String[] parts = s.split(":");
-                    if (parts[0].equalsIgnoreCase(enchantment.getKey().getKey()) &&
-                            parts[1].equalsIgnoreCase(String.valueOf(itemStack.getEnchantmentLevel(enchantment)))) {
-                        price *= Double.parseDouble(parts[2]);
-                    }
-                }
+        for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
+            if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
+                price += Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
+            } else if (pai.getPermission().startsWith("sellgui.multiplier.")) {
+                price *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
             }
         }
-
-        if (player != null) {
-            for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
-                if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
-                    price += Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
-                }
-                if (pai.getPermission().startsWith("sellgui.multiplier.") && pai.getValue()) {
-                    price *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
-                }
-            }
-            return getPrice(itemStack, null);
-        }
-
-        return main.getConfig().getBoolean("round-places") ? round(price, main.getConfig().getInt("places-to-round")) : price;
+        return price;
     }
 
 

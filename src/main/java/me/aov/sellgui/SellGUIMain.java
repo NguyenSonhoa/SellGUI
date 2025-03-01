@@ -29,6 +29,7 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class SellGUIMain extends JavaPlugin {
+    private SellGUIAPI sellGUIAPI;
     private static SellGUIMain instance;
     private static Economy econ;
     public boolean isMMOItemsEnabled;
@@ -59,6 +60,10 @@ public class SellGUIMain extends JavaPlugin {
     }
 
     public void onEnable() {
+        this.sellGUIAPI = new SellGUIAPI(this);
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            this.sellGUIAPI.registerExpansion();
+        }
         this.registerConfig();
         this.createConfigs();
         checkConfigVersion();

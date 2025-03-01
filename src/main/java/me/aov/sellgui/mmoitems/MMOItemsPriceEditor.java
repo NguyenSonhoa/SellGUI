@@ -3,8 +3,8 @@ package me.aov.sellgui.mmoitems;
 import io.lumine.mythic.lib.api.item.NBTItem;
 import me.aov.sellgui.SellGUIMain;
 import net.Indyuce.mmoitems.MMOItems;
-import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.item.mmoitem.MMOItem;
+import net.Indyuce.mmoitems.manager.TypeManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -21,17 +21,11 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.jetbrains.annotations.Nullable;
 
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
+import java.util.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 
 import static io.lumine.mythic.lib.api.util.ui.SilentNumbers.getItemName;
 
@@ -150,17 +144,14 @@ public class MMOItemsPriceEditor implements Listener {
             return;
         }
 
-        event.setCancelled(true); // Ngăn không cho lấy hoặc đặt item trong GUI
         Player player = (Player) event.getWhoClicked();
         int slot = event.getSlot();
-
-        // Xử lý chuyển trang
-        if (slot == 51) { // Nút Previous Page
+        if (slot == 51) {
             if (currentPage > 0) {
                 currentPage--;
                 openEditor(player);
             }
-        } else if (slot == 52) { // Nút Next Page
+        } else if (slot == 52) {
             if ((currentPage + 1) * MAX_ITEMS_PER_PAGE < itemPrices.size()) {
                 currentPage++;
                 openEditor(player);
@@ -171,40 +162,38 @@ public class MMOItemsPriceEditor implements Listener {
         if (clickedItem == null || clickedItem.getType() == Material.AIR) {
             return;
         }
+        event.setCancelled(true);
 
         ItemStack draggedItem = event.getCursor();
+        if (draggedItem != null && draggedItem.getType() != Material.AIR) {
+            NBTItem nbtItem = NBTItem.get(draggedItem);
+            if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
+                String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
+                String type = nbtItem.getString("MMOITEMS_TYPE"); // Nếu cần lấy loại vật phẩm
 
-        // Xử lý đặt item vào GUI
-        if (event.getAction().name().contains("PLACE") || event.getAction().name().contains("SWAP")) {
-            if (draggedItem != null && draggedItem.getType() != Material.AIR) {
-                NBTItem nbtItem = NBTItem.get(draggedItem);
-                if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
-                    String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
+                String fullItemId = type + "." + itemId;
+                itemPrices.put(fullItemId, 0.0);
+                config.set("mmoitems." + fullItemId, 0.0);
+                saveConfig();
 
-                    itemPrices.put(itemId, 0.0);
-                    config.set("mmoitems." + itemId, 0.0);
-                    saveConfig();
+                event.getClickedInventory().setItem(event.getSlot(), draggedItem.clone());
+                player.setItemOnCursor(null);
+                player.closeInventory();
 
-                    event.getClickedInventory().setItem(event.getSlot(), draggedItem.clone());
-                    player.setItemOnCursor(null);
-
-                    player.closeInventory();
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        player.sendMessage(ChatColor.YELLOW + "Enter a price for this new MMOItem in chat.");
-                    }, 5L);
-
-                    priceSetMap.put(player, itemId);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    player.sendMessage(ChatColor.YELLOW + "Enter a price for this new MMOItem in chat.");
+                }, 5L);
+                priceSetMap.put(player, fullItemId);
                 }
             }
-        }
 
         // Xử lý chỉnh sửa giá của item
         if (clickedItem.getType() == Material.PAPER) {
             ItemMeta meta = clickedItem.getItemMeta();
             if (meta != null && meta.getPersistentDataContainer().has(new NamespacedKey(plugin, "mmoitems_id"), PersistentDataType.STRING)) {
-                String itemId = meta.getPersistentDataContainer().get(new NamespacedKey(plugin, "mmoitems_id"), PersistentDataType.STRING);
-                if (itemId != null) {
-                    priceSetMap.put(player, itemId);
+                String fullItemId = meta.getPersistentDataContainer().get(new NamespacedKey(plugin, "mmoitems_id"), PersistentDataType.STRING);
+                if (fullItemId != null) {
+                    priceSetMap.put(player, fullItemId);
                     player.closeInventory();
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         player.sendMessage(ChatColor.YELLOW + "Enter a new price for this MMOItem in chat.");
@@ -214,8 +203,21 @@ public class MMOItemsPriceEditor implements Listener {
         }
     }
 
+    public static ItemStack item(String type, String id) {
+        if (checkItems(type, id)) {
+            MMOItem mmoitem = MMOItems.plugin.getMMOItem(MMOItems.plugin.getTypes().get(type), id);
+            return Objects.requireNonNull(mmoitem).newBuilder().build();
+        }
+        return null;
+    }
 
-
+    private static boolean checkItems(String type, String id) {
+        MMOItem mmoitem = MMOItems.plugin.getMMOItem(MMOItems.plugin.getTypes().get(type), id);
+        if (mmoitem == null) {
+            return false;
+        }
+        return mmoitem.newBuilder().build() != null;
+    }
 
 
     @EventHandler
@@ -266,9 +268,9 @@ public class MMOItemsPriceEditor implements Listener {
     }
 
     private boolean pricesChanged() {
-        for (String itemId : itemPrices.keySet()) {
-            double currentPrice = itemPrices.get(itemId);
-            double savedPrice = config.getDouble("mmoitems." + itemId, -1);
+        for (String fullItemId : itemPrices.keySet()) {
+            double currentPrice = itemPrices.get(fullItemId);
+            double savedPrice = config.getDouble("mmoitems." + fullItemId, -1);
             if (currentPrice != savedPrice) {
                 return true;
             }
@@ -291,8 +293,8 @@ public class MMOItemsPriceEditor implements Listener {
         }
 
         if (config.contains("mmoitems")) {
-            for (String itemId : config.getConfigurationSection("mmoitems").getKeys(false)) {
-                itemPrices.put(itemId, config.getDouble("mmoitems." + itemId));
+            for (String fullItemId : config.getConfigurationSection("mmoitems").getKeys(false)) {
+                itemPrices.put(fullItemId, config.getDouble("mmoitems." + fullItemId));
             }
         }
     }
@@ -304,9 +306,9 @@ public class MMOItemsPriceEditor implements Listener {
         for (Map.Entry<String, Double> entry : itemPrices.entrySet()) {
             config.set("mmoitems." + entry.getKey(), entry.getValue());
         }
-        for (String itemId : config.getConfigurationSection("mmoitems").getKeys(false)) {
-            if (!itemPrices.containsKey(itemId)) {
-                config.set("mmoitems." + itemId, null);
+        for (String fullItemId : config.getConfigurationSection("mmoitems").getKeys(false)) {
+            if (!itemPrices.containsKey(fullItemId)) {
+                config.set("mmoitems." + fullItemId, null);
             }
         }
 

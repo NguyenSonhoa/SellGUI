@@ -6,17 +6,63 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import javax.annotation.Nullable;
 import io.lumine.mythic.lib.api.item.NBTItem;
+import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 
-public class SellGUIAPI {
+public class SellGUIAPI extends PlaceholderExpansion {
     private SellGUIMain main;
 
-    public SellGUIAPI(SellGUIMain main) {
-        this.main = main;
+    public SellGUIAPI(SellGUIMain sellGUIMain) {
+        this.main = sellGUIMain;
+    }
+
+    @Override
+    public String getIdentifier() {
+        return "sellgui";
+    }
+
+    @Override
+    public String getAuthor() {
+        return "YourName";
+    }
+
+    @Override
+    public String getVersion() {
+        return "1.0";
+    }
+
+    @Override
+    public boolean canRegister() {
+        return true;
+    }
+
+    public void registerExpansion() {
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            this.register();
+        }
+    }
+
+    @Override
+    public String onPlaceholderRequest(Player player, String identifier) {
+        if (player == null) return "";
+
+        if (identifier.equals("pricehand")) {
+            ItemStack item = player.getInventory().getItemInMainHand();
+            return String.valueOf(getPrice(item, player));
+        }
+
+        if (identifier.equals("pricehandfull")) {
+            ItemStack item = player.getInventory().getItemInMainHand();
+            return item.hasItemMeta() && item.getItemMeta().hasDisplayName()
+                    ? item.getItemMeta().getDisplayName() + " - " + getPrice(item, player)
+                    : item.getType().name() + " - " + getPrice(item, player);
+        }
+        return null;
     }
 
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
@@ -26,7 +72,14 @@ public class SellGUIAPI {
             if (nbtItem.hasType()) {  //
                 String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
                 if (this.main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
-                    return this.main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
+                    for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
+                        if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
+                            price += Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
+                        } else if (pai.getPermission().startsWith("sellgui.multiplier.")) {
+                            price *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
+                        }
+                        return this.main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
+                    }
                 }
             }
         }
@@ -37,8 +90,8 @@ public class SellGUIAPI {
             if (this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus") != null) {
                 Iterator var6 = this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus").iterator();
 
-                while(var6.hasNext()) {
-                    String s = (String)var6.next();
+                while (var6.hasNext()) {
+                    String s = (String) var6.next();
                     flatBonus.add(s);
                 }
             }
@@ -48,14 +101,16 @@ public class SellGUIAPI {
             if (this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus") != null) {
                 var13 = this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus").iterator();
 
-                while(var13.hasNext()) {
-                    String s = (String)var13.next();
+                while (var13.hasNext()) {
+                    String s = (String) var13.next();
                     multiplierBonus.add(s);
                 }
             }
 
             Iterator var9;
             if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price") && this.main.getEssentialsHolder().getEssentials() != null) {
+                System.out.println("Essentials: " + this.main.getEssentialsHolder().getEssentials());
+                System.out.println("Use Essentials Price: " + this.main.getConfig().getBoolean("use-essentials-price"));
                 if (!this.main.getConfig().getBoolean("use-permission-bonuses-on-essentials")) {
                     return round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(), this.main.getConfig().getInt("places-to-round"));
                 } else {
@@ -63,9 +118,9 @@ public class SellGUIAPI {
                     if (player != null) {
                         var9 = player.getEffectivePermissions().iterator();
 
-                        while(true) {
-                            while(var9.hasNext()) {
-                                PermissionAttachmentInfo pai = (PermissionAttachmentInfo)var9.next();
+                        while (true) {
+                            while (var9.hasNext()) {
+                                PermissionAttachmentInfo pai = (PermissionAttachmentInfo) var9.next();
                                 if (pai.getPermission().contains("sellgui.bonus.") && pai.getValue()) {
                                     if (temp != 0.0) {
                                         temp += Double.parseDouble(pai.getPermission().replaceAll("sellgui.bonus.", ""));
@@ -94,12 +149,12 @@ public class SellGUIAPI {
                     Enchantment enchantment;
                     String var10000;
                     int var10001;
-                    while(var13.hasNext()) {
-                        enchantment = (Enchantment)var13.next();
+                    while (var13.hasNext()) {
+                        enchantment = (Enchantment) var13.next();
                         var9 = flatBonus.iterator();
 
-                        while(var9.hasNext()) {
-                            s = (String)var9.next();
+                        while (var9.hasNext()) {
+                            s = (String) var9.next();
                             temp2 = s.split(":");
                             if (temp2[0].equalsIgnoreCase(enchantment.getKey().getKey())) {
                                 var10000 = temp2[1];
@@ -113,12 +168,12 @@ public class SellGUIAPI {
 
                     var13 = itemStack.getItemMeta().getEnchants().keySet().iterator();
 
-                    while(var13.hasNext()) {
-                        enchantment = (Enchantment)var13.next();
+                    while (var13.hasNext()) {
+                        enchantment = (Enchantment) var13.next();
                         var9 = multiplierBonus.iterator();
 
-                        while(var9.hasNext()) {
-                            s = (String)var9.next();
+                        while (var9.hasNext()) {
+                            s = (String) var9.next();
                             temp2 = s.split(":");
                             if (temp2[0].equalsIgnoreCase(enchantment.getKey().getKey())) {
                                 var10000 = temp2[1];
@@ -134,8 +189,8 @@ public class SellGUIAPI {
                 if (player != null) {
                     var13 = player.getEffectivePermissions().iterator();
 
-                    while(var13.hasNext()) {
-                        PermissionAttachmentInfo pai = (PermissionAttachmentInfo)var13.next();
+                    while (var13.hasNext()) {
+                        PermissionAttachmentInfo pai = (PermissionAttachmentInfo) var13.next();
                         if (pai.getPermission().contains("sellgui.bonus.")) {
                             if (price != 0.0) {
                                 price += Double.parseDouble(pai.getPermission().replaceAll("sellgui.bonus.", ""));
