@@ -34,3 +34,4 @@ Need Vault & Spigot 1.20+ to use
 # Next Update should be?
 + Supported MMOItems
 + Support MMOCore???
++ Support Nexo???
