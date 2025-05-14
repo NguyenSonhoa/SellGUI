@@ -20,7 +20,7 @@ Need Vault & Spigot 1.20+ to use
 + Added Command Execute when you click sell & confirm sell.
 + Fixed Some Console Sender error.
 + Support MMOItems
-+ Edit ingame GUI (Beta)
++ Customizable.
 + Notify when you not input item in gui sell!
 + Can use cross Essentials + MMOItems
 # Placeholders
