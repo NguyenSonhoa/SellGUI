@@ -4,16 +4,18 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ListIterator;
+import java.util.Map;
+import org.bukkit.configuration.ConfigurationSection;
 
 import me.aov.sellgui.commands.SellAllCommand;
 import me.aov.sellgui.commands.SellCommand;
+import me.aov.sellgui.commands.SellGUITabCompleter;
 import me.aov.sellgui.listeners.InventoryListeners;
 import me.aov.sellgui.listeners.SignListener;
-import me.aov.sellgui.mmoitems.MMOItemsCommand;
 import me.aov.sellgui.listeners.UpdateWarning;
-import me.aov.sellgui.mmoitems.MMOItemsPriceEditor;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -32,9 +34,9 @@ public class SellGUIMain extends JavaPlugin {
     private SellGUIAPI sellGUIAPI;
     private static SellGUIMain instance;
     private static Economy econ;
-    public boolean isMMOItemsEnabled;
-    private MMOItemsPriceEditor mmoItemsPriceEditor;
 
+    private File customItemsFile;
+    private FileConfiguration customItemsConfig;
     private final ConsoleCommandSender console = this.getServer().getConsoleSender();
     private File itemPrices;
     private FileConfiguration itemPricesConfig;
@@ -47,88 +49,124 @@ public class SellGUIMain extends JavaPlugin {
     private SellCommand sellCommand;
     private boolean hasMMOItems = false;
     private FileConfiguration logConfiguration;
-    private FileConfiguration mmoItemsConfig;
+    private FileConfiguration mmoItemsPricesFileConfig;
+
+    private Map<String, Double> loadedMMOItemPrices = new HashMap<>();
 
     public SellGUIMain() {
     }
 
     public static SellGUIMain getInstance() {
-        return instance; //
+        return instance;
     }
+
     public boolean isMMOItemsEnabled() {
         return hasMMOItems;
     }
 
+    public FileConfiguration getCustomItemsConfig() {
+        return this.customItemsConfig;
+    }
+
+    @Override
     public void onEnable() {
-        this.sellGUIAPI = new SellGUIAPI(this);
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            this.sellGUIAPI.registerExpansion();
-        }
+        instance = this;
+
         this.registerConfig();
         this.createConfigs();
         checkConfigVersion();
-        if (getServer().getPluginManager().getPlugin("MMOItems") != null) {
-            hasMMOItems = true;
-            getLogger().info("MMOItems detected! Enabling MMOItems support.");
-            this.mmoItemsPriceEditor = new MMOItemsPriceEditor(this);
-            this.getCommand("sellgui.mmoitems").setExecutor(new MMOItemsCommand(this.mmoItemsPriceEditor));
-            this.getServer().getPluginManager().registerEvents(this.mmoItemsPriceEditor, this);
+
+        this.sellGUIAPI = new SellGUIAPI(this);
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            this.sellGUIAPI.registerExpansion();
+            getLogger().info("PlaceholderAPI found, SellGUI placeholders registered.");
         } else {
-            hasMMOItems = false;
-            getLogger().warning("MMOItems not found! Disabling MMOItems support.");
-            this.mmoItemsPriceEditor = null;
+            getLogger().info("PlaceholderAPI not found, SellGUI placeholders will not be available.");
+        }
+        if (!setupEconomy()) {
+            getLogger().severe("Disabled due to no Vault dependency found or no economy provider!");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        this.useEssentials = essentials();
+
+        this.sellCommand = new SellCommand(this);
+
+        if (this.getCommand("sellgui") != null) {
+            this.getCommand("sellgui").setExecutor(this.sellCommand);
+            this.getCommand("sellgui").setTabCompleter(new SellGUITabCompleter());
+        } else {
+            getLogger().severe("Command 'sellgui' not found in plugin.yml!");
+        }
+        if (this.getCommand("sellall") != null) {
+            this.getCommand("sellall").setExecutor(new SellAllCommand(this));
+        } else {
+            getLogger().severe("Command 'sellall' not found in plugin.yml!");
         }
 
-        if (this.mmoItemsPriceEditor != null) {
-            this.mmoItemsPriceEditor.loadPrices();
-        }
-        this.createPrices();
         this.getServer().getPluginManager().registerEvents(new InventoryListeners(this), this);
         this.getServer().getPluginManager().registerEvents(new SignListener(this), this);
-        this.sellCommand = new SellCommand(this);
-        this.getCommand("sellgui").setExecutor(this.sellCommand);
-        this.getCommand("sellall").setExecutor(new SellAllCommand(this));
-        this.setupEconomy();
-        this.useEssentials = this.essentials();
         (new UpdateChecker(this, 55201)).getVersion((version) -> {
             if (this.getDescription().getVersion().equalsIgnoreCase(version)) {
-                this.getLogger().info("Plugin is up to date");
+                this.getLogger().info("Plugin is up to date (Version: " + version + ")");
             } else {
-                this.getLogger().info("There is a new update available.");
+                this.getLogger().info("There is a new update available for SellGUI: " + version + " (Current: " + this.getDescription().getVersion() + ")");
                 this.getServer().getPluginManager().registerEvents(new UpdateWarning(this), this);
             }
         });
+
+        if (getServer().getPluginManager().getPlugin("MMOItems") != null) {
+            hasMMOItems = true;
+            getLogger().info("MMOItems detected! SellGUI will attempt to read MMOItem prices for selling.");
+        } else {
+            hasMMOItems = false;
+            getLogger().warning("MMOItems not found! MMOItem selling support might be limited.");
+        }
+
+        this.createPrices();
+
         Bukkit.getScheduler().runTaskTimer(this, () -> {
-            Iterator var1 = this.getServer().getOnlinePlayers().iterator();
-
+            Iterator<Player> var1 = (Iterator<Player>) this.getServer().getOnlinePlayers().iterator();
             while(var1.hasNext()) {
-                Player p = (Player)var1.next();
-                ListIterator var3 = p.getInventory().iterator();
-
+                Player p = var1.next();
+                if (p.getInventory() == null) continue;
+                ListIterator<ItemStack> var3 = p.getInventory().iterator();
                 while(var3.hasNext()) {
-                    ItemStack i = (ItemStack)var3.next();
-                    if (i != null && i.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(this.getMain(), "sellgui-item"), PersistentDataType.STRING)) {
+                    ItemStack i = var3.next();
+                    if (i != null && i.hasItemMeta() && i.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(this, "sellgui-item"), PersistentDataType.STRING)) {
                         p.getInventory().remove(i);
                     }
                 }
             }
-
         }, 100L, 80L);
+        getLogger().info("SellGUI has been enabled!");
     }
-    public MMOItemsPriceEditor getMMOItemsPriceEditor() {
-        return this.mmoItemsPriceEditor;
-    }
+
+
     public void checkConfigVersion() {
         String currentVersion = this.getConfig().getString("config-version");
         String expectedVersion = "1.3";
 
         if (currentVersion == null || !currentVersion.equals(expectedVersion)) {
-            this.getLogger().warning("Config version mismatch! Expected: " + expectedVersion + ", found: " + currentVersion);
-            this.getLogger().warning("Creating a backup and generating a new config...");
-            this.saveResource("config.yml", true);  //
+            this.getLogger().warning("Config version mismatch! Expected: " + expectedVersion + ", found: " + (currentVersion == null ? "Not set" : currentVersion));
+            File oldConfig = new File(getDataFolder(), "config_old_" + System.currentTimeMillis() + ".yml");
+            File currentConfigFile = new File(getDataFolder(), "config.yml");
+            if (currentConfigFile.exists()) {
+                if (currentConfigFile.renameTo(oldConfig)) {
+                    this.getLogger().warning("Backed up old config to: " + oldConfig.getName());
+                } else {
+                    this.getLogger().severe("Could not back up old config!");
+                }
+            }
+            this.saveResource("config.yml", true);
+            this.reloadConfig();
+            this.getLogger().warning("Generated a new config.yml. Please review and transfer your old settings if necessary.");
         }
     }
+
+    @Override
     public void onDisable() {
+        getLogger().info("SellGUI has been disabled.");
     }
 
     public void saveCustom() {
@@ -137,7 +175,6 @@ public class SellGUIMain extends JavaPlugin {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     public File getLog() {
@@ -150,7 +187,6 @@ public class SellGUIMain extends JavaPlugin {
         } catch (IOException var2) {
             var2.printStackTrace();
         }
-
     }
 
     public void registerConfig() {
@@ -159,22 +195,21 @@ public class SellGUIMain extends JavaPlugin {
     }
 
     public void createPrices() {
+        if (itemPricesConfig == null) {
+            getLogger().severe("itemPricesConfig is null in createPrices. This should not happen.");
+            return;
+        }
         Material[] var1 = Material.values();
-        int var2 = var1.length;
-
-        for(int var3 = 0; var3 < var2; ++var3) {
-            Material m = var1[var3];
-            if (!this.itemPricesConfig.contains(m.name())) {
+        for(Material m : var1) {
+            if (m.isItem() && !this.itemPricesConfig.contains(m.name())) {
                 this.itemPricesConfig.set(m.name(), 0.0);
             }
         }
-
         try {
             this.itemPricesConfig.save(this.itemPrices);
         } catch (IOException var5) {
             var5.printStackTrace();
         }
-
     }
 
     public Economy getEcon() {
@@ -183,37 +218,36 @@ public class SellGUIMain extends JavaPlugin {
 
     public void reload() {
         this.reloadConfig();
-        this.saveDefaultConfig();
         this.createConfigs();
-        if (hasMMOItems && this.mmoItemsPriceEditor != null) {
-            this.mmoItemsPriceEditor.reloadMMOItemsConfig(); //
-            getLogger().info("Reloaded MMOItems prices successfully.");
-        }
+        checkConfigVersion();
+        getLogger().info("SellGUI configs have been reloaded.");
     }
 
     private boolean setupEconomy() {
         if (this.getServer().getPluginManager().getPlugin("Vault") == null) {
+            getLogger().severe("Vault plugin not found! SellGUI requires Vault for economy features.");
             return false;
-        } else {
-            RegisteredServiceProvider<Economy> rsp = this.getServer().getServicesManager().getRegistration(Economy.class);
-            if (rsp == null) {
-                return false;
-            } else {
-                econ = (Economy)rsp.getProvider();
-                return econ != null;
-            }
         }
+        RegisteredServiceProvider<Economy> rsp = this.getServer().getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            getLogger().severe("No economy provider found through Vault. Ensure you have an economy plugin (e.g., EssentialsX, CMI) installed.");
+            return false;
+        }
+        econ = rsp.getProvider();
+        return econ != null;
     }
 
     private boolean essentials() {
         if (this.getServer().getPluginManager().getPlugin("Essentials") == null) {
-            this.getServer().getLogger().warning("Essentials not found, disabling essentials support");
+            this.getServer().getLogger().info("Essentials not found, disabling Essentials pricing support.");
             return false;
         } else {
             this.essentialsHolder = new EssentialsHolder();
+            this.getServer().getLogger().info("Essentials found, Essentials pricing support enabled.");
             return true;
         }
     }
+
     public SellCommand getSellCommand() {
         return this.sellCommand;
     }
@@ -230,85 +264,141 @@ public class SellGUIMain extends JavaPlugin {
         return this.itemPricesConfig;
     }
 
+    public Map<String, Double> getLoadedMMOItemPrices() {
+        return this.loadedMMOItemPrices;
+    }
+
     public FileConfiguration getLangConfig() {
         return this.langConfig;
     }
+
     public FileConfiguration getCustomMenuItemsConfig() {
         return this.customMenuItemsConfig;
     }
 
-    public void reloadMMOItemsConfig() {
-        File file = new File(getDataFolder(), "mmoitems.yml");
-        if (!file.exists()) {
-            saveResource("mmoitems.yml", false);
+    public void loadMMOItemPricesFromFile() {
+        loadedMMOItemPrices.clear();
+        if (this.mmoItemsPricesFileConfig == null) {
+            getLogger().warning("[SellGUI] mmoItemsPricesFileConfig is null. Cannot load MMOItem prices.");
+            File mmoItemsPricesFile = new File(this.getDataFolder(), "mmoitems.yml");
+            if (mmoItemsPricesFile.exists()) {
+                this.mmoItemsPricesFileConfig = YamlConfiguration.loadConfiguration(mmoItemsPricesFile);
+            } else {
+                getLogger().info("[SellGUI] mmoitems.yml not found. No MMOItem prices loaded.");
+                return;
+            }
         }
 
-        this.mmoItemsConfig = YamlConfiguration.loadConfiguration(file);
-        getLogger().info("Reloaded mmoitems.yml successfully!");
+        ConfigurationSection mmoitemsSection = this.mmoItemsPricesFileConfig.getConfigurationSection("mmoitems");
+        if (mmoitemsSection != null) {
+            for (String itemType : mmoitemsSection.getKeys(false)) {
+                ConfigurationSection typeSection = mmoitemsSection.getConfigurationSection(itemType);
+                if (typeSection != null) {
+                    for (String itemId : typeSection.getKeys(false)) {
+                        if (typeSection.isDouble(itemId) || typeSection.isInt(itemId)) {
+                            double price = typeSection.getDouble(itemId);
+                            String fullItemId = (itemType.toUpperCase() + "." + itemId.toUpperCase());
+                            loadedMMOItemPrices.put(fullItemId, price);
+                        } else {
+                            getLogger().warning("[SellGUI] loadMMOItemPricesFromFile: Price for '" + itemType + "." + itemId + "' in mmoitems.yml is not a valid number. Skipped.");
+                        }
+                    }
+                } else {
+
+                    if (mmoitemsSection.isDouble(itemType) || mmoitemsSection.isInt(itemType)) {
+                        if (itemType.contains(".")) {
+                            loadedMMOItemPrices.put(itemType.toUpperCase(), mmoitemsSection.getDouble(itemType));
+                        } else {
+                            getLogger().warning("[SellGUI] loadMMOItemPricesFromFile: Found key '" + itemType + "' directly under 'mmoitems' that is not a section and not in TYPE.ID format. Skipped.");
+                        }
+                    } else {
+                        getLogger().warning("[SellGUI] loadMMOItemPricesFromFile: Key '" + itemType + "' under 'mmoitems' in mmoitems.yml is not a valid section or TYPE.ID entry. Skipped.");
+                    }
+                }
+            }
+            getLogger().info("[SellGUI] Loaded " + loadedMMOItemPrices.size() + " MMOItem prices from mmoitems.yml using section structure.");
+        } else {
+            getLogger().info("[SellGUI] 'mmoitems' section not found in mmoitems.yml or file not loaded properly.");
+        }
     }
 
     public void createConfigs() {
+        // itemprices.yml
         this.itemPrices = new File(this.getDataFolder(), "itemprices.yml");
         if (!this.itemPrices.exists()) {
             this.itemPrices.getParentFile().mkdirs();
             this.saveResource("itemprices.yml", false);
         }
-
         this.itemPricesConfig = new YamlConfiguration();
-
         try {
             this.itemPricesConfig.load(this.itemPrices);
-        } catch (InvalidConfigurationException | IOException var7) {
-            var7.printStackTrace();
+        } catch (InvalidConfigurationException | IOException e) {
+            e.printStackTrace();
         }
 
+        // customitems.yml
+        this.customItemsFile = new File(this.getDataFolder(), "customitems.yml");
+        if (!this.customItemsFile.exists()) {
+            this.customItemsFile.getParentFile().mkdirs();
+            this.saveResource("customitems.yml", false);
+        }
+        this.customItemsConfig = new YamlConfiguration();
+        try {
+            this.customItemsConfig.load(this.customItemsFile);
+        } catch (InvalidConfigurationException | IOException e) {
+            e.printStackTrace();
+        }
+
+        // custommenuitems.yml
         this.customMenuItems = new File(this.getDataFolder(), "custommenuitems.yml");
         if (!this.customMenuItems.exists()) {
             this.customMenuItems.getParentFile().mkdirs();
             this.saveResource("custommenuitems.yml", false);
         }
-
         this.customMenuItemsConfig = new YamlConfiguration();
-        this.mmoItemsConfig = new YamlConfiguration();
-
         try {
             this.customMenuItemsConfig.load(this.customMenuItems);
-        } catch (InvalidConfigurationException | IOException var6) {
-            var6.printStackTrace();
+        } catch (InvalidConfigurationException | IOException e) {
+            e.printStackTrace();
         }
 
-        File lang = new File(this.getDataFolder(), "lang.yml");
-        if (!lang.exists()) {
-            lang.getParentFile().mkdirs();
+        // lang.yml
+        File langFile = new File(this.getDataFolder(), "lang.yml");
+        if (!langFile.exists()) {
+            langFile.getParentFile().mkdirs();
             this.saveResource("lang.yml", false);
         }
-
         this.langConfig = new YamlConfiguration();
-
         try {
-            this.langConfig.load(lang);
-        } catch (InvalidConfigurationException | IOException var5) {
-            var5.printStackTrace();
+            this.langConfig.load(langFile);
+        } catch (InvalidConfigurationException | IOException e) {
+            e.printStackTrace();
         }
 
+        // mmoitems.yml
+        File mmoItemsPricesFile = new File(this.getDataFolder(), "mmoitems.yml");
+        if (!mmoItemsPricesFile.exists()) {
+            mmoItemsPricesFile.getParentFile().mkdirs();
+            this.saveResource("mmoitems.yml", false); // Lưu file mmoitems.yml mẫu nếu chưa có
+        }
+        this.mmoItemsPricesFileConfig = YamlConfiguration.loadConfiguration(mmoItemsPricesFile);
+        loadMMOItemPricesFromFile();
 
-
-
+        // log.txt
         this.log = new File(this.getDataFolder(), "log.txt");
         if (!this.log.exists()) {
             this.log.getParentFile().mkdirs();
-            this.saveResource("log.txt", false);
-            BufferedWriter writer = null;
-
             try {
-                writer = new BufferedWriter(new FileWriter(this.getMain().getLog(), true));
-                writer.append("Type|Display Name|Amount|Price|Player|Time\n");
-                writer.close();
-            } catch (IOException var3) {
-                var3.printStackTrace();
+                if (this.log.createNewFile()) {
+                    getLogger().info("Created log.txt");
+                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(this.log, true))) {
+                        writer.append("Type|Display Name|Amount|Price|Player|Time\n");
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
-
     }
 
     public boolean hasEssentials() {

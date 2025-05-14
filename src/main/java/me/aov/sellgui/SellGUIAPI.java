@@ -4,8 +4,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import javax.annotation.Nullable;
 import io.lumine.mythic.lib.api.item.NBTItem;
+import me.aov.sellgui.commands.SellCommand;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -28,12 +31,12 @@ public class SellGUIAPI extends PlaceholderExpansion {
 
     @Override
     public String getAuthor() {
-        return "YourName";
+        return "SaneNuyan";
     }
 
     @Override
     public String getVersion() {
-        return "1.0";
+        return "2.2";
     }
 
     @Override
@@ -58,9 +61,11 @@ public class SellGUIAPI extends PlaceholderExpansion {
 
         if (identifier.equals("pricehandfull")) {
             ItemStack item = player.getInventory().getItemInMainHand();
-            return item.hasItemMeta() && item.getItemMeta().hasDisplayName()
-                    ? item.getItemMeta().getDisplayName() + " - " + getPrice(item, player)
-                    : item.getType().name() + " - " + getPrice(item, player);
+            String itemName = item.getType().name();
+            if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+                itemName = item.getItemMeta().getDisplayName();
+            }
+            return itemName + " - " + getPrice(item, player);
         }
         return null;
     }
@@ -71,168 +76,142 @@ public class SellGUIAPI extends PlaceholderExpansion {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return price;
         }
-        NBTItem nbtItem = NBTItem.get(itemStack);
-        if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
-            String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
-            if (this.main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
-                price = this.main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
-            }
-        }
-        if (price == 0 && this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
-            double essentialsPrice = round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
-                    this.main.getConfig().getInt("places-to-round"));
-            if (essentialsPrice > 0) {
-                price = essentialsPrice;
+
+        if (main.isMMOItemsEnabled()) {
+            NBTItem nbtItem = NBTItem.get(itemStack);
+            if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
+                String mmoItemType = nbtItem.getType();
+                String mmoItemId = nbtItem.getString("MMOITEMS_ITEM_ID");
+
+                if (mmoItemType != null && !mmoItemType.isEmpty() && mmoItemId != null && !mmoItemId.isEmpty()) {
+                    String fullItemId = mmoItemType.toUpperCase() + "." + mmoItemId.toUpperCase();
+
+                    Map<String, Double> mmoPrices = this.main.getLoadedMMOItemPrices();
+                    if (mmoPrices != null && mmoPrices.containsKey(fullItemId)) {
+                        price = mmoPrices.get(fullItemId);
+                    }
+                }
             }
         }
 
-        if (price == 0 && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
+        if (price == 0 && this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
+            if (this.main.getEssentialsHolder() != null && this.main.getEssentialsHolder().getEssentials() != null) {
+                BigDecimal essentialsPriceBd = this.main.getEssentialsHolder().getPrice(itemStack);
+                if (essentialsPriceBd != null) {
+                    double essentialsPrice = round(essentialsPriceBd.doubleValue(),
+                            this.main.getConfig().getInt("places-to-round", 2));
+                    if (essentialsPrice > 0) {
+                        price = essentialsPrice;
+                    }
+                }
+            }
+        }
+
+        if (price == 0 && this.main.getItemPricesConfig() != null && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
             price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
         }
 
-        if (!this.main.getConfig().getBoolean("sell-all-command-sell-enchanted") && itemStack.getEnchantments().size() > 0) {
-            return price;
-        } else {
-            ArrayList<String> flatBonus = new ArrayList();
-            if (this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus") != null) {
-                Iterator var6 = this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus").iterator();
-
-                while (var6.hasNext()) {
-                    String s = (String) var6.next();
-                    flatBonus.add(s);
-                }
+        if (this.main.getConfig().getBoolean("sell-all-command-sell-enchanted", false) || itemStack.getEnchantments().isEmpty()) {
+            List<String> flatBonus = new ArrayList<>();
+            if (this.main.getItemPricesConfig() != null && this.main.getItemPricesConfig().isList("flat-enchantment-bonus")) {
+                flatBonus.addAll(this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus"));
             }
 
-            ArrayList<String> multiplierBonus = new ArrayList();
-            Iterator var13;
-            if (this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus") != null) {
-                var13 = this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus").iterator();
-
-                while (var13.hasNext()) {
-                    String s = (String) var13.next();
-                    multiplierBonus.add(s);
-                }
+            List<String> multiplierBonus = new ArrayList<>();
+            if (this.main.getItemPricesConfig() != null && this.main.getItemPricesConfig().isList("multiplier-enchantment-bonus")) {
+                multiplierBonus.addAll(this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus"));
             }
 
-            Iterator var9;
-            if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price") && this.main.getEssentialsHolder().getEssentials() != null) {
-                System.out.println("Essentials: " + this.main.getEssentialsHolder().getEssentials());
-                System.out.println("Use Essentials Price: " + this.main.getConfig().getBoolean("use-essentials-price"));
-                if (!this.main.getConfig().getBoolean("use-permission-bonuses-on-essentials")) {
-                    return round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(), this.main.getConfig().getInt("places-to-round"));
-                } else {
-                    double temp = round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(), this.main.getConfig().getInt("places-to-round"));
-                    if (player != null) {
-                        var9 = player.getEffectivePermissions().iterator();
+            boolean isEssentialsPriceSource = this.main.hasEssentials() &&
+                    this.main.getConfig().getBoolean("use-essentials-price") &&
+                    price > 0 &&
+                    this.main.getEssentialsHolder() != null &&
+                    this.main.getEssentialsHolder().getEssentials() != null &&
+                    (this.main.getEssentialsHolder().getPrice(itemStack) != null && this.main.getEssentialsHolder().getPrice(itemStack).doubleValue() > 0);
 
-                        while (true) {
-                            while (var9.hasNext()) {
-                                PermissionAttachmentInfo pai = (PermissionAttachmentInfo) var9.next();
-                                if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
-                                    double bonusPercent = Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
-                                    temp += (temp * (bonusPercent / 100));
-                                }
-                                if (pai.getPermission().startsWith("sellgui.multiplier.") && pai.getValue()) {
-                                    temp *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
-                                }
-                            }
-
-                            return this.main.getConfig().getBoolean("round-places") ? round(temp, this.main.getConfig().getInt("places-to-round")) : temp;
-                        }
-                    } else {
-                        return this.main.getConfig().getBoolean("round-places") ? round(temp, this.main.getConfig().getInt("places-to-round")) : temp;
-                    }
-                }
+            if (isEssentialsPriceSource && !this.main.getConfig().getBoolean("use-permission-bonuses-on-essentials", true)) {
+                return round(price, this.main.getConfig().getInt("places-to-round", 2));
             } else {
-                if (itemStack != null && itemStack.getType() != Material.AIR && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
-                    price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
-                }
+                if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasEnchants()) {
+                    for (Map.Entry<Enchantment, Integer> entry : itemStack.getEnchantments().entrySet()) {
+                        Enchantment enchantment = entry.getKey();
+                        int level = entry.getValue();
+                        String enchantmentKey = enchantment.getKey().getKey();
 
-                if (itemStack != null && itemStack.getItemMeta().hasEnchants()) {
-                    var13 = itemStack.getItemMeta().getEnchants().keySet().iterator();
-
-                    String s;
-                    String[] temp2;
-                    Enchantment enchantment;
-                    String var10000;
-                    int var10001;
-                    while (var13.hasNext()) {
-                        enchantment = (Enchantment) var13.next();
-                        var9 = flatBonus.iterator();
-
-                        while (var9.hasNext()) {
-                            s = (String) var9.next();
-                            temp2 = s.split(":");
-                            if (temp2[0].equalsIgnoreCase(enchantment.getKey().getKey())) {
-                                var10000 = temp2[1];
-                                var10001 = itemStack.getEnchantmentLevel(enchantment);
-                                if (var10000.equalsIgnoreCase("" + var10001)) {
-                                    price += Double.parseDouble(temp2[2]);
-                                }
+                        for (String s : flatBonus) {
+                            String[] temp = s.split(":");
+                            if (temp.length == 3 && temp[0].equalsIgnoreCase(enchantmentKey) && temp[1].equalsIgnoreCase(String.valueOf(level))) {
+                                try {
+                                    price += Double.parseDouble(temp[2]);
+                                } catch (NumberFormatException ignored) {}
                             }
                         }
-                    }
-
-                    var13 = itemStack.getItemMeta().getEnchants().keySet().iterator();
-
-                    while (var13.hasNext()) {
-                        enchantment = (Enchantment) var13.next();
-                        var9 = multiplierBonus.iterator();
-
-                        while (var9.hasNext()) {
-                            s = (String) var9.next();
-                            temp2 = s.split(":");
-                            if (temp2[0].equalsIgnoreCase(enchantment.getKey().getKey())) {
-                                var10000 = temp2[1];
-                                var10001 = itemStack.getEnchantmentLevel(enchantment);
-                                if (var10000.equalsIgnoreCase("" + var10001)) {
-                                    price *= Double.parseDouble(temp2[2]);
-                                }
+                        for (String s : multiplierBonus) {
+                            String[] temp = s.split(":");
+                            if (temp.length == 3 && temp[0].equalsIgnoreCase(enchantmentKey) && temp[1].equalsIgnoreCase(String.valueOf(level))) {
+                                try {
+                                    price *= Double.parseDouble(temp[2]);
+                                } catch (NumberFormatException ignored) {}
                             }
                         }
                     }
                 }
 
                 if (player != null) {
-                    var13 = player.getEffectivePermissions().iterator();
-
-                    while (var13.hasNext()) {
-                        PermissionAttachmentInfo pai = (PermissionAttachmentInfo) var13.next();
-                        if (pai.getPermission().contains("sellgui.bonus.")) {
-                            if (price != 0.0) {
-                                price += Double.parseDouble(pai.getPermission().replaceAll("sellgui.bonus.", ""));
+                    for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
+                        String perm = pai.getPermission();
+                        if (pai.getValue()) {
+                            if (perm.startsWith("sellgui.bonus.")) {
+                                if (price != 0.0) {
+                                    try {
+                                        double bonusValue = Double.parseDouble(perm.substring("sellgui.bonus.".length()));
+                                        price += bonusValue;
+                                    } catch (NumberFormatException | IndexOutOfBoundsException ignored) {}
+                                }
+                            } else if (perm.startsWith("sellgui.multiplier.")) {
+                                try {
+                                    double multiplierValue = Double.parseDouble(perm.substring("sellgui.multiplier.".length()));
+                                    if (multiplierValue > 0) {
+                                        price *= multiplierValue;
+                                    }
+                                } catch (NumberFormatException | IndexOutOfBoundsException ignored) {}
                             }
-                        } else if (pai.getPermission().contains("sellgui.multiplier.")) {
-                            price *= Double.parseDouble(pai.getPermission().replaceAll("sellgui.multiplier.", ""));
                         }
                     }
                 }
-
-                return round(price, 3);
+                return round(price, this.main.getConfig().getInt("places-to-round", 2));
             }
+        } else {
+            return round(price, this.main.getConfig().getInt("places-to-round", 2));
         }
     }
 
     public double getPurePrice(ItemStack itemStack) {
         double price = 0.0;
-        if (itemStack != null && itemStack.getType() != Material.AIR && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
+        if (itemStack != null && itemStack.getType() != Material.AIR && this.main.getItemPricesConfig() != null &&
+                this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
             price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
         }
-
         return price;
     }
 
     public void openSellGUI(Player player) {
-        this.main.getSellCommand().getSellGUIS().add(new SellGUI(this.main, player));
+        SellCommand.getSellGUIs().add(new SellGUI(this.main, player));
     }
 
     private static double round(double value, int places) {
         if (places < 0) {
-            throw new IllegalArgumentException();
-        } else {
-            BigDecimal bd = new BigDecimal("" + value);
+            return value;
+        }
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return 0.0;
+        }
+        try {
+            BigDecimal bd = BigDecimal.valueOf(value);
             bd = bd.setScale(places, RoundingMode.HALF_UP);
             return bd.doubleValue();
+        } catch (NumberFormatException e) {
+            return value;
         }
     }
 }

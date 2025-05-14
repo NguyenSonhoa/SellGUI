@@ -1,2 +1,9 @@
 mmoitems: {}
-#  SWORD_OF_FIRE: 100.0
+#  SWORD: # Đây là TYPE
+#    LONG_SWORD: 2.0 # Đây là ID, giá là 2.0
+#    STEEL_SWORD: 10.0
+#  AXE:
+#    BATTLE_AXE: 15.0
+#  MATERIAL:
+#    MAGIC_DUST: 5.0
+#    REFINED_ORE: 25.0

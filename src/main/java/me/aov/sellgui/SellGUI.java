@@ -318,11 +318,20 @@ public class SellGUI implements Listener {
             return price;
         }
 
-        NBTItem nbtItem = NBTItem.get(itemStack);
-        if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
-            String itemId = nbtItem.getString("MMOITEMS_ITEM_ID");
-            if (this.main.getMMOItemsPriceEditor().getItemPrices().containsKey(itemId)) {
-                price = this.main.getMMOItemsPriceEditor().getItemPrices().get(itemId);
+        if (main.isMMOItemsEnabled()) {
+            NBTItem nbtItem = NBTItem.get(itemStack);
+            if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
+                String mmoItemType = nbtItem.getType();
+                String mmoItemId = nbtItem.getString("MMOITEMS_ITEM_ID");
+
+                if (mmoItemType != null && !mmoItemType.isEmpty() && mmoItemId != null && !mmoItemId.isEmpty()) {
+                    String fullItemId = mmoItemType.toUpperCase() + "." + mmoItemId.toUpperCase();
+
+                    Map<String, Double> mmoPrices = this.main.getLoadedMMOItemPrices();
+                    if (mmoPrices != null && mmoPrices.containsKey(fullItemId)) {
+                        price = mmoPrices.get(fullItemId);
+                    }
+                }
             }
         }
 

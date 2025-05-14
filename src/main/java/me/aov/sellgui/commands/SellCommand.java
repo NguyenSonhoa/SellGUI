@@ -3,8 +3,6 @@ package me.aov.sellgui.commands;
 import me.aov.sellgui.SellGUI;
 import me.aov.sellgui.SellGUIMain;
 
-import java.util.ArrayList;
-import java.util.Objects;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -14,9 +12,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+
 public class SellCommand implements CommandExecutor {
     private final SellGUIMain main;
-
     private static ArrayList<SellGUI> sellGUIS;
 
     public SellCommand(SellGUIMain main) {
@@ -24,80 +23,75 @@ public class SellCommand implements CommandExecutor {
         sellGUIS = new ArrayList<>();
     }
 
-    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, String s, String[] strings) {
-        // Xử lý lệnh "reload"
-        if (strings.length == 1 && strings[0].equalsIgnoreCase("reload")) {
-            if (commandSender.hasPermission("sellgui.reload")) {
+    @Override
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        // /sellgui reload
+        if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+            if (sender.hasPermission("sellgui.reload")) {
                 main.reload();
-                main.reloadMMOItemsConfig();  // ✅ Reloads `mmoitems.yml`
-                main.getMMOItemsPriceEditor().loadPrices();
-                commandSender.sendMessage(color("&7Configs reloaded."));
+                sender.sendMessage(color("&aConfigs reloaded successfully."));
             } else {
-                commandSender.sendMessage(color("&8No Permission"));
+                sender.sendMessage(color("&cYou do not have permission to use this command."));
             }
             return true;
         }
 
-        //
-        if (!(commandSender instanceof Player)) {
-            commandSender.sendMessage("Sorry, Player-only Command.");
+        // /sellgui & /sellgui <player>
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(ChatColor.RED + "This command can only be executed by a player.");
+            return true;
+        }
+        Player player = (Player) sender;
+
+        // /sellgui
+        if (args.length == 0) {
+            if (player.hasPermission("sellgui.use")) {
+                // Nếu sellGUIS không phải static, thì không cần SellCommand.getSellGUIs()
+                // mà là this.sellGUIS.add(...) hoặc một phương thức quản lý GUI khác
+                sellGUIS.add(new SellGUI(this.main, player));
+            } else {
+                player.sendMessage(color("&cYou do not have permission to use this command."));
+            }
             return true;
         }
 
-        Player player = (Player) commandSender;
-
-        //
-        if (strings.length == 0 && player.hasPermission("sellgui.use")) {
-            sellGUIS.add(new SellGUI(this.main, player));
-            return true;
-        }
-
-        //
-        if (strings.length == 1 && commandSender.hasPermission("sellgui.use")) {
-            if (ifPlayer(strings[0])) {
-                Player target = main.getServer().getPlayer(strings[0]);
+        // Xử lý /sellgui <tên_người_chơi>
+        // args.length == 1 nhưng không phải "reload" hay "mmoitems" đã được xử lý ở trên
+        if (args.length == 1) {
+            if (player.hasPermission("sellgui.others")) {
+                Player target = main.getServer().getPlayer(args[0]);
                 if (target != null) {
                     sellGUIS.add(new SellGUI(this.main, target));
-                    commandSender.sendMessage(color("Opened SellGUI for player: " + target.getName()));
+                    player.sendMessage(color("&aSuccessfully opened SellGUI for " + target.getName() + "."));
                 } else {
-                    commandSender.sendMessage(color("&cPlayer not found: " + strings[0]));
+                    player.sendMessage(color("&cPlayer '" + args[0] + "' not found or is not online."));
                 }
             } else {
-                commandSender.sendMessage(color("&cInvalid player name."));
+                player.sendMessage(color("&cYou do not have permission to open SellGUI for other players."));
             }
             return true;
         }
-        commandSender.sendMessage(color("&8No Permission"));
+
+        // Nếu không có đối số nào khớp, hiển thị thông báo sử dụng lệnh
+        sender.sendMessage(color("&cInvalid command usage. Try: /" + label + " [reload|mmoitems|<playername>]"));
         return true;
     }
 
-    private void reloadMMOItemsConfig() {
-    }
-
-
-    public ArrayList<SellGUI> getSellGUIS() {
-        return sellGUIS;
-    }
-
-    public boolean ifPlayer(String s) {
-        for (Player p : this.main.getServer().getOnlinePlayers()) {
-            if (p.getName().equalsIgnoreCase(s))
-                return true;
-        }
-        return false;
-    }
-
+    // Phương thức color và các phương thức static khác nếu có
     public static String color(String s) {
         return ChatColor.translateAlternateColorCodes('&', s);
     }
 
+    // Các phương thức static liên quan đến sellGUIS nên được xem xét lại
+    // Nếu sellGUIS là một instance field, các phương thức này cũng nên là instance methods
+    // hoặc được quản lý bởi một lớp service riêng biệt.
     public static ArrayList<SellGUI> getSellGUIs() {
         return sellGUIS;
     }
 
     public static boolean isSellGUI(Inventory inventory) {
         for (SellGUI sellGUI : sellGUIS) {
-            if (inventory.equals(sellGUI.getMenu()))
+            if (sellGUI.getMenu().equals(inventory)) // Sử dụng .equals() cho Inventory
                 return true;
         }
         return false;
@@ -105,7 +99,7 @@ public class SellCommand implements CommandExecutor {
 
     public static SellGUI getSellGUI(Inventory inventory) {
         for (SellGUI sellGUI : sellGUIS) {
-            if (inventory.equals(sellGUI.getMenu()))
+            if (sellGUI.getMenu().equals(inventory))
                 return sellGUI;
         }
         return null;

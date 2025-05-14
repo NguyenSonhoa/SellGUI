@@ -1,6 +1,6 @@
 name: SellGUI
-version: 2.1-SNAPSHOT
-api-version: 1.16
+version: 2.2-SNAPSHOT
+api-version: 1.21
 author: Aov,SaneNuyan
 main: me.aov.sellgui.SellGUIMain
 depend: [Vault]
@@ -8,11 +8,7 @@ softdepend: [Essentials,MMOItems]
 commands:
   sellgui:
     description: SellGUI Command
-    usage: /sellgui
-    permission: sellgui.use
-  sellgui.mmoitems:
-    description: Opens the MMOItems Price Editor
-    usage: /sellgui
+    usage: /sellgui [reload|<playername>]
   sellall:
     description: Sells All Items in Inventory
     usage: /sellall
@@ -20,11 +16,19 @@ commands:
 permissions:
   sellgui.reload:
     description: Allows you to use /sellgui reload
+    default: op
   sellgui.createsign:
-    description: Allows you to create a sign
+    description: Allows you to create a SellGUI sign
+    default: op
   sellgui.usesign:
     description: Allows you to use a SellGUI sign
+    default: true
   sellgui.sellall:
     description: Allows you to Sell your Inventory Items
+    default: true
   sellgui.others:
-    description: Allows you to open the SellGUI for others
+    description: Allows you to open the SellGUI for other players
+    default: op
+  sellgui.use:
+    description: Allows you to use /sellgui
+    default: true
