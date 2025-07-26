@@ -13,9 +13,12 @@ import org.bukkit.configuration.ConfigurationSection;
 import me.aov.sellgui.commands.SellAllCommand;
 import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.commands.SellGUITabCompleter;
+import me.aov.sellgui.commands.PriceSetterCommand;
+import me.aov.sellgui.commands.PriceSetterTabCompleter;
 import me.aov.sellgui.listeners.InventoryListeners;
 import me.aov.sellgui.listeners.SignListener;
 import me.aov.sellgui.listeners.UpdateWarning;
+import me.aov.sellgui.listeners.PriceSetterListener;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -47,10 +50,14 @@ public class SellGUIMain extends JavaPlugin {
     private EssentialsHolder essentialsHolder;
     private File log;
     private SellCommand sellCommand;
+    private PriceSetterCommand priceSetterCommand;
     private boolean hasMMOItems = false;
+    public boolean hasNexo = false;
     private FileConfiguration logConfiguration;
     private FileConfiguration mmoItemsPricesFileConfig;
-
+    private File nexoPricesFile;
+    private FileConfiguration nexoPricesFileConfig;
+    private Map<String, Double> loadedNexoPrices = new HashMap<>();
     private Map<String, Double> loadedMMOItemPrices = new HashMap<>();
 
     public SellGUIMain() {
@@ -91,6 +98,7 @@ public class SellGUIMain extends JavaPlugin {
         this.useEssentials = essentials();
 
         this.sellCommand = new SellCommand(this);
+        this.priceSetterCommand = new PriceSetterCommand(this);
 
         if (this.getCommand("sellgui") != null) {
             this.getCommand("sellgui").setExecutor(this.sellCommand);
@@ -103,9 +111,16 @@ public class SellGUIMain extends JavaPlugin {
         } else {
             getLogger().severe("Command 'sellall' not found in plugin.yml!");
         }
+        if (this.getCommand("sellguiprice") != null) {
+            this.getCommand("sellguiprice").setExecutor(this.priceSetterCommand);
+            this.getCommand("sellguiprice").setTabCompleter(new PriceSetterTabCompleter());
+        } else {
+            getLogger().severe("Command 'sellguiprice' not found in plugin.yml!");
+        }
 
         this.getServer().getPluginManager().registerEvents(new InventoryListeners(this), this);
         this.getServer().getPluginManager().registerEvents(new SignListener(this), this);
+        this.getServer().getPluginManager().registerEvents(new PriceSetterListener(this), this);
         (new UpdateChecker(this, 55201)).getVersion((version) -> {
             if (this.getDescription().getVersion().equalsIgnoreCase(version)) {
                 this.getLogger().info("Plugin is up to date (Version: " + version + ")");
@@ -276,6 +291,18 @@ public class SellGUIMain extends JavaPlugin {
         return this.customMenuItemsConfig;
     }
 
+    public FileConfiguration getMMOItemsPricesFileConfig() {
+        return this.mmoItemsPricesFileConfig;
+    }
+
+    public FileConfiguration getNexoPricesFileConfig() {
+        return this.nexoPricesFileConfig;
+    }
+
+    public PriceSetterCommand getPriceSetterCommand() {
+        return this.priceSetterCommand;
+    }
+
     public void loadMMOItemPricesFromFile() {
         loadedMMOItemPrices.clear();
         if (this.mmoItemsPricesFileConfig == null) {
@@ -383,6 +410,14 @@ public class SellGUIMain extends JavaPlugin {
         }
         this.mmoItemsPricesFileConfig = YamlConfiguration.loadConfiguration(mmoItemsPricesFile);
         loadMMOItemPricesFromFile();
+
+        // nexo.yml
+        this.nexoPricesFile = new File(this.getDataFolder(), "nexo.yml");
+        if (!this.nexoPricesFile.exists()) {
+            this.nexoPricesFile.getParentFile().mkdirs();
+            this.saveResource("nexo.yml", false);
+        }
+        this.nexoPricesFileConfig = YamlConfiguration.loadConfiguration(this.nexoPricesFile);
 
         // log.txt
         this.log = new File(this.getDataFolder(), "log.txt");

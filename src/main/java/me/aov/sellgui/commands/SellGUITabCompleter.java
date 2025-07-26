@@ -31,6 +31,9 @@ public class SellGUITabCompleter implements TabCompleter {
                 if (sender.hasPermission("sellgui.reload")) {
                     possibleArgs.add("reload");
                 }
+                if (sender.hasPermission("sellgui.setprice")) {
+                    possibleArgs.add("setprice");
+                }
                 if (sender.hasPermission("sellgui.others")) {
                     // Thêm tên người chơi đang online
                     Bukkit.getOnlinePlayers().forEach(player -> possibleArgs.add(player.getName()));

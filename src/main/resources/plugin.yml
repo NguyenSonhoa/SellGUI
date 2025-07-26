@@ -1,5 +1,5 @@
 name: SellGUI
-version: 2.2-SNAPSHOT
+version: 2.3-SNAPSHOT
 api-version: 1.21
 author: Aov,SaneNuyan
 main: me.aov.sellgui.SellGUIMain
@@ -8,11 +8,15 @@ softdepend: [Essentials,MMOItems]
 commands:
   sellgui:
     description: SellGUI Command
-    usage: /sellgui [reload|<playername>]
+    usage: /sellgui [reload|setprice|<playername>]
   sellall:
     description: Sells All Items in Inventory
     usage: /sellall
     permission: sellgui.sellall
+  sellguiprice:
+    description: Opens the price setter GUI
+    usage: /sellguiprice
+    permission: sellgui.setprice
 permissions:
   sellgui.reload:
     description: Allows you to use /sellgui reload
@@ -32,3 +36,6 @@ permissions:
   sellgui.use:
     description: Allows you to use /sellgui
     default: true
+  sellgui.setprice:
+    description: Allows you to set item prices using the price setter GUI
+    default: op

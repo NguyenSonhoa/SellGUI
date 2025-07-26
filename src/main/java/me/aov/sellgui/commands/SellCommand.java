@@ -36,6 +36,24 @@ public class SellCommand implements CommandExecutor {
             return true;
         }
 
+        // /sellgui setprice
+        if (args.length == 1 && args[0].equalsIgnoreCase("setprice")) {
+            if (!(sender instanceof Player)) {
+                sender.sendMessage(color("&cThis command can only be used by players!"));
+                return true;
+            }
+
+            Player player = (Player) sender;
+            if (!player.hasPermission("sellgui.setprice")) {
+                player.sendMessage(color("&cYou don't have permission to use this command!"));
+                return true;
+            }
+
+            // Open price setter GUI
+            main.getPriceSetterCommand().onCommand(sender, command, "sellguiprice", new String[0]);
+            return true;
+        }
+
         // /sellgui & /sellgui <player>
         if (!(sender instanceof Player)) {
             sender.sendMessage(ChatColor.RED + "This command can only be executed by a player.");
@@ -73,7 +91,7 @@ public class SellCommand implements CommandExecutor {
         }
 
         // Nếu không có đối số nào khớp, hiển thị thông báo sử dụng lệnh
-        sender.sendMessage(color("&cInvalid command usage. Try: /" + label + " [reload|mmoitems|<playername>]"));
+        sender.sendMessage(color("&cInvalid command usage. Try: /" + label + " [reload|setprice|<playername>]"));
         return true;
     }
 
