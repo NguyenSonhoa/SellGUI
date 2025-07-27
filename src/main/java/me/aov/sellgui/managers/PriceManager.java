@@ -183,7 +183,13 @@ public class PriceManager {
             String nexoId = identifier.substring("NEXO:".length());
             main.getNexoPricesFileConfig().set("nexo." + nexoId, price);
             main.getNexoPricesFileConfig().save(getNexoPricesFile());
-            
+
+            // Update loaded prices cache
+            Map<String, Double> loadedPrices = main.getLoadedNexoPrices();
+            if (loadedPrices != null) {
+                loadedPrices.put(nexoId, price);
+            }
+
             return true;
         } catch (IOException e) {
             main.getLogger().warning("Failed to save Nexo item price: " + e.getMessage());
@@ -198,7 +204,13 @@ public class PriceManager {
         }
 
         String nexoId = identifier.substring("NEXO:".length());
-        return main.getNexoPricesFileConfig().getDouble("nexo." + nexoId, 0.0);
+        Map<String, Double> loadedPrices = main.getLoadedNexoPrices();
+
+        if (loadedPrices != null && loadedPrices.containsKey(nexoId)) {
+            return loadedPrices.get(nexoId);
+        }
+
+        return 0.0;
     }
     
     /**

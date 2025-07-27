@@ -33,18 +33,31 @@ public class PriceSetterListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) {
             return;
         }
-        
+
         Player player = (Player) event.getWhoClicked();
-        InventoryHolder holder = event.getInventory().getHolder();
-        
-        if (!(holder instanceof PriceSetterGUI)) {
+
+        // Check if player has PriceSetterGUI open
+        InventoryHolder topHolder = player.getOpenInventory().getTopInventory().getHolder();
+        if (!(topHolder instanceof PriceSetterGUI)) {
             return;
         }
-        
-        PriceSetterGUI gui = (PriceSetterGUI) holder;
+
+        PriceSetterGUI gui = (PriceSetterGUI) topHolder;
         ItemStack clickedItem = event.getCurrentItem();
         int slot = event.getSlot();
-        
+
+        // Check if click is in the top inventory (PriceSetterGUI)
+        if (event.getClickedInventory() != null && event.getClickedInventory().getHolder() instanceof PriceSetterGUI) {
+            // Click in PriceSetterGUI inventory
+            handlePriceSetterGUIClick(event, gui, slot, clickedItem);
+        } else {
+            // Click in player inventory - allow normal interaction
+            // Only cancel if trying to move items that would break the GUI
+            return;
+        }
+    }
+
+    private void handlePriceSetterGUIClick(InventoryClickEvent event, PriceSetterGUI gui, int slot, ItemStack clickedItem) {
         // Handle item slot (center slot for drag & drop)
         if (slot == PriceSetterGUI.getItemSlot()) {
             // Allow placing items in the center slot
@@ -72,19 +85,20 @@ public class PriceSetterListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        
+
         // Handle action buttons
         if (clickedItem != null && clickedItem.hasItemMeta()) {
             ItemMeta meta = clickedItem.getItemMeta();
             if (meta.getPersistentDataContainer().has(new NamespacedKey(main, "price-setter-action"), PersistentDataType.STRING)) {
                 event.setCancelled(true);
-                
+
                 String action = meta.getPersistentDataContainer().get(new NamespacedKey(main, "price-setter-action"), PersistentDataType.STRING);
+                Player player = (Player) event.getWhoClicked();
                 handleActionButton(player, gui, action);
                 return;
             }
         }
-        
+
         // Cancel all other clicks to prevent item movement
         event.setCancelled(true);
     }
@@ -94,30 +108,43 @@ public class PriceSetterListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) {
             return;
         }
-        
-        InventoryHolder holder = event.getInventory().getHolder();
-        if (!(holder instanceof PriceSetterGUI)) {
+
+        Player player = (Player) event.getWhoClicked();
+
+        // Check if player has PriceSetterGUI open
+        InventoryHolder topHolder = player.getOpenInventory().getTopInventory().getHolder();
+        if (!(topHolder instanceof PriceSetterGUI)) {
             return;
         }
-        
-        // Only allow dragging to the item slot
-        boolean allowDrag = false;
-        for (int slot : event.getRawSlots()) {
-            if (slot == PriceSetterGUI.getItemSlot()) {
-                allowDrag = true;
-                break;
+
+        PriceSetterGUI gui = (PriceSetterGUI) topHolder;
+
+        // Check if any dragged slots are in the PriceSetterGUI
+        boolean dragInGUI = false;
+        boolean dragToItemSlot = false;
+
+        for (int rawSlot : event.getRawSlots()) {
+            // Raw slots 0-53 are typically the top inventory (GUI)
+            if (rawSlot < player.getOpenInventory().getTopInventory().getSize()) {
+                dragInGUI = true;
+                if (rawSlot == PriceSetterGUI.getItemSlot()) {
+                    dragToItemSlot = true;
+                }
             }
         }
-        
-        if (!allowDrag) {
-            event.setCancelled(true);
-        } else {
-            // Update info after drag
-            PriceSetterGUI gui = (PriceSetterGUI) holder;
-            main.getServer().getScheduler().runTaskLater(main, () -> {
-                gui.updateItemInfo();
-            }, 1L);
+
+        if (dragInGUI) {
+            // Only allow dragging to the item slot
+            if (!dragToItemSlot) {
+                event.setCancelled(true);
+            } else {
+                // Update info after drag
+                main.getServer().getScheduler().runTaskLater(main, () -> {
+                    gui.updateItemInfo();
+                }, 1L);
+            }
         }
+        // If drag is only in player inventory, allow it
     }
     
     @EventHandler
@@ -170,7 +197,23 @@ public class PriceSetterListener implements Listener {
                     player.sendMessage(color("&aPrice deleted successfully!"));
                 }
                 break;
-                
+
+            case "chat":
+                // Check if there's an item to set price for
+                ItemStack e = gui.getInventory().getItem(PriceSetterGUI.getItemSlot());
+                if (e == null || e.getType() == Material.AIR) {
+                    player.sendMessage(color("&cNo item found to set price for!"));
+                    return;
+                }
+
+                // Store the item for later use
+                PriceSetterChatListener.setPlayerItem(player, e.clone());
+
+                // Close GUI and start chat input
+                player.closeInventory();
+                PriceSetterChatListener.startWaitingForPrice(player);
+                break;
+
             default:
                 player.sendMessage(color("&cUnknown action: " + action));
                 break;

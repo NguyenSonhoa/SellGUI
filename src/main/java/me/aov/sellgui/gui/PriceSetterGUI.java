@@ -34,6 +34,7 @@ public class PriceSetterGUI implements InventoryHolder {
     private static final int SAVE_BUTTON_SLOT = 29; // Save button
     private static final int CANCEL_BUTTON_SLOT = 33; // Cancel button
     private static final int DELETE_BUTTON_SLOT = 31; // Delete price button
+    private static final int CHAT_INPUT_SLOT = 40; // Chat input button
     private static final int INFO_SLOT = 4; // Info item slot
     
     public PriceSetterGUI(SellGUIMain main, Player player) {
@@ -106,6 +107,18 @@ public class PriceSetterGUI implements InventoryHolder {
         );
         addPersistentData(deleteButton, "price-setter-action", "delete");
         inventory.setItem(DELETE_BUTTON_SLOT, deleteButton);
+
+        // Chat input button
+        ItemStack chatButton = createItem(Material.WRITABLE_BOOK,
+            color("&b&lSet Price via Chat"),
+            Arrays.asList(
+                color("&7Click to close GUI and type price in chat"),
+                color("&7GUI will reopen automatically after setting"),
+                color("&7Type 'cancel' to cancel input")
+            )
+        );
+        addPersistentData(chatButton, "price-setter-action", "chat");
+        inventory.setItem(CHAT_INPUT_SLOT, chatButton);
     }
     
     public void updateItemInfo() {
@@ -115,12 +128,26 @@ public class PriceSetterGUI implements InventoryHolder {
             inventory.setItem(PRICE_INPUT_SLOT, null);
             return;
         }
-        
+
+        // Debug logging
+        System.out.println("[SellGUI Debug] Updating item info for: " + item.getType().name());
+        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+            System.out.println("[SellGUI Debug] Item display name: " + item.getItemMeta().getDisplayName());
+        }
+
+        // Debug NBT tags
+        ItemIdentifier.debugItemNBT(item);
+
         // Get current price
         double currentPrice = priceManager.getItemPrice(item);
         ItemIdentifier.ItemType itemType = ItemIdentifier.getItemType(item);
         String itemName = ItemIdentifier.getItemDisplayName(item);
         String identifier = ItemIdentifier.getItemIdentifier(item);
+
+        // Debug logging
+        System.out.println("[SellGUI Debug] Item type detected: " + itemType);
+        System.out.println("[SellGUI Debug] Item identifier: " + identifier);
+        System.out.println("[SellGUI Debug] Current price: " + currentPrice);
         
         // Create price info item
         List<String> lore = new ArrayList<>();

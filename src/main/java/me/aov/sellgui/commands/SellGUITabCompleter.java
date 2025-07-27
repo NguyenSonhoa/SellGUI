@@ -41,6 +41,14 @@ public class SellGUITabCompleter implements TabCompleter {
 
                 StringUtil.copyPartialMatches(args[0], possibleArgs, completions);
 
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("setprice")) {
+                // Tab completion for /sellgui setprice <price>
+                if (sender.hasPermission("sellgui.setprice")) {
+                    List<String> priceExamples = Arrays.asList(
+                        "1.0", "5.0", "10.0", "25.0", "50.0", "100.0", "250.0", "500.0", "1000.0"
+                    );
+                    StringUtil.copyPartialMatches(args[1], priceExamples, completions);
+                }
             }
 
             Collections.sort(completions);

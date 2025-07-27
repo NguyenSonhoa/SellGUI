@@ -1,5 +1,5 @@
 name: SellGUI
-version: 2.3-SNAPSHOT
+version: 2.4-SNAPSHOT
 api-version: 1.21
 author: Aov,SaneNuyan
 main: me.aov.sellgui.SellGUIMain

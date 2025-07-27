@@ -11,6 +11,8 @@ import java.util.*;
 import io.lumine.mythic.lib.api.item.NBTItem;
 import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.listeners.InventoryListeners;
+import me.aov.sellgui.managers.PriceManager;
+import me.aov.sellgui.utils.ItemIdentifier;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.item.mmoitem.MMOItem;
@@ -311,40 +313,51 @@ public class SellGUI implements Listener {
 
 
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
-        if (!main.isMMOItemsEnabled()) return 0.0;
         double price = 0.0;
 
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return price;
         }
 
-        if (main.isMMOItemsEnabled()) {
-            NBTItem nbtItem = NBTItem.get(itemStack);
-            if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
-                String mmoItemType = nbtItem.getType();
-                String mmoItemId = nbtItem.getString("MMOITEMS_ITEM_ID");
+        // Use PriceManager for unified price handling
+        PriceManager priceManager = new PriceManager(main);
+        price = priceManager.getItemPrice(itemStack);
 
-                if (mmoItemType != null && !mmoItemType.isEmpty() && mmoItemId != null && !mmoItemId.isEmpty()) {
-                    String fullItemId = mmoItemType.toUpperCase() + "." + mmoItemId.toUpperCase();
+        // If no price found, try legacy methods
+        if (price == 0) {
+            // Try MMOItems (legacy)
+            if (main.isMMOItemsEnabled()) {
+                NBTItem nbtItem = NBTItem.get(itemStack);
+                if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
+                    String mmoItemType = nbtItem.getType();
+                    String mmoItemId = nbtItem.getString("MMOITEMS_ITEM_ID");
 
-                    Map<String, Double> mmoPrices = this.main.getLoadedMMOItemPrices();
-                    if (mmoPrices != null && mmoPrices.containsKey(fullItemId)) {
-                        price = mmoPrices.get(fullItemId);
+                    if (mmoItemType != null && !mmoItemType.isEmpty() && mmoItemId != null && !mmoItemId.isEmpty()) {
+                        String fullItemId = mmoItemType.toUpperCase() + "." + mmoItemId.toUpperCase();
+
+                        Map<String, Double> mmoPrices = this.main.getLoadedMMOItemPrices();
+                        if (mmoPrices != null && mmoPrices.containsKey(fullItemId)) {
+                            price = mmoPrices.get(fullItemId);
+                        }
                     }
                 }
             }
-        }
 
-        if (price == 0 && this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
-            double essentialsPrice = round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
-                    this.main.getConfig().getInt("places-to-round"));
-            if (essentialsPrice > 0) {
-                price = essentialsPrice;
+            // Try Essentials
+            if (price == 0 && this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
+                double essentialsPrice = round(this.main.getEssentialsHolder().getPrice(itemStack).doubleValue(),
+                        this.main.getConfig().getInt("places-to-round"));
+                if (essentialsPrice > 0) {
+                    price = essentialsPrice;
+                }
+            }
+
+            // Try vanilla items
+            if (price == 0 && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
+                price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
             }
         }
-        if (price == 0 && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
-            price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
-        }
+
         price = applyPermissionBonuses(player, price);
 
         return round(price, this.main.getConfig().getInt("places-to-round"));
