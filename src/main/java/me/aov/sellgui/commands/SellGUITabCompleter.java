@@ -26,6 +26,7 @@ public class SellGUITabCompleter implements TabCompleter {
         if (command.getName().equalsIgnoreCase("sellgui")) {
             final List<String> completions = new ArrayList<>();
             if (args.length == 1) {
+                // Gợi ý cho đối số đầu tiên
                 List<String> possibleArgs = new ArrayList<>();
                 if (sender.hasPermission("sellgui.reload")) {
                     possibleArgs.add("reload");
@@ -34,12 +35,15 @@ public class SellGUITabCompleter implements TabCompleter {
                     possibleArgs.add("setprice");
                 }
                 if (sender.hasPermission("sellgui.others")) {
+                    // Thêm tên người chơi đang online
                     Bukkit.getOnlinePlayers().forEach(player -> possibleArgs.add(player.getName()));
                 }
 
                 StringUtil.copyPartialMatches(args[0], possibleArgs, completions);
 
-            } else if (args.length == 2 && args[0].equalsIgnoreCase("setprice")) {                if (sender.hasPermission("sellgui.setprice")) {
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("setprice")) {
+                // Tab completion for /sellgui setprice <price>
+                if (sender.hasPermission("sellgui.setprice")) {
                     List<String> priceExamples = Arrays.asList(
                         "1.0", "5.0", "10.0", "25.0", "50.0", "100.0", "250.0", "500.0", "1000.0"
                     );

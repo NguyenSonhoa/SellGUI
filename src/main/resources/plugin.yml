@@ -1,10 +1,10 @@
 name: SellGUI
 version: 2.4-SNAPSHOT
-api-version: 1.21
+api-version: 1.20.6
 author: Aov,SaneNuyan
 main: me.aov.sellgui.SellGUIMain
 depend: [Vault]
-softdepend: [Essentials,MMOItems]
+softdepend: [Essentials,MMOItems,PlaceholderAPI,Nexo]
 commands:
   sellgui:
     description: SellGUI Command
