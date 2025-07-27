@@ -418,6 +418,7 @@ public class SellGUIMain extends JavaPlugin {
             this.saveResource("nexo.yml", false);
         }
         this.nexoPricesFileConfig = YamlConfiguration.loadConfiguration(this.nexoPricesFile);
+        loadNexoPricesFromFile();
 
         // log.txt
         this.log = new File(this.getDataFolder(), "log.txt");
@@ -442,5 +443,32 @@ public class SellGUIMain extends JavaPlugin {
 
     public EssentialsHolder getEssentialsHolder() {
         return this.essentialsHolder;
+    }
+
+    public void loadNexoPricesFromFile() {
+        loadedNexoPrices.clear();
+        if (this.nexoPricesFileConfig == null) {
+            getLogger().warning("[SellGUI] nexoPricesFileConfig is null. Cannot load Nexo prices.");
+            return;
+        }
+
+        ConfigurationSection nexoSection = this.nexoPricesFileConfig.getConfigurationSection("nexo");
+        if (nexoSection != null) {
+            for (String itemId : nexoSection.getKeys(false)) {
+                if (nexoSection.isDouble(itemId) || nexoSection.isInt(itemId)) {
+                    double price = nexoSection.getDouble(itemId);
+                    loadedNexoPrices.put(itemId, price);
+                } else {
+                    getLogger().warning("[SellGUI] loadNexoPricesFromFile: Price for '" + itemId + "' in nexo.yml is not a valid number. Skipped.");
+                }
+            }
+            getLogger().info("[SellGUI] Loaded " + loadedNexoPrices.size() + " Nexo item prices from nexo.yml.");
+        } else {
+            getLogger().info("[SellGUI] 'nexo' section not found in nexo.yml or file not loaded properly.");
+        }
+    }
+
+    public Map<String, Double> getLoadedNexoPrices() {
+        return this.loadedNexoPrices;
     }
 }

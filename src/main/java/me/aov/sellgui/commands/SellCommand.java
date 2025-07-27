@@ -2,14 +2,17 @@ package me.aov.sellgui.commands;
 
 import me.aov.sellgui.SellGUI;
 import me.aov.sellgui.SellGUIMain;
-
+import me.aov.sellgui.managers.PriceManager;
+import me.aov.sellgui.utils.ItemIdentifier;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -36,8 +39,8 @@ public class SellCommand implements CommandExecutor {
             return true;
         }
 
-        // /sellgui setprice
-        if (args.length == 1 && args[0].equalsIgnoreCase("setprice")) {
+        // /sellgui setprice [price]
+        if (args.length >= 1 && args[0].equalsIgnoreCase("setprice")) {
             if (!(sender instanceof Player)) {
                 sender.sendMessage(color("&cThis command can only be used by players!"));
                 return true;
@@ -49,8 +52,15 @@ public class SellCommand implements CommandExecutor {
                 return true;
             }
 
-            // Open price setter GUI
-            main.getPriceSetterCommand().onCommand(sender, command, "sellguiprice", new String[0]);
+            if (args.length == 1) {
+                // /sellgui setprice - Open price setter GUI
+                main.getPriceSetterCommand().onCommand(sender, command, "sellguiprice", new String[0]);
+            } else if (args.length == 2) {
+                // /sellgui setprice <price> - Set price for item in hand
+                return handleSetPriceInHand(player, args[1]);
+            } else {
+                player.sendMessage(color("&cUsage: /sellgui setprice [price]"));
+            }
             return true;
         }
 
@@ -92,6 +102,48 @@ public class SellCommand implements CommandExecutor {
 
         // Nếu không có đối số nào khớp, hiển thị thông báo sử dụng lệnh
         sender.sendMessage(color("&cInvalid command usage. Try: /" + label + " [reload|setprice|<playername>]"));
+        return true;
+    }
+
+    private boolean handleSetPriceInHand(Player player, String priceString) {
+        // Check if player has item in hand
+        ItemStack itemInHand = player.getInventory().getItemInMainHand();
+        if (itemInHand == null || itemInHand.getType() == Material.AIR) {
+            player.sendMessage(color("&cYou must be holding an item to set its price!"));
+            return true;
+        }
+
+        // Parse price
+        double price;
+        try {
+            price = Double.parseDouble(priceString);
+        } catch (NumberFormatException e) {
+            player.sendMessage(color("&cInvalid price! Please enter a valid number."));
+            return true;
+        }
+
+        if (price < 0) {
+            player.sendMessage(color("&cPrice cannot be negative!"));
+            return true;
+        }
+
+        // Set the price using PriceManager
+        PriceManager priceManager = new PriceManager(main);
+        boolean success = priceManager.setItemPrice(itemInHand, price);
+
+        if (success) {
+            String itemName = ItemIdentifier.getItemDisplayName(itemInHand);
+            String itemType = ItemIdentifier.getItemType(itemInHand).name();
+
+            if (price == 0) {
+                player.sendMessage(color("&aSuccessfully removed price for &f" + itemName + " &7(" + itemType + ")"));
+            } else {
+                player.sendMessage(color("&aSuccessfully set price for &f" + itemName + " &7(" + itemType + ") &ato &e$" + String.format("%.2f", price)));
+            }
+        } else {
+            player.sendMessage(color("&cFailed to set price! Check console for errors."));
+        }
+
         return true;
     }
 
