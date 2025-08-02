@@ -29,9 +29,10 @@ public class InventoryListeners implements Listener {
         SellGUI sellGUI = SellCommand.getSellGUI(player);
 
         if (sellGUI != null && event.getInventory().equals(sellGUI.getMenu())) {
-
+            // Drop items back to player
             dropItems(event.getInventory(), player);
 
+            // Clean up the SellGUI
             sellGUI.cleanup();
             SellCommand.getSellGUIs().remove(sellGUI);
         }
@@ -45,14 +46,16 @@ public class InventoryListeners implements Listener {
         Inventory clickedInventory = e.getClickedInventory();
         ItemStack currentItem = e.getCurrentItem();
 
+        // Find the SellGUI for this player
         SellGUI sellGUI = SellCommand.getSellGUI(player);
         if (sellGUI == null || !e.getInventory().equals(sellGUI.getMenu())) {
-            return; 
+            return; // Not a SellGUI inventory
         }
 
         NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
         NamespacedKey actionKey = new NamespacedKey(main, "guiAction");
 
+        // Handle clicks on GUI control items (sell button, confirm button, etc.)
         if (currentItem != null && currentItem.hasItemMeta() &&
                 currentItem.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE)) {
 
@@ -67,7 +70,7 @@ public class InventoryListeners implements Listener {
                     break;
                 case "sell":
                     if (sellGUI.getTotal(sellGUI.getMenu()) <= 0) {
-
+                        // Play sound and show message for no items
                         String soundName = main.getSoundsConfig().getString("legacy.no-items-sound", "BLOCK_NOTE_BLOCK_BASS");
                         float volume = (float) main.getSoundsConfig().getDouble("legacy.no-items-volume", 1.0);
                         float pitch = (float) main.getSoundsConfig().getDouble("legacy.no-items-pitch", 1.0);
@@ -92,33 +95,36 @@ public class InventoryListeners implements Listener {
                     break;
             }
         }
-
+        // Handle clicks on custom menu items
         else if (currentItem != null && isCustomMenuItem(currentItem)) {
             e.setCancelled(true);
             handleCustomMenuItemClick(player, currentItem);
         }
-
+        // Handle clicks in the sellable area
         else if (clickedInventory != null && clickedInventory.equals(sellGUI.getMenu())) {
-
+            // Check if clicking on a GUI control item
             if (isGUIControlItem(currentItem, sellGUI)) {
                 e.setCancelled(true);
                 return;
             }
 
+            // Prevent shift-clicking items into reserved slots
             if (e.isShiftClick() && wouldGoToReservedSlot(e.getSlot(), sellGUI)) {
                 e.setCancelled(true);
                 return;
             }
 
+            // Update the sell item total after a delay to allow the inventory change to process
             Bukkit.getScheduler().runTaskLater(main, () -> {
                 if (sellGUI.getMenu() != null && player.isOnline() && SellCommand.getSellGUI(player) != null) {
                     sellGUI.updateButtonState();
                 }
             }, 1L);
         }
-
+        // Handle clicks in player inventory while SellGUI is open
         else if (clickedInventory != null && clickedInventory.equals(player.getInventory())) {
-
+            // Allow normal player inventory interactions
+            // Update total if items are moved
             Bukkit.getScheduler().runTaskLater(main, () -> {
                 if (sellGUI.getMenu() != null && player.isOnline() && SellCommand.getSellGUI(player) != null) {
                     sellGUI.updateButtonState();
@@ -127,6 +133,9 @@ public class InventoryListeners implements Listener {
         }
     }
 
+    /**
+     * Check if an item is a GUI control item (sell button, filler, etc.)
+     */
     private boolean isGUIControlItem(ItemStack item, SellGUI sellGUI) {
         if (item == null) return false;
 
@@ -135,8 +144,11 @@ public class InventoryListeners implements Listener {
                 item.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
     }
 
+    /**
+     * Check if a slot is reserved for GUI controls
+     */
     private boolean wouldGoToReservedSlot(int slot, SellGUI sellGUI) {
-
+        // Get reserved slots from config
         if (main.getConfigManager() != null && main.getConfigManager().getGUIConfig() != null) {
             var guiConfig = main.getConfigManager().getGUIConfig();
             var fillerSlots = guiConfig.getIntegerList("sell_gui.positions.filler_slots");
@@ -146,9 +158,13 @@ public class InventoryListeners implements Listener {
             return fillerSlots.contains(slot) || slot == sellButtonSlot || slot == confirmButtonSlot;
         }
 
+        // Default reserved slots for 54-slot inventory (border slots)
         return slot < 9 || slot > 44 || slot % 9 == 0 || slot % 9 == 8;
     }
 
+    /**
+     * Handle custom menu item clicks
+     */
     private void handleCustomMenuItemClick(Player player, ItemStack item) {
         NamespacedKey key = new NamespacedKey(main, "custom-menu-item");
         String commands = item.getItemMeta().getPersistentDataContainer().get(key, PersistentDataType.STRING);
@@ -157,7 +173,7 @@ public class InventoryListeners implements Listener {
             String[] commandArray = commands.split(";");
             for (String command : commandArray) {
                 if (!command.trim().isEmpty()) {
-
+                    // Execute the command (replace %player% placeholder)
                     String finalCommand = command.trim().replace("%player%", player.getName());
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
                 }
@@ -165,20 +181,26 @@ public class InventoryListeners implements Listener {
         }
     }
 
+    /**
+     * Drop items back to player when inventory closes
+     */
     private void dropItems(Inventory inventory, Player player) {
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack == null || itemStack.getType() == Material.AIR) continue;
 
+            // Skip GUI control items
             NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
             if (itemStack.hasItemMeta() &&
                     itemStack.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE)) {
                 continue;
             }
 
+            // Skip custom menu items
             if (isCustomMenuItem(itemStack)) {
                 continue;
             }
 
+            // Return items to player
             if (main.getConfig().getBoolean("drop-items-on-close", false)) {
                 player.getWorld().dropItem(player.getLocation(), itemStack);
             } else {
@@ -192,6 +214,9 @@ public class InventoryListeners implements Listener {
         }
     }
 
+    /**
+     * Check if an item is a custom menu item
+     */
     private boolean isCustomMenuItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
         return item.getItemMeta().getPersistentDataContainer().has(
@@ -200,6 +225,9 @@ public class InventoryListeners implements Listener {
         );
     }
 
+    /**
+     * Static method for compatibility - check if an item is a SellGUI control item
+     */
     public static boolean sellGUIItem(ItemStack item, Player player) {
         if (item == null || !item.hasItemMeta()) return false;
 

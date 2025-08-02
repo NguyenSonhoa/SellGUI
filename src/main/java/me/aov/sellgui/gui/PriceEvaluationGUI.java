@@ -75,13 +75,13 @@ public class PriceEvaluationGUI implements InventoryHolder {
             CANCEL_BUTTON = guiConfig.getInt(path + "cancel_button", 48);
             INSTRUCTION_SLOT = guiConfig.getInt(path + "instruction_slot", 4);
 
-            ANIMATION_SLOT = guiConfig.getInt("price_evaluation_gui.items.animation_slot", 22);
-            RESULT_SLOT = guiConfig.getInt("price_evaluation_gui.items.result_slot", 20);
+            ANIMATION_SLOT = guiConfig.getInt(path + "animation_slot", 20);
+            RESULT_SLOT = guiConfig.getInt(path + "result_slot", 20);
         } else {
 
             ITEM_SLOT = 22;
-            ANIMATION_SLOT = 22;
-            RESULT_SLOT = 22;
+            ANIMATION_SLOT = 20;
+            RESULT_SLOT = 20;
             EVALUATE_BUTTON = 33;
             CANCEL_BUTTON = 48;
             INSTRUCTION_SLOT = 4;

@@ -2,19 +2,17 @@
 # SellGUI - GUI Configuration
 # ===================================
 
-# Main Sell GUI Configuration
+# ===================================
+# Main Sell GUI
+# ===================================
 sell_gui:
   title: "&6&lSell GUI"
-  size: 54  # Must be multiple of 9 (9, 18, 27, 36, 45, 54)
-
-  # Item positions (0-53 for 54-slot inventory)
+  size: 54
   positions:
     sell_button: 49
     confirm_button: 53
     filler_slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 50, 51, 52]
     item_slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
-
-  # Button Items
   items:
     sell_button:
       material: "EMERALD"
@@ -23,7 +21,6 @@ sell_gui:
         - "&7Click to total"
         - "&7item price in this GUI"
       glow: true
-
     confirm_button:
       material: "GREEN_CONCRETE"
       name: "&a&l✅ Confirm Sale"
@@ -33,21 +30,17 @@ sell_gui:
         - ""
         - "&eTotal: &a$%total%"
       glow: true
-
     filler:
       material: "GRAY_STAINED_GLASS_PANE"
       custom-model-data: 0
       name: " "
       lore: []
-
     no_items:
       material: "BARRIER"
       name: "&c&l❌ No Items to Sell"
       lore:
         - "&7Add items to sell them"
         - "&7for money!"
-
-  # GUI Messages & Titles
   messages:
     no_items_title: "&c❌ No items to sell!"
     no_items_subtitle: "&7Add items to the GUI first"
@@ -55,27 +48,23 @@ sell_gui:
     confirm_subtitle: "&7Total: &e$%total%"
     sold_title: "&a✅ Items Sold!"
     sold_subtitle: "&7You received &e$%amount%"
-
-  # Item display formats
   item_total_format: "&7%amount%x &f%item% &8= &e$%total%"
   evaluation_required_format: "&7%amount%x &f%item% &c⚠ Needs Evaluation"
   total_format: "&6&lTotal: &e$%total%"
 
-# Price Setter GUI Configuration
+# ===================================
+# Price Setter GUI
+# ===================================
 price_setter_gui:
   title: "&6&l🏷️ Price Setter"
   size: 54
-
-  # Item positions
   positions:
-    item_slot: 22  # Center slot for item
+    item_slot: 22
     save_button: 29
     delete_button: 31
     cancel_button: 33
     chat_input_button: 40
-    info_slots: [13, 14, 15, 16]  # For displaying item info
-
-  # GUI Items
+    info_slots: [13, 14, 15, 16]
   items:
     save_button:
       material: "GREEN_CONCRETE"
@@ -83,41 +72,35 @@ price_setter_gui:
       lore:
         - "&7Click to save the current"
         - "&7price for this item"
-
     delete_button:
       material: "RED_CONCRETE"
       name: "&c&l🗑️ Delete Price"
       lore:
         - "&7Click to remove the price"
         - "&7from this item"
-
     cancel_button:
       material: "BARRIER"
       name: "&c&l❌ Cancel"
       lore:
         - "&7Click to close this GUI"
         - "&7without saving changes"
-
     chat_input_button:
       material: "WRITABLE_BOOK"
       name: "&e&l💬 Chat Input"
       lore:
         - "&7Click to set price via"
         - "&7chat input instead"
-        -
     item_placeholder:
       material: "LIGHT_GRAY_STAINED_GLASS_PANE"
       name: "&7Place Item Here"
       lore:
         - "&7Place an item in this slot"
         - "&7to set its price"
-
     info_current_price:
       material: "GOLD_INGOT"
       name: "&6Current Price"
       lore:
         - "&7Price: &e$%price%"
-
     info_item_type:
       material: "NAME_TAG"
       name: "&bItem Information"
@@ -129,8 +112,6 @@ price_setter_gui:
       custom-model-data: 0
       name: " "
       lore: []
-
-  # GUI Messages
   messages:
     place_item: "&7📦 Place an item here to set its price"
     current_price: "&6💰 Current Price: &e$%price%"
@@ -138,70 +119,47 @@ price_setter_gui:
     save_success: "&a✅ Price saved successfully!"
     delete_success: "&a✅ Price removed successfully!"
 
-
-
-# Price Evaluation GUI Configuration
+# ===================================
+# Price Evaluation GUI
+# ===================================
 price_evaluation_gui:
   title: "&6&l📊 Price Evaluation"
-  size: 54
-
-  # --- POSITIONS ---
-  # Define where each item from the "items" section below should be placed.
-  # You can change these slot numbers freely. The button logic will follow the item
-  # because it uses the "nbt-id" tag, not the slot number.
+  size: 27
   positions:
-    item_slot: 22
-    evaluate_button: 33
-    cancel_button: 48
+    item_slot: 13
+    evaluate_button: 22
+    cancel_button: 18
     instruction_slot: 4
-    animation_slot: 22
-    result_slot: 20
-    filler: 0,1,2,3,5,6,7,8,9,17,18,26,27,29,31,35,36,44,45,46,47,49,50,51,52,53 # Example of filling multiple slots
-
-
-  # Animation settings
+    animation_slot: 10
+    result_slot: 16
+    filler: [0, 1, 2, 3, 5, 6, 7, 8, 9, 17, 18, 26, 27, 29, 31, 35, 36, 44, 45, 46, 47, 49, 50, 51, 52, 53]
   animation:
     enabled: true
-    duration: 20  # ticks (3 seconds)
-    update_interval: 5  # ticks between updates
-
-  # Evaluation lore format (added to item after evaluation)
+    duration: 20
+    update_interval: 5
   evaluation_lore_format: "&a✅&f Evaluated: &e$%price%"
-
-  # Random price calculation settings
   random_calculation:
-    jackpot_chance: 20.0  # Percentage chance for maximum price (0-100)
-    distribution: "weighted"  # "uniform", "weighted", "bell_curve"
-
-    # Weighted distribution settings (favors certain ranges)
+    jackpot_chance: 20.0
+    distribution: "weighted"
     weighted:
-      low_range_weight: 30    # 0-33% of range
-      mid_range_weight: 50    # 33-66% of range
-      high_range_weight: 20   # 66-100% of range
-
-    # Bell curve settings (normal distribution)
+      low_range_weight: 30
+      mid_range_weight: 50
+      high_range_weight: 20
     bell_curve:
-      center_bias: 0.6        # 0.0 = favor min, 1.0 = favor max, 0.5 = center
-      spread: 0.3             # How spread out the curve is (0.1-1.0)
-
-  # GUI opening animation
+      center_bias: 0.6
+      spread: 0.3
   open_animation:
     enabled: true
-    type: "FADE_IN"  # FADE_IN, SLIDE_DOWN, NONE
-    duration: 10  # ticks
-
-  # Item update animation
+    type: "FADE_IN"
+    duration: 10
   item_update:
     enabled: true
-    type: "GLOW"  # GLOW, BOUNCE, NONE
-    duration: 20  # ticks
-
-  # Confirmation animation
+    type: "GLOW"
+    duration: 20
   confirm_animation:
     enabled: true
-    type: "FIREWORK"  # FIREWORK, PARTICLE, NONE
+    type: "FIREWORK"
   items:
-    # This item is purely informational. It has no nbt-id.
     instruction:
       material: "BOOK"
       custom-model-data: 10001
@@ -213,7 +171,6 @@ price_evaluation_gui:
       nbt:
         gui_element: "info_panel"
         is_static: true
-
     animation:
       material: "GOLD_NUGGET"
       name: "&e&l🎲 Evaluating... &f$%current%"
@@ -223,11 +180,8 @@ price_evaluation_gui:
         - "&7Max: &e%max%"
         - ""
         - "&7Good luck!"
-
-    # --- Buttons ---
-
     cancel_button:
-      nbt-id: "cancel_button" # This ID closes the GUI.
+      nbt-id: "cancel_button"
       material: "BARRIER"
       custom-model-data: 10006
       name: "&c&l❌ Cancel & Close"
@@ -235,23 +189,19 @@ price_evaluation_gui:
         - "&7Click to close this menu."
       nbt:
         action_type: "close_gui"
-        requires_confirmation: false # Example custom NBT
-
+        requires_confirmation: false
     evaluate_button:
-      nbt-id: "evaluate_button" # This ID starts the evaluation.
+      nbt-id: "evaluate_button"
       material: "NETHER_STAR"
       custom-model-data: 10007
       name: "&6&l⚡ Evaluate Price"
       lore:
         - "&7Click to begin the evaluation process."
-      # Example of adding various NBT data types for other plugins or features.
       nbt:
-        custom_sound: "magic.cast.strong" # String
-        particle_effect_id: 123           # Integer
-        is_final_action: true             # Boolean
-        mana_cost: 10.5                   # Double
-
-    # --- Decorative & Filler Items ---
+        custom_sound: "magic.cast.strong"
+        particle_effect_id: 123
+        is_final_action: true
+        mana_cost: 10.5
     filler:
       material: "GRAY_STAINED_GLASS_PANE"
       custom-model-data: 0
@@ -259,8 +209,7 @@ price_evaluation_gui:
       lore: []
       nbt:
         is_background: true
-  # Lore enhancements
   lore:
     show_individual_prices: true
     show_stack_totals: true
-    show_item_source: true  # Show if item is from MMOItems, Nexo, etc.
+    show_item_source: true
