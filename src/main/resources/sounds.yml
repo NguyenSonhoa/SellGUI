@@ -1,0 +1,173 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                         SellGUI - Sound Configuration                        ║
+# ║                    🔊 Complete sound customization for 1.20.6+               ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+# Formatted By Spiderman No-Way-Home for my gyat SaneNuyan
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                            🎵 MASTER SOUND CONTROL                          │
+# └─────────────────────────────────────────────────────────────────────────────┘
+sounds:
+  enabled: true                   # 🔊 Master sound toggle
+  
+
+  # ┌─────────────────────────────────────────────────────────────────────────┐
+  # │                           🖱️     INTERACTION SOUNDS                      │
+  # └─────────────────────────────────────────────────────────────────────────┘
+  ui:
+    button_click:                 # 🖱️ General button clicks
+      sound: "UI_BUTTON_CLICK"
+      volume: 1
+      pitch: 1.0
+      enabled: true
+
+    confirm:                      # ✅ Confirmation actions
+      sound: "ENTITY_PLAYER_LEVELUP"
+      volume: 1.0
+      pitch: 1.0
+      enabled: true
+
+    cancel:                       # ❌ Cancel/close actions
+      sound: "BLOCK_CHEST_CLOSE"
+      volume: 1
+      pitch: 1.0
+      enabled: true
+
+    filler_click:                 # 🔘 Decorative item clicks
+      sound: "BLOCK_NOTE_BLOCK_PLING"
+      volume: 0.3
+      pitch: 1.5
+      enabled: true
+
+  # ┌─────────────────────────────────────────────────────────────────────────┐
+  # │                          📢 FEEDBACK & STATUS SOUNDS                    │
+  # └─────────────────────────────────────────────────────────────────────────┘
+  feedback:
+    success:                      # ✅ Success notifications
+      sound: "ENTITY_PLAYER_LEVELUP"
+      volume: 1.0
+      pitch: 1.0
+      enabled: true
+
+    error:                        # ❌ Error notifications
+      sound: "ENTITY_VILLAGER_NO"
+      volume: 1.0
+      pitch: 1.0
+      enabled: true
+
+    warning:                      # ⚠️ Warning notifications
+      sound: "BLOCK_NOTE_BLOCK_BASS"
+      volume: 1.0
+      pitch: 0.5
+      enabled: true
+
+  # Item Interaction Sounds
+  items:
+    pickup:
+      sound: "ENTITY_ITEM_PICKUP"
+      volume: 0.5
+      pitch: 1.2
+      enabled: true
+    
+    place:
+      sound: "ENTITY_ITEM_PICKUP"
+      volume: 0.5
+      pitch: 1.0
+      enabled: true
+    
+    sell:
+      sound: "ENTITY_EXPERIENCE_ORB_PICKUP"
+      volume: 0.8
+      pitch: 1.0
+      enabled: true
+
+  # GUI Sounds
+  gui:
+    open:
+      sound: "BLOCK_CHEST_OPEN"
+      volume: 0.5
+      pitch: 1.0
+      enabled: true
+    
+    close:
+      sound: "BLOCK_CHEST_CLOSE"
+      volume: 0.5
+      pitch: 1.0
+      enabled: true
+    
+    page_turn:
+      sound: "ITEM_BOOK_PAGE_TURN"
+      volume: 0.5
+      pitch: 1.0
+      enabled: true
+
+  # Price Setting Sounds
+  price_setter:
+    input_start:
+      sound: "BLOCK_NOTE_BLOCK_PLING"
+      volume: 0.7
+      pitch: 1.2
+      enabled: true
+    
+    price_set:
+      sound: "ENTITY_PLAYER_LEVELUP"
+      volume: 1.0
+      pitch: 1.0
+      enabled: true
+    
+    price_removed:
+      sound: "BLOCK_ANVIL_LAND"
+      volume: 0.5
+      pitch: 1.0
+      enabled: true
+    
+    invalid_input:
+      sound: "ENTITY_VILLAGER_NO"
+      volume: 1.0
+      pitch: 1.0
+      enabled: true
+
+  # Special Effects
+  effects:
+    firework:
+      sound: "ENTITY_FIREWORK_ROCKET_BLAST"
+      volume: 1.0
+      pitch: 1.0
+      enabled: true
+    
+    money_received:
+      sound: "ENTITY_EXPERIENCE_ORB_PICKUP"
+      volume: 1.0
+      pitch: 1.5
+      enabled: true
+    
+    big_sale:
+      sound: "ENTITY_FIREWORK_ROCKET_LAUNCH"
+      volume: 1.0
+      pitch: 1.0
+      enabled: true
+      # Plays when selling items worth more than big_sale_threshold
+      threshold: 1000.0
+
+# Legacy sound support (for compatibility)
+legacy:
+  no-items-sound: "BLOCK_NOTE_BLOCK_BASS"
+  no-items-volume: 1.0
+  no-items-pitch: 1.0
+
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                            🔗 SOUND ALIASES & SHORTCUTS                     │
+# └─────────────────────────────────────────────────────────────────────────────┘
+aliases:
+  click: "ui.button_click"        # 🖱️ Quick click sound
+  success: "feedback.success"     # ✅ Quick success sound
+  error: "feedback.error"         # ❌ Quick error sound
+  sell: "items.sell"              # 💰 Quick sell sound
+  open: "gui.open"                # 📂 Quick open sound
+  close: "gui.close"              # 📁 Quick close sound
+
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  🎵 All sounds are tested and optimized for Minecraft 1.20.6 compatibility  ║
+# ║  🔧 Adjust volume (0.0-1.0) and pitch (0.5-2.0) to your preference         ║
+# ║  💡 Set enabled: false to disable individual sounds                         ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+# Formatted By Spiderman No-Way-Home
