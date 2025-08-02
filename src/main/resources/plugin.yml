@@ -28,6 +28,7 @@ permissions:
       sellgui.use: true
       sellgui.admin: true
       sellgui.setprice: true
+      sellgui.setrange: true
       sellgui.evaluate: true
       sellgui.sellall: true
   sellgui.use:
@@ -38,6 +39,9 @@ permissions:
     default: op
   sellgui.setprice:
     description: Allows player to set custom prices on items
+    default: op
+  sellgui.setrange:
+    description: Allows player to set custom random price ranges on items
     default: op
   sellgui.evaluate:
     description: Allows player to use price evaluation GUI

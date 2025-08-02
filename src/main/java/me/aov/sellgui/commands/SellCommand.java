@@ -69,7 +69,7 @@ public class SellCommand implements CommandExecutor {
                     if (!(sender instanceof Player)) {
                         sender.sendMessage(color("&cOnly players can use this command."));
                         return true;}
-                    if (!sender.hasPermission("sellgui.setprice")) {
+                    if (!sender.hasPermission("sellgui.setrange")) {
                         sender.sendMessage(color("&cYou do not have permission."));
                         return true;}
                     if (args.length != 3) {
@@ -195,7 +195,7 @@ public class SellCommand implements CommandExecutor {
     }
 
     private boolean handleHelpCommand(CommandSender sender) {
-        sender.sendMessage(color("&6&l=== SellGUI Help ==="));
+        sender.sendMessage(color("&6&l=== SellGUI Help ===="));
         sender.sendMessage("");
         sender.sendMessage(color("&e/sellgui &7- Open the sell GUI"));
         sender.sendMessage(color("&e/sellgui help &7- Show this help message"));
@@ -205,6 +205,8 @@ public class SellCommand implements CommandExecutor {
         }
         if (sender.hasPermission("sellgui.setprice")) {
             sender.sendMessage(color("&e/sellgui setprice <amount> &7- Set fixed price in Evaluation GUI."));
+        }
+        if (sender.hasPermission("sellgui.setrange")) {
             sender.sendMessage(color("&e/sellgui setrange <min> <max> &7- Set random range in Evaluation GUI."));
         }
         if (sender.hasPermission("sellgui.reload")) {
