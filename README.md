@@ -17,6 +17,7 @@ A powerful sell GUI plugin with advanced price management system
 - **⚙️ EssentialsX Integration** - Use existing Essentials prices
 - **🎨 Fully Customizable** - Custom model data, commands, messages
 - **📊 Permission-based Bonuses** - Multipliers and flat bonuses
+- **💰 EVALUATION** - Set your random item price, and make player evaluation random it in GUI.
 - **🔒 Secure & Safe** - No item duplication, automatic backups
 
 ## 🚀 What's New in This Version?
@@ -46,11 +47,13 @@ A powerful sell GUI plugin with advanced price management system
 | `/sellgui reload` | Reload plugin configs | `sellgui.reload` |
 | `/sellall` | Sell all items in inventory | `sellgui.sellall` |
 | `/sellall confirm` | Confirm selling all items | `sellgui.sellall` |
+| `/sellgui evaluation` | Open the Evaluation GUI | `sellgui.evaluate` |
 
 ### 🆕 Price Setter Commands
 | Command | Description | Permission |
 |---------|-------------|------------|
 | `/sellgui setprice` | Open price setter GUI | `sellgui.setprice` |
+| `/sellgui setrange` | Set random MIN-MAX handheld item | `sellgui.setrange` |
 | `/sellguiprice` | Open price setter GUI | `sellgui.setprice` |
 | `/sellguiprice <price>` | Set price for item in GUI | `sellgui.setprice` |
 
