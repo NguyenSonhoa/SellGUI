@@ -10,46 +10,37 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Manages item prices for different item types (Vanilla, MMOItems, Nexo)
- */
 public class PriceManager {
-    
+
     private final SellGUIMain main;
-    
+
     public PriceManager(SellGUIMain main) {
         this.main = main;
     }
-    
-    /**
-     * Sets the price for an item
-     * @param itemStack The item to set price for
-     * @param price The price to set
-     * @return true if successful, false otherwise
-     */
+
     public boolean setItemPrice(ItemStack itemStack, double price) {
         if (itemStack == null) {
             return false;
         }
-        
+
         ItemIdentifier.ItemType type = ItemIdentifier.getItemType(itemStack);
         String identifier = ItemIdentifier.getItemIdentifier(itemStack);
-        
+
         if (identifier == null) {
             return false;
         }
-        
+
         try {
             switch (type) {
                 case VANILLA:
                     return setVanillaPrice(itemStack, price);
-                    
+
                 case MMOITEMS:
                     return setMMOItemPrice(itemStack, price);
-                    
+
                 case NEXO:
                     return setNexoPrice(itemStack, price);
-                    
+
                 default:
                     return false;
             }
@@ -58,44 +49,208 @@ public class PriceManager {
             return false;
         }
     }
-    
-    /**
-     * Gets the price for an item
-     * @param itemStack The item to get price for
-     * @return The price, or 0.0 if not found
-     */
+
     public double getItemPrice(ItemStack itemStack) {
         if (itemStack == null) {
             return 0.0;
         }
-        
+
+        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
+        boolean nbtPricingEnabled = main.getConfig().getBoolean("prices.nbt-pricing", true);
+
+        if (nbtPricingEnabled && itemStack.hasItemMeta() && itemStack.getItemMeta().getPersistentDataContainer() != null) {
+            try {
+                org.bukkit.NamespacedKey worthKey = new org.bukkit.NamespacedKey(main, "worth");
+                if (itemStack.getItemMeta().getPersistentDataContainer().has(worthKey,
+                        org.bukkit.persistence.PersistentDataType.DOUBLE)) {
+                    double worthPrice = itemStack.getItemMeta().getPersistentDataContainer().get(worthKey,
+                            org.bukkit.persistence.PersistentDataType.DOUBLE);
+                    if (worthPrice > 0) {
+
+                        if (main.getConfig().getBoolean("general.debug", false)) {
+                            main.getLogger().info("Using worth NBT price for " + itemStack.getType() + ": $" + worthPrice);
+                        }
+                        return worthPrice;
+                    }
+                }
+            } catch (Exception e) {
+
+            }
+        }
+
+        if (!calculationMethod.equals("auto")) {
+            double price = getSpecificMethodPrice(itemStack, calculationMethod);
+            if (price > 0) {
+                return applyRandomVariation(price);
+            }
+        }
+
+        if (main.getRandomPriceManager() != null) {
+            try {
+                if (main.getRandomPriceManager().hasRandomPrice(itemStack)) {
+                    double randomPrice = main.getRandomPriceManager().getRandomPrice(itemStack);
+                    if (randomPrice > 0) {
+                        if (main.getConfig().getBoolean("general.debug", false)) {
+                            main.getLogger().info("Using random price for " + itemStack.getType() + ": $" + randomPrice);
+                        }
+                        return randomPrice;
+                    }
+                }
+            } catch (Exception e) {
+
+            }
+        }
+
+        if (main.getNBTPriceManager() != null) {
+            try {
+                double nbtPrice = main.getNBTPriceManager().getPriceFromNBT(itemStack);
+                if (nbtPrice > 0) {
+                    return nbtPrice;
+                }
+            } catch (Exception e) {
+
+            }
+        }
+
         ItemIdentifier.ItemType type = ItemIdentifier.getItemType(itemStack);
-        
+
         switch (type) {
             case VANILLA:
-                return getVanillaPrice(itemStack);
-                
+                double vanillaPrice = getVanillaPrice(itemStack);
+                return applyRandomVariation(vanillaPrice);
+
             case MMOITEMS:
-                return getMMOItemPrice(itemStack);
-                
+                double mmoPrice = getMMOItemPrice(itemStack);
+                return applyRandomVariation(mmoPrice);
+
             case NEXO:
-                return getNexoPrice(itemStack);
-                
+                double nexoPrice = getNexoPrice(itemStack);
+                return applyRandomVariation(nexoPrice);
+
+            default:
+                double defaultPrice = main.getConfig().getDouble("prices.default-price", 0.0);
+                return applyRandomVariation(defaultPrice);
+        }
+    }
+
+    public double getItemPriceWithPlayer(ItemStack itemStack, org.bukkit.entity.Player player) {
+        double basePrice = getItemPrice(itemStack);
+        if (basePrice <= 0 || player == null) {
+            return basePrice;
+        }
+
+        double multiplier = getPlayerMultiplier(player);
+        return basePrice * multiplier;
+    }
+
+    private double getSpecificMethodPrice(ItemStack itemStack, String method) {
+        switch (method.toLowerCase()) {
+            case "config":
+                return getConfigPrice(itemStack);
+
+            case "essentials":
+                return getEssentialsPrice(itemStack);
+
+            case "nbt":
+                if (main.getNBTPriceManager() != null) {
+                    return main.getNBTPriceManager().getPriceFromNBT(itemStack);
+                }
+                return 0.0;
+
             default:
                 return 0.0;
         }
     }
-    
-    /**
-     * Removes the price for an item
-     * @param itemStack The item to remove price for
-     * @return true if successful, false otherwise
-     */
+
+    private double getConfigPrice(ItemStack itemStack) {
+        ItemIdentifier.ItemType type = ItemIdentifier.getItemType(itemStack);
+
+        switch (type) {
+            case VANILLA:
+                return getVanillaPrice(itemStack);
+
+            case MMOITEMS:
+                return getMMOItemPrice(itemStack);
+
+            case NEXO:
+                return getNexoPrice(itemStack);
+
+            default:
+                return main.getConfig().getDouble("prices.default-price", 0.0);
+        }
+    }
+
+    private double getEssentialsPrice(ItemStack itemStack) {
+
+        return 0.0;
+    }
+
+    private double applyMultipliers(double basePrice, ItemStack itemStack) {
+        if (basePrice <= 0) return basePrice;
+
+        boolean multipliersEnabled = main.getConfig().getBoolean("prices.multipliers.enabled", true);
+        if (!multipliersEnabled) return basePrice;
+
+        double multiplier = getMultiplier(itemStack);
+        double finalPrice = basePrice * multiplier;
+
+        finalPrice = applyRandomVariation(finalPrice);
+
+        return finalPrice;
+    }
+
+    private double getMultiplier(ItemStack itemStack) {
+        double defaultMultiplier = main.getConfig().getDouble("prices.multipliers.default-multiplier", 1.0);
+        double maxMultiplier = main.getConfig().getDouble("prices.multipliers.max-multiplier", 5.0);
+
+        return Math.min(defaultMultiplier, maxMultiplier);
+    }
+
+    public double getPlayerMultiplier(org.bukkit.entity.Player player) {
+        if (player == null) return 1.0;
+
+        boolean permissionBasedEnabled = main.getConfig().getBoolean("prices.multipliers.permission-based", true);
+        if (!permissionBasedEnabled) {
+            return main.getConfig().getDouble("prices.multipliers.default-multiplier", 1.0);
+        }
+
+        double maxMultiplier = main.getConfig().getDouble("prices.multipliers.max-multiplier", 5.0);
+        double multiplier = 1.0;
+
+        for (double testMultiplier = 0.1; testMultiplier <= maxMultiplier; testMultiplier += 0.1) {
+            String permission = "sellgui.multiplier." + String.format("%.1f", testMultiplier).replace(",", ".");
+            if (player.hasPermission(permission)) {
+                multiplier = Math.max(multiplier, testMultiplier);
+            }
+        }
+
+        if (player.hasPermission("sellgui.vip")) {
+            multiplier = Math.max(multiplier, 1.5);
+        }
+        if (player.hasPermission("sellgui.premium")) {
+            multiplier = Math.max(multiplier, 2.0);
+        }
+        if (player.hasPermission("sellgui.elite")) {
+            multiplier = Math.max(multiplier, 3.0);
+        }
+
+        return Math.min(multiplier, maxMultiplier);
+    }
+
+    private double applyRandomVariation(double price) {
+        boolean randomPricingEnabled = main.getConfig().getBoolean("prices.random-pricing.enabled", false);
+        if (!randomPricingEnabled) return price;
+
+        double variationPercent = main.getConfig().getDouble("prices.random-pricing.variation-percent", 10.0);
+        double variation = (Math.random() - 0.5) * 2 * (variationPercent / 100.0);
+
+        return price * (1.0 + variation);
+    }
+
     public boolean removeItemPrice(ItemStack itemStack) {
         return setItemPrice(itemStack, 0.0);
     }
-    
-    // Vanilla item price methods
+
     private boolean setVanillaPrice(ItemStack itemStack, double price) {
         try {
             main.getItemPricesConfig().set(itemStack.getType().name(), price);
@@ -107,7 +262,6 @@ public class PriceManager {
         }
     }
 
-    // Helper methods to get config files
     private File getItemPricesFile() {
         return new File(main.getDataFolder(), "itemprices.yml");
     }
@@ -119,72 +273,68 @@ public class PriceManager {
     private File getNexoPricesFile() {
         return new File(main.getDataFolder(), "nexo.yml");
     }
-    
+
     private double getVanillaPrice(ItemStack itemStack) {
         return main.getItemPricesConfig().getDouble(itemStack.getType().name(), 0.0);
     }
-    
-    // MMOItems price methods
+
     private boolean setMMOItemPrice(ItemStack itemStack, double price) {
         try {
             String identifier = ItemIdentifier.getItemIdentifier(itemStack);
             if (identifier == null || !identifier.startsWith("MMOITEMS:")) {
                 return false;
             }
-            
+
             String[] parts = identifier.substring("MMOITEMS:".length()).split("\\.");
             if (parts.length != 2) {
                 return false;
             }
-            
+
             String itemType = parts[0];
             String itemId = parts[1];
-            
+
             main.getMMOItemsPricesFileConfig().set("mmoitems." + itemType + "." + itemId, price);
             main.getMMOItemsPricesFileConfig().save(getMMOItemsPricesFile());
-            
-            // Update loaded prices cache
+
             Map<String, Double> loadedPrices = main.getLoadedMMOItemPrices();
             if (loadedPrices != null) {
                 loadedPrices.put(itemType + "." + itemId, price);
             }
-            
+
             return true;
         } catch (IOException e) {
             main.getLogger().warning("Failed to save MMOItem price: " + e.getMessage());
             return false;
         }
     }
-    
+
     private double getMMOItemPrice(ItemStack itemStack) {
         String identifier = ItemIdentifier.getItemIdentifier(itemStack);
         if (identifier == null || !identifier.startsWith("MMOITEMS:")) {
             return 0.0;
         }
-        
+
         String key = identifier.substring("MMOITEMS:".length());
         Map<String, Double> loadedPrices = main.getLoadedMMOItemPrices();
-        
+
         if (loadedPrices != null && loadedPrices.containsKey(key)) {
             return loadedPrices.get(key);
         }
-        
+
         return 0.0;
     }
-    
-    // Nexo item price methods
+
     private boolean setNexoPrice(ItemStack itemStack, double price) {
         try {
             String identifier = ItemIdentifier.getItemIdentifier(itemStack);
             if (identifier == null || !identifier.startsWith("NEXO:")) {
                 return false;
             }
-            
+
             String nexoId = identifier.substring("NEXO:".length());
             main.getNexoPricesFileConfig().set("nexo." + nexoId, price);
             main.getNexoPricesFileConfig().save(getNexoPricesFile());
 
-            // Update loaded prices cache
             Map<String, Double> loadedPrices = main.getLoadedNexoPrices();
             if (loadedPrices != null) {
                 loadedPrices.put(nexoId, price);
@@ -196,7 +346,7 @@ public class PriceManager {
             return false;
         }
     }
-    
+
     private double getNexoPrice(ItemStack itemStack) {
         String identifier = ItemIdentifier.getItemIdentifier(itemStack);
         if (identifier == null || !identifier.startsWith("NEXO:")) {
@@ -212,15 +362,10 @@ public class PriceManager {
 
         return 0.0;
     }
-    
-    /**
-     * Gets all items with prices for a specific type
-     * @param type The item type to get prices for
-     * @return Map of item identifiers to prices
-     */
+
     public Map<String, Double> getAllPricesForType(ItemIdentifier.ItemType type) {
         Map<String, Double> prices = new HashMap<>();
-        
+
         switch (type) {
             case VANILLA:
                 for (String key : main.getItemPricesConfig().getKeys(false)) {
@@ -232,7 +377,7 @@ public class PriceManager {
                     }
                 }
                 break;
-                
+
             case MMOITEMS:
                 Map<String, Double> mmoItems = main.getLoadedMMOItemPrices();
                 if (mmoItems != null) {
@@ -243,20 +388,20 @@ public class PriceManager {
                     }
                 }
                 break;
-                
+
             case NEXO:
                 ConfigurationSection nexoSection = main.getNexoPricesFileConfig().getConfigurationSection("nexo");
                 if (nexoSection != null) {
                     for (String key : nexoSection.getKeys(false)) {
                         double price = nexoSection.getDouble(key);
                         if (price > 0) {
-                            prices.put("NEXO:" + key, price); // Keep original case for Nexo IDs
+                            prices.put("NEXO:" + key, price);
                         }
                     }
                 }
                 break;
         }
-        
+
         return prices;
     }
 }

@@ -2,11 +2,11 @@ package me.aov.sellgui;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.annotation.Nullable;
+
+import io.lumine.mythic.lib.api.item.ItemTag;
+import io.lumine.mythic.lib.api.item.NBTCompound;
 import io.lumine.mythic.lib.api.item.NBTItem;
 import me.aov.sellgui.commands.SellCommand;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
@@ -74,24 +74,110 @@ public class SellGUIAPI extends PlaceholderExpansion {
         double price = 0.0;
 
         if (itemStack == null || itemStack.getType() == Material.AIR) {
+            if (this.main.shouldRoundPrices()) {
+                price = Math.round(price);
+            }
             return price;
         }
+        try {
+            NBTItem nbtItem = new NBTItem(itemStack) {
+                @Override
+                public Object get(String s) {
+                    return null;
+                }
 
-        if (main.isMMOItemsEnabled()) {
-            NBTItem nbtItem = NBTItem.get(itemStack);
-            if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
-                String mmoItemType = nbtItem.getType();
-                String mmoItemId = nbtItem.getString("MMOITEMS_ITEM_ID");
+                @Override
+                public String getString(String s) {
+                    return "";
+                }
 
-                if (mmoItemType != null && !mmoItemType.isEmpty() && mmoItemId != null && !mmoItemId.isEmpty()) {
-                    String fullItemId = mmoItemType.toUpperCase() + "." + mmoItemId.toUpperCase();
+                @Override
+                public boolean hasTag(String s) {
+                    return false;
+                }
 
-                    Map<String, Double> mmoPrices = this.main.getLoadedMMOItemPrices();
-                    if (mmoPrices != null && mmoPrices.containsKey(fullItemId)) {
-                        price = mmoPrices.get(fullItemId);
+                @Override
+                public boolean getBoolean(String s) {
+                    return false;
+                }
+
+                @Override
+                public double getDouble(String s) {
+                    return 0;
+                }
+
+                @Override
+                public int getInteger(String s) {
+                    return 0;
+                }
+
+                @Override
+                public NBTCompound getNBTCompound(String s) {
+                    return null;
+                }
+
+                @Override
+                public NBTItem addTag(List<ItemTag> list) {
+                    return null;
+                }
+
+                @Override
+                public NBTItem removeTag(String... strings) {
+                    return null;
+                }
+
+                @Override
+                public Set<String> getTags() {
+                    return Set.of();
+                }
+
+                @Override
+                public ItemStack toItem() {
+                    return null;
+                }
+
+                @Override
+                public int getTypeId(String s) {
+                    return 0;
+                }
+            };
+            if (nbtItem.hasTag("sellgui:price")) {
+                price = nbtItem.getDouble("sellgui:price");
+                if (price > 0) {
+                    return applyPlayerBonuses(price, player);
+                }
+            }
+
+            if (this.main.hasNexo) {
+                if (nbtItem.hasTag("nexo:id")) {
+                    String nexoId = nbtItem.getString("nexo:id");
+                    if (nexoId != null && !nexoId.isEmpty()) {
+                        Map<String, Double> nexoPrices = this.main.getLoadedNexoPrices();
+                        if (nexoPrices != null && nexoPrices.containsKey(nexoId)) {
+                            price = nexoPrices.get(nexoId);
+                        }
                     }
                 }
             }
+
+            if (price == 0 && main.isMMOItemsEnabled()) {
+                if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
+                    String mmoItemType = nbtItem.getType();
+                    String mmoItemId = nbtItem.getString("MMOITEMS_ITEM_ID");
+
+                    if (mmoItemType != null && !mmoItemType.isEmpty() && mmoItemId != null && !mmoItemId.isEmpty()) {
+                        String fullItemId = mmoItemType.toUpperCase() + "." + mmoItemId.toUpperCase();
+
+                        Map<String, Double> mmoPrices = this.main.getLoadedMMOItemPrices();
+                        if (mmoPrices != null && mmoPrices.containsKey(fullItemId)) {
+                            price = mmoPrices.get(fullItemId);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+
+            this.main.getLogger().warning("Failed to read NBT data: " + e.getMessage());
         }
 
         if (price == 0 && this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
@@ -106,84 +192,40 @@ public class SellGUIAPI extends PlaceholderExpansion {
                 }
             }
         }
-
         if (price == 0 && this.main.getItemPricesConfig() != null && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
             price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
         }
+        if (price > 0) {
+            return applyPlayerBonuses(price, player);
+        }
 
-        if (this.main.getConfig().getBoolean("sell-all-command-sell-enchanted", false) || itemStack.getEnchantments().isEmpty()) {
-            List<String> flatBonus = new ArrayList<>();
-            if (this.main.getItemPricesConfig() != null && this.main.getItemPricesConfig().isList("flat-enchantment-bonus")) {
-                flatBonus.addAll(this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus"));
-            }
-
-            List<String> multiplierBonus = new ArrayList<>();
-            if (this.main.getItemPricesConfig() != null && this.main.getItemPricesConfig().isList("multiplier-enchantment-bonus")) {
-                multiplierBonus.addAll(this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus"));
-            }
-
-            boolean isEssentialsPriceSource = this.main.hasEssentials() &&
-                    this.main.getConfig().getBoolean("use-essentials-price") &&
-                    price > 0 &&
-                    this.main.getEssentialsHolder() != null &&
-                    this.main.getEssentialsHolder().getEssentials() != null &&
-                    (this.main.getEssentialsHolder().getPrice(itemStack) != null && this.main.getEssentialsHolder().getPrice(itemStack).doubleValue() > 0);
-
-            if (isEssentialsPriceSource && !this.main.getConfig().getBoolean("use-permission-bonuses-on-essentials", true)) {
-                return round(price, this.main.getConfig().getInt("places-to-round", 2));
-            } else {
-                if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasEnchants()) {
-                    for (Map.Entry<Enchantment, Integer> entry : itemStack.getEnchantments().entrySet()) {
-                        Enchantment enchantment = entry.getKey();
-                        int level = entry.getValue();
-                        String enchantmentKey = enchantment.getKey().getKey();
-
-                        for (String s : flatBonus) {
-                            String[] temp = s.split(":");
-                            if (temp.length == 3 && temp[0].equalsIgnoreCase(enchantmentKey) && temp[1].equalsIgnoreCase(String.valueOf(level))) {
-                                try {
-                                    price += Double.parseDouble(temp[2]);
-                                } catch (NumberFormatException ignored) {}
-                            }
-                        }
-                        for (String s : multiplierBonus) {
-                            String[] temp = s.split(":");
-                            if (temp.length == 3 && temp[0].equalsIgnoreCase(enchantmentKey) && temp[1].equalsIgnoreCase(String.valueOf(level))) {
-                                try {
-                                    price *= Double.parseDouble(temp[2]);
-                                } catch (NumberFormatException ignored) {}
-                            }
-                        }
-                    }
-                }
-
-                if (player != null) {
-                    for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
-                        String perm = pai.getPermission();
-                        if (pai.getValue()) {
-                            if (perm.startsWith("sellgui.bonus.")) {
-                                if (price != 0.0) {
-                                    try {
-                                        double bonusValue = Double.parseDouble(perm.substring("sellgui.bonus.".length()));
-                                        price += bonusValue;
-                                    } catch (NumberFormatException | IndexOutOfBoundsException ignored) {}
-                                }
-                            } else if (perm.startsWith("sellgui.multiplier.")) {
-                                try {
-                                    double multiplierValue = Double.parseDouble(perm.substring("sellgui.multiplier.".length()));
-                                    if (multiplierValue > 0) {
-                                        price *= multiplierValue;
-                                    }
-                                } catch (NumberFormatException | IndexOutOfBoundsException ignored) {}
-                            }
-                        }
-                    }
-                }
-                return round(price, this.main.getConfig().getInt("places-to-round", 2));
-            }
-        } else {
+        return 0.0;
+    }
+    private double applyPlayerBonuses(double price, @Nullable Player player) {
+        if (player == null || price <= 0) {
             return round(price, this.main.getConfig().getInt("places-to-round", 2));
         }
+
+        for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
+            String perm = pai.getPermission();
+            if (pai.getValue()) {
+                if (perm.startsWith("sellgui.bonus.")) {
+                    try {
+                        double bonusValue = Double.parseDouble(perm.substring("sellgui.bonus.".length()));
+                        price += bonusValue;
+                    } catch (NumberFormatException | IndexOutOfBoundsException ignored) {}
+                } else if (perm.startsWith("sellgui.multiplier.")) {
+                    try {
+                        double multiplierValue = Double.parseDouble(perm.substring("sellgui.multiplier.".length()));
+                        if (multiplierValue > 0) {
+                            price *= multiplierValue;
+                        }
+                    } catch (NumberFormatException | IndexOutOfBoundsException ignored) {}
+                }
+            }
+        }
+
+        return round(price, this.main.getConfig().getInt("places-to-round", 2));
     }
 
     public double getPurePrice(ItemStack itemStack) {

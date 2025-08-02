@@ -5,7 +5,6 @@ import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.commands.SellCommand;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -13,126 +12,229 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.*;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.HashMap;
 
 public class InventoryListeners implements Listener {
-    private static SellGUIMain main;
+    private final SellGUIMain main;
 
     public InventoryListeners(SellGUIMain main) {
         this.main = main;
     }
 
     @EventHandler
-    public void inventoryClose(InventoryCloseEvent event) {
-        if (SellCommand.isSellGUI(event.getInventory())) {
-            dropItems(event.getInventory(), (Player) event.getPlayer());
-            SellCommand.getSellGUIs().remove(SellCommand.getSellGUI(event.getInventory()));
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player)) return;
+
+        Player player = (Player) event.getPlayer();
+        SellGUI sellGUI = SellCommand.getSellGUI(player);
+
+        if (sellGUI != null && event.getInventory().equals(sellGUI.getMenu())) {
+            // Drop items back to player
+            dropItems(event.getInventory(), player);
+
+            // Clean up the SellGUI
+            sellGUI.cleanup();
+            SellCommand.getSellGUIs().remove(sellGUI);
         }
     }
 
-
-
     @EventHandler
-    public void inventoryClick(InventoryClickEvent e) {
-        String soundName = main.getLangConfig().getString("no-items-sound", "BLOCK_NOTE_BLOCK_BASS");
-        float volume = (float) main.getLangConfig().getDouble("no-items-volume", 1.0);
-        float pitch = (float) main.getLangConfig().getDouble("no-items-pitch", 1.0);
-        Sound sound = Sound.valueOf(soundName);
-        ItemStack cursorItem = e.getCursor();
-
+    public void onInventoryClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player)) return;
 
         Player player = (Player) e.getWhoClicked();
+        Inventory clickedInventory = e.getClickedInventory();
         ItemStack currentItem = e.getCurrentItem();
 
-        if (SellCommand.openSellGUI(player)) {
-            SellGUI sellGUI = SellCommand.getSellGUI(player);
-            ItemStack clickedItem = e.getCurrentItem();
-            if (clickedItem == null || clickedItem.getType().isAir()) return;
-            if (clickedItem.getItemMeta() != null &&
-                    clickedItem.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(main, "custom-menu-item"), PersistentDataType.STRING)) {
-                executeCommandFromItem(player, clickedItem);
-                e.setCancelled(true);
-                return;
-            }
-            if (clickedItem.hasItemMeta() && clickedItem.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(main, "sellgui"), PersistentDataType.BYTE)) {
-                e.setCancelled(true);
-                return;
-            }
-            sellGUI.addSellItem();
-            if (clickedItem.isSimilar(sellGUI.getConfirmItem())) {
-                executeCommandFromConfig(player, "confirm-item-command");
-                sellGUI.sellItems(sellGUI.getMenu());
-                e.setResult(Event.Result.DENY);
-                e.setCancelled(true);
-            } else if (clickedItem.isSimilar(SellGUI.getSellItem())) {
-                if (sellGUI.getTotal(sellGUI.getMenu()) <= 0) {
-                    String title = main.getLangConfig().getString("no-items-title", "&cNo items to sell!");
-                    String subtitle = main.getLangConfig().getString("no-items-subtitle", "");
+        // Find the SellGUI for this player
+        SellGUI sellGUI = SellCommand.getSellGUI(player);
+        if (sellGUI == null || !e.getInventory().equals(sellGUI.getMenu())) {
+            return; // Not a SellGUI inventory
+        }
 
-                    e.getWhoClicked().getWorld().playSound(e.getWhoClicked().getLocation(), sound, volume, pitch);
-                    player.closeInventory();
-                    player.sendTitle(ChatColor.translateAlternateColorCodes('&', title), ChatColor.translateAlternateColorCodes('&', subtitle), 10, 70, 20);
-                    return;
+        NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
+        NamespacedKey actionKey = new NamespacedKey(main, "guiAction");
+
+        // Handle clicks on GUI control items (sell button, confirm button, etc.)
+        if (currentItem != null && currentItem.hasItemMeta() &&
+                currentItem.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE)) {
+
+            e.setCancelled(true);
+
+            String action = currentItem.getItemMeta().getPersistentDataContainer().get(actionKey, PersistentDataType.STRING);
+            if (action == null) return;
+
+            switch (action) {
+                case "confirm":
+                    sellGUI.sellItems(sellGUI.getMenu());
+                    break;
+                case "sell":
+                    if (sellGUI.getTotal(sellGUI.getMenu()) <= 0) {
+                        // Play sound and show message for no items
+                        String soundName = main.getSoundsConfig().getString("legacy.no-items-sound", "BLOCK_NOTE_BLOCK_BASS");
+                        float volume = (float) main.getSoundsConfig().getDouble("legacy.no-items-volume", 1.0);
+                        float pitch = (float) main.getSoundsConfig().getDouble("legacy.no-items-pitch", 1.0);
+
+                        try {
+                            Sound sound = Sound.valueOf(soundName);
+                            player.playSound(player.getLocation(), sound, volume, pitch);
+                        } catch (IllegalArgumentException ex) {
+                            main.getLogger().warning("Invalid sound name: " + soundName);
+                        }
+
+                        player.closeInventory();
+                        player.sendTitle(
+                                main.getMessagesConfig().getString("titles.no-items-title", "&cNo items to sell!"),
+                                main.getMessagesConfig().getString("titles.no-items-subtitle", ""),
+                                10, 70, 20
+                        );
+                        return;
+                    }
+                    sellGUI.makeConfirmItem();
+                    sellGUI.setConfirmItem();
+                    break;
+            }
+        }
+        // Handle clicks on custom menu items
+        else if (currentItem != null && isCustomMenuItem(currentItem)) {
+            e.setCancelled(true);
+            handleCustomMenuItemClick(player, currentItem);
+        }
+        // Handle clicks in the sellable area
+        else if (clickedInventory != null && clickedInventory.equals(sellGUI.getMenu())) {
+            // Check if clicking on a GUI control item
+            if (isGUIControlItem(currentItem, sellGUI)) {
+                e.setCancelled(true);
+                return;
+            }
+
+            // Prevent shift-clicking items into reserved slots
+            if (e.isShiftClick() && wouldGoToReservedSlot(e.getSlot(), sellGUI)) {
+                e.setCancelled(true);
+                return;
+            }
+
+            // Update the sell item total after a delay to allow the inventory change to process
+            Bukkit.getScheduler().runTaskLater(main, () -> {
+                if (sellGUI.getMenu() != null && player.isOnline() && SellCommand.getSellGUI(player) != null) {
+                    sellGUI.updateButtonState();
                 }
-                executeCommandFromConfig(player, "sell-item-command");
-                sellGUI.makeConfirmItem();
-                sellGUI.setConfirmItem();
-                e.setResult(Event.Result.DENY);
-                e.setCancelled(true);
-            } else if (clickedItem.isSimilar(SellGUI.getFiller())) {
-                e.setResult(Event.Result.DENY);
-                e.setCancelled(true);
+            }, 1L);
+        }
+        // Handle clicks in player inventory while SellGUI is open
+        else if (clickedInventory != null && clickedInventory.equals(player.getInventory())) {
+            // Allow normal player inventory interactions
+            // Update total if items are moved
+            Bukkit.getScheduler().runTaskLater(main, () -> {
+                if (sellGUI.getMenu() != null && player.isOnline() && SellCommand.getSellGUI(player) != null) {
+                    sellGUI.updateButtonState();
+                }
+            }, 1L);
+        }
+    }
+
+    /**
+     * Check if an item is a GUI control item (sell button, filler, etc.)
+     */
+    private boolean isGUIControlItem(ItemStack item, SellGUI sellGUI) {
+        if (item == null) return false;
+
+        NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
+        return item.hasItemMeta() &&
+                item.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
+    }
+
+    /**
+     * Check if a slot is reserved for GUI controls
+     */
+    private boolean wouldGoToReservedSlot(int slot, SellGUI sellGUI) {
+        // Get reserved slots from config
+        if (main.getConfigManager() != null && main.getConfigManager().getGUIConfig() != null) {
+            var guiConfig = main.getConfigManager().getGUIConfig();
+            var fillerSlots = guiConfig.getIntegerList("sell_gui.positions.filler_slots");
+            int sellButtonSlot = guiConfig.getInt("sell_gui.positions.sell-button", 49);
+            int confirmButtonSlot = guiConfig.getInt("sell_gui.positions.confirm_button", 53);
+
+            return fillerSlots.contains(slot) || slot == sellButtonSlot || slot == confirmButtonSlot;
+        }
+
+        // Default reserved slots for 54-slot inventory (border slots)
+        return slot < 9 || slot > 44 || slot % 9 == 0 || slot % 9 == 8;
+    }
+
+    /**
+     * Handle custom menu item clicks
+     */
+    private void handleCustomMenuItemClick(Player player, ItemStack item) {
+        NamespacedKey key = new NamespacedKey(main, "custom-menu-item");
+        String commands = item.getItemMeta().getPersistentDataContainer().get(key, PersistentDataType.STRING);
+
+        if (commands != null && !commands.isEmpty()) {
+            String[] commandArray = commands.split(";");
+            for (String command : commandArray) {
+                if (!command.trim().isEmpty()) {
+                    // Execute the command (replace %player% placeholder)
+                    String finalCommand = command.trim().replace("%player%", player.getName());
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
+                }
             }
-            if (e.getInventory().getHolder() instanceof SellGUI && cursorItem != null && cursorItem.getType() != Material.AIR) {
-                e.getWhoClicked().getWorld().playSound(e.getWhoClicked().getLocation(), Sound.BLOCK_BARREL_OPEN, 0.8F, 1.2F);
-            }
         }
     }
 
-    private String colorize(String message) {
-        return ChatColor.translateAlternateColorCodes('&', message.replace("§", "&"));
-    }
-
-    private void executeCommandFromItem(Player player, ItemStack item) {
-        String commands = item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(main, "custom-menu-item"), PersistentDataType.STRING);
-        if (commands == null) return;
-
-        for (String command : commands.split(";")) {
-            command = command.replace("%player%", player.getName());
-            main.getServer().dispatchCommand(main.getServer().getConsoleSender(), command);
-        }
-    }
-    private void executeCommandFromConfig(Player player, String commandKey) {
-        String command = main.getConfig().getString(commandKey);
-        if (command != null) {
-            command = command.replace("%player%", player.getName());
-            main.getServer().dispatchCommand(main.getServer().getConsoleSender(), command);
-        }
-    }
-
-    public static void dropItems(Inventory inventory, Player player) {
+    /**
+     * Drop items back to player when inventory closes
+     */
+    private void dropItems(Inventory inventory, Player player) {
         for (ItemStack itemStack : inventory.getContents()) {
-            if (itemStack != null && !sellGUIItem(itemStack, player)) {
-                if (itemStack.hasItemMeta() && itemStack.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(main, "custom-menu-item"), PersistentDataType.STRING)) {
-                    continue;
-                }
+            if (itemStack == null || itemStack.getType() == Material.AIR) continue;
 
-                if (main.getConfig().getBoolean("drop-items-on-close")) {
-                    player.getWorld().dropItem(player.getLocation(), itemStack);
-                } else {
-                    if (player.getInventory().firstEmpty() != -1) {
-                        player.getInventory().addItem(itemStack);
-                        inventory.remove(itemStack);
-                    } else {
-                        player.getWorld().dropItem(player.getLocation(), itemStack);
-                        inventory.remove(itemStack);
+            // Skip GUI control items
+            NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
+            if (itemStack.hasItemMeta() &&
+                    itemStack.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE)) {
+                continue;
+            }
+
+            // Skip custom menu items
+            if (isCustomMenuItem(itemStack)) {
+                continue;
+            }
+
+            // Return items to player
+            if (main.getConfig().getBoolean("drop-items-on-close", false)) {
+                player.getWorld().dropItem(player.getLocation(), itemStack);
+            } else {
+                HashMap<Integer, ItemStack> notAdded = player.getInventory().addItem(itemStack);
+                if (!notAdded.isEmpty()) {
+                    for (ItemStack leftover : notAdded.values()) {
+                        player.getWorld().dropItem(player.getLocation(), leftover);
                     }
                 }
             }
         }
     }
-    public static boolean sellGUIItem(ItemStack i, Player player) {
-        return i != null && (i.isSimilar(SellGUI.getSellItem()) || i.isSimilar(SellGUI.getFiller()) || i.isSimilar(SellCommand.getSellGUI(player).getConfirmItem()));
+
+    /**
+     * Check if an item is a custom menu item
+     */
+    private boolean isCustomMenuItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return false;
+        return item.getItemMeta().getPersistentDataContainer().has(
+                new NamespacedKey(main, "custom-menu-item"),
+                PersistentDataType.STRING
+        );
     }
 
+    /**
+     * Static method for compatibility - check if an item is a SellGUI control item
+     */
+    public static boolean sellGUIItem(ItemStack item, Player player) {
+        if (item == null || !item.hasItemMeta()) return false;
+
+        SellGUIMain instance = SellGUIMain.getInstance();
+        if (instance == null) return false;
+
+        NamespacedKey guiKey = new NamespacedKey(instance, "sellgui");
+        return item.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
+    }
 }

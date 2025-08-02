@@ -1,41 +1,87 @@
 name: SellGUI
-version: 2.4-SNAPSHOT
-api-version: 1.20.6
-author: Aov,SaneNuyan
+version: '2.5'
 main: me.aov.sellgui.SellGUIMain
+api-version: '1.20'
+description: SellGUI plugin specifically optimized for Minecraft 1.20.6
+author: AOV,SaneNuyan
+website: https://www.spigotmc.org/resources/sellgui.127355/
+
 depend: [Vault]
-softdepend: [Essentials,MMOItems,PlaceholderAPI,Nexo]
+softdepend: [Essentials,MMOItems,PlaceholderAPI,Nexo,NBTAPI]
+
 commands:
   sellgui:
-    description: SellGUI Command
-    usage: /sellgui [reload|setprice|<playername>]
-  sellall:
-    description: Sells All Items in Inventory
-    usage: /sellall
-    permission: sellgui.sellall
+    description: SellGUI Command for 1.20.6
+    usage: /sellgui [reload|setprice|evaluate|setrange|<playername>]
+    aliases: [sg, sell]
   sellguiprice:
-    description: Opens the price setter GUI
+    description: Price Setter GUI Command for 1.20.6
     usage: /sellguiprice
-    permission: sellgui.setprice
+  sellall:
+    description: Sell All Items Command for 1.20.6
+    usage: /sellall
+
 permissions:
-  sellgui.reload:
-    description: Allows you to use /sellgui reload
-    default: op
-  sellgui.createsign:
-    description: Allows you to create a SellGUI sign
-    default: op
-  sellgui.usesign:
-    description: Allows you to use a SellGUI sign
-    default: true
-  sellgui.sellall:
-    description: Allows you to Sell your Inventory Items
-    default: true
-  sellgui.others:
-    description: Allows you to open the SellGUI for other players
-    default: op
+  sellgui.*:
+    description: Gives access to all SellGUI commands and features
+    children:
+      sellgui.use: true
+      sellgui.admin: true
+      sellgui.setprice: true
+      sellgui.evaluate: true
+      sellgui.sellall: true
   sellgui.use:
-    description: Allows you to use /sellgui
+    description: Allows player to use basic SellGUI features
     default: true
-  sellgui.setprice:
-    description: Allows you to set item prices using the price setter GUI
+  sellgui.admin:
+    description: Allows player to use admin commands
     default: op
+  sellgui.setprice:
+    description: Allows player to set custom prices on items
+    default: op
+  sellgui.evaluate:
+    description: Allows player to use price evaluation GUI
+    default: op
+  sellgui.sellall:
+    description: Allows player to use sell all command
+    default: true
+  sellgui.reload:
+    description: Allows player to reload the plugin
+    default: op
+  sellgui.bypass:
+    description: Bypasses certain restrictions
+    default: op
+  sellgui.bonus.*:
+    description: Permission-based bonus system
+    default: false
+  sellgui.multiplier.*:
+    description: Permission-based multiplier system
+    default: false
+
+  # VIP rank permissions
+  sellgui.vip:
+    description: VIP rank - 1.5x sell multiplier
+    default: false
+  sellgui.premium:
+    description: Premium rank - 2.0x sell multiplier
+    default: false
+  sellgui.elite:
+    description: Elite rank - 3.0x sell multiplier
+    default: false
+
+  # Specific multiplier permissions
+  sellgui.multiplier.1.2:
+    description: 1.2x sell multiplier
+    default: false
+  sellgui.multiplier.1.5:
+    description: 1.5x sell multiplier
+    default: false
+  sellgui.multiplier.2.0:
+    description: 2.0x sell multiplier
+    default: false
+  sellgui.multiplier.2.5:
+    description: 2.5x sell multiplier
+    default: false
+  sellgui.multiplier.3.0:
+    description: 3.0x sell multiplier
+    default: false

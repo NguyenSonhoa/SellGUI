@@ -3,7 +3,7 @@ example-item:
   name: "Example Item"
   glimmer: true
   custom-model-data: 123
-  slot: 10
+  slot: 53
   lore:
     - "Example Lore"
   commands:
