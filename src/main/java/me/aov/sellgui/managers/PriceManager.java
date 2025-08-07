@@ -32,14 +32,14 @@ public class PriceManager {
 
         try {
             switch (type) {
-                case VANILLA:
-                    return setVanillaPrice(itemStack, price);
-
                 case MMOITEMS:
                     return setMMOItemPrice(itemStack, price);
 
                 case NEXO:
                     return setNexoPrice(itemStack, price);
+
+                case VANILLA:
+                    return setVanillaPrice(itemStack, price);
 
                 default:
                     return false;
@@ -115,10 +115,6 @@ public class PriceManager {
         ItemIdentifier.ItemType type = ItemIdentifier.getItemType(itemStack);
 
         switch (type) {
-            case VANILLA:
-                double vanillaPrice = getVanillaPrice(itemStack);
-                return applyRandomVariation(vanillaPrice);
-
             case MMOITEMS:
                 double mmoPrice = getMMOItemPrice(itemStack);
                 return applyRandomVariation(mmoPrice);
@@ -126,6 +122,10 @@ public class PriceManager {
             case NEXO:
                 double nexoPrice = getNexoPrice(itemStack);
                 return applyRandomVariation(nexoPrice);
+
+            case VANILLA:
+                double vanillaPrice = getVanillaPrice(itemStack);
+                return applyRandomVariation(vanillaPrice);
 
             default:
                 double defaultPrice = main.getConfig().getDouble("prices.default-price", 0.0);
@@ -166,14 +166,14 @@ public class PriceManager {
         ItemIdentifier.ItemType type = ItemIdentifier.getItemType(itemStack);
 
         switch (type) {
-            case VANILLA:
-                return getVanillaPrice(itemStack);
-
             case MMOITEMS:
                 return getMMOItemPrice(itemStack);
 
             case NEXO:
                 return getNexoPrice(itemStack);
+
+            case VANILLA:
+                return getVanillaPrice(itemStack);
 
             default:
                 return main.getConfig().getDouble("prices.default-price", 0.0);
@@ -261,11 +261,6 @@ public class PriceManager {
             return false;
         }
     }
-
-    private File getItemPricesFile() {
-        return new File(main.getDataFolder(), "itemprices.yml");
-    }
-
     private File getMMOItemsPricesFile() {
         return new File(main.getDataFolder(), "mmoitems.yml");
     }
@@ -273,6 +268,10 @@ public class PriceManager {
     private File getNexoPricesFile() {
         return new File(main.getDataFolder(), "nexo.yml");
     }
+    private File getItemPricesFile() {
+        return new File(main.getDataFolder(), "itemprices.yml");
+    }
+
 
     private double getVanillaPrice(ItemStack itemStack) {
         return main.getItemPricesConfig().getDouble(itemStack.getType().name(), 0.0);
@@ -367,17 +366,6 @@ public class PriceManager {
         Map<String, Double> prices = new HashMap<>();
 
         switch (type) {
-            case VANILLA:
-                for (String key : main.getItemPricesConfig().getKeys(false)) {
-                    if (!key.equals("flat-enchantment-bonus") && !key.equals("multiplier-enchantment-bonus")) {
-                        double price = main.getItemPricesConfig().getDouble(key);
-                        if (price > 0) {
-                            prices.put("VANILLA:" + key, price);
-                        }
-                    }
-                }
-                break;
-
             case MMOITEMS:
                 Map<String, Double> mmoItems = main.getLoadedMMOItemPrices();
                 if (mmoItems != null) {
@@ -396,6 +384,17 @@ public class PriceManager {
                         double price = nexoSection.getDouble(key);
                         if (price > 0) {
                             prices.put("NEXO:" + key, price);
+                        }
+                    }
+                }
+                break;
+
+            case VANILLA:
+                for (String key : main.getItemPricesConfig().getKeys(false)) {
+                    if (!key.equals("flat-enchantment-bonus") && !key.equals("multiplier-enchantment-bonus")) {
+                        double price = main.getItemPricesConfig().getDouble(key);
+                        if (price > 0) {
+                            prices.put("VANILLA:" + key, price);
                         }
                     }
                 }

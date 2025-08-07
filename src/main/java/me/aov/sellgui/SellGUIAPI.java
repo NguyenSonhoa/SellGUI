@@ -9,13 +9,18 @@ import io.lumine.mythic.lib.api.item.ItemTag;
 import io.lumine.mythic.lib.api.item.NBTCompound;
 import io.lumine.mythic.lib.api.item.NBTItem;
 import me.aov.sellgui.commands.SellCommand;
+import me.aov.sellgui.commands.SellCommand;
+import me.aov.sellgui.managers.PriceManager;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.PermissionAttachmentInfo;
+import org.bukkit.persistence.PersistentDataType;
 
 public class SellGUIAPI extends PlaceholderExpansion {
     private SellGUIMain main;
@@ -36,7 +41,7 @@ public class SellGUIAPI extends PlaceholderExpansion {
 
     @Override
     public String getVersion() {
-        return "2.2";
+        return "2.5.11";
     }
 
     @Override
@@ -71,136 +76,53 @@ public class SellGUIAPI extends PlaceholderExpansion {
     }
 
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return 0.0;
+        }
+
         double price = 0.0;
 
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
-            if (this.main.shouldRoundPrices()) {
-                price = Math.round(price);
+        if (itemStack.hasItemMeta()) {
+            ItemMeta meta = itemStack.getItemMeta();
+            if (meta != null) {
+                NamespacedKey key = new NamespacedKey(main, "current_price");
+                if (meta.getPersistentDataContainer().has(key, PersistentDataType.DOUBLE)) {
+                    price = meta.getPersistentDataContainer().get(key, PersistentDataType.DOUBLE);
+                }
             }
-            return price;
         }
-        try {
-            NBTItem nbtItem = new NBTItem(itemStack) {
-                @Override
-                public Object get(String s) {
-                    return null;
-                }
 
-                @Override
-                public String getString(String s) {
-                    return "";
-                }
+        if (price == 0) {
+            PriceManager priceManager = new PriceManager(main);
+            price = priceManager.getItemPrice(itemStack);
 
-                @Override
-                public boolean hasTag(String s) {
-                    return false;
-                }
-
-                @Override
-                public boolean getBoolean(String s) {
-                    return false;
-                }
-
-                @Override
-                public double getDouble(String s) {
-                    return 0;
-                }
-
-                @Override
-                public int getInteger(String s) {
-                    return 0;
-                }
-
-                @Override
-                public NBTCompound getNBTCompound(String s) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem addTag(List<ItemTag> list) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem removeTag(String... strings) {
-                    return null;
-                }
-
-                @Override
-                public Set<String> getTags() {
-                    return Set.of();
-                }
-
-                @Override
-                public ItemStack toItem() {
-                    return null;
-                }
-
-                @Override
-                public int getTypeId(String s) {
-                    return 0;
-                }
-            };
-            if (nbtItem.hasTag("sellgui:price")) {
-                price = nbtItem.getDouble("sellgui:price");
-                if (price > 0) {
-                    return applyPlayerBonuses(price, player);
-                }
-            }
-
-            if (this.main.hasNexo) {
-                if (nbtItem.hasTag("nexo:id")) {
-                    String nexoId = nbtItem.getString("nexo:id");
-                    if (nexoId != null && !nexoId.isEmpty()) {
-                        Map<String, Double> nexoPrices = this.main.getLoadedNexoPrices();
-                        if (nexoPrices != null && nexoPrices.containsKey(nexoId)) {
-                            price = nexoPrices.get(nexoId);
+            if (price == 0) {
+                if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
+                    if (this.main.getEssentialsHolder() != null && this.main.getEssentialsHolder().getEssentials() != null) {
+                        BigDecimal essentialsPriceBd = this.main.getEssentialsHolder().getPrice(itemStack);
+                        if (essentialsPriceBd != null) {
+                            double essentialsPrice = round(essentialsPriceBd.doubleValue(),
+                                    this.main.getConfig().getInt("places-to-round", 2));
+                            if (essentialsPrice > 0) {
+                                price = essentialsPrice;
+                            }
                         }
                     }
                 }
-            }
-
-            if (price == 0 && main.isMMOItemsEnabled()) {
-                if (nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
-                    String mmoItemType = nbtItem.getType();
-                    String mmoItemId = nbtItem.getString("MMOITEMS_ITEM_ID");
-
-                    if (mmoItemType != null && !mmoItemType.isEmpty() && mmoItemId != null && !mmoItemId.isEmpty()) {
-                        String fullItemId = mmoItemType.toUpperCase() + "." + mmoItemId.toUpperCase();
-
-                        Map<String, Double> mmoPrices = this.main.getLoadedMMOItemPrices();
-                        if (mmoPrices != null && mmoPrices.containsKey(fullItemId)) {
-                            price = mmoPrices.get(fullItemId);
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-
-            this.main.getLogger().warning("Failed to read NBT data: " + e.getMessage());
-        }
-
-        if (price == 0 && this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
-            if (this.main.getEssentialsHolder() != null && this.main.getEssentialsHolder().getEssentials() != null) {
-                BigDecimal essentialsPriceBd = this.main.getEssentialsHolder().getPrice(itemStack);
-                if (essentialsPriceBd != null) {
-                    double essentialsPrice = round(essentialsPriceBd.doubleValue(),
-                            this.main.getConfig().getInt("places-to-round", 2));
-                    if (essentialsPrice > 0) {
-                        price = essentialsPrice;
-                    }
+                if (price == 0 && this.main.getItemPricesConfig() != null && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
+                    price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
                 }
             }
         }
-        if (price == 0 && this.main.getItemPricesConfig() != null && this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
-            price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
-        }
+
         if (price > 0) {
             return applyPlayerBonuses(price, player);
         }
 
-        return 0.0;
+        return round(price, this.main.getConfig().getInt("places-to-round", 2));
     }
+
+
     private double applyPlayerBonuses(double price, @Nullable Player player) {
         if (player == null || price <= 0) {
             return round(price, this.main.getConfig().getInt("places-to-round", 2));

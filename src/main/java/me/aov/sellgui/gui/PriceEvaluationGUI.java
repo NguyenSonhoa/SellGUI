@@ -155,7 +155,6 @@ public class PriceEvaluationGUI implements InventoryHolder {
             return;
         }
 
-        // Check for stacked items if disabled in config
         if (!main.getConfigManager().getConfig("config").getBoolean("general.allow-player-evaluation-stack", true) && item.getAmount() > 1) {
             player.sendMessage(color(getMessage("price_evaluation.stack_evaluation_disabled", "&c❌ You cannot evaluate stacked items.")));
             player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.0f, 1.0f);
@@ -284,8 +283,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
 
         player.sendMessage(color(getMessage("evaluation_complete_chat", "&a✅ Price evaluation complete! Final price: &e$%price%").replace("%price%", String.format("%.2f", finalPrice))));
 
-        ItemStack resultItem = createItemFromConfig("result", Material.EMERALD, "&a&l✅ Evaluation Complete!", new ArrayList<>());
-        inventory.setItem(RESULT_SLOT, resultItem);
+        showTemporaryResult();
 
         this.evaluationMode = EvaluationMode.NONE;
         updateButtons();
@@ -301,15 +299,34 @@ public class PriceEvaluationGUI implements InventoryHolder {
             player.sendMessage(color(getMessage("evaluation_complete", "&a✅ Price set: &e$%price%").replace("%price%", String.format("%.2f", minPrice))));
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
 
-            ItemStack resultItem = createItemFromConfig("result", Material.EMERALD, "&a&l✅ Evaluation Complete!", new ArrayList<>());
-            inventory.setItem(RESULT_SLOT, resultItem);
+            showTemporaryResult();
         }
         isLocked = false;
         this.evaluationMode = EvaluationMode.NONE;
         updateButtons();
     }
 
+    private void showTemporaryResult() {
+        final ItemStack resultItem = createItemFromConfig("result", Material.EMERALD, "&a&l✅ Evaluation Complete!", new ArrayList<>());
+        inventory.setItem(RESULT_SLOT, resultItem);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                ItemStack currentItem = inventory.getItem(RESULT_SLOT);
+                if (currentItem != null && currentItem.isSimilar(resultItem)) {
+                    ItemStack filler = createItemFromConfig("filler", Material.GRAY_STAINED_GLASS_PANE, " ", new ArrayList<>());
+                    inventory.setItem(RESULT_SLOT, filler);
+                }
+            }
+        }.runTaskLater(main, 100L);
+    }
+
     private ItemStack createItem(Material material, String name, List<String> lore) {
+        return createItem(material, name, lore, -1);
+    }
+
+    private ItemStack createItem(Material material, String name, List<String> lore, int customModelData) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -318,6 +335,9 @@ public class PriceEvaluationGUI implements InventoryHolder {
             if (lore != null) {
                 List<String> processedLore = main.setPlaceholders(player, lore);
                 meta.setLore(processedLore.stream().map(this::color).collect(Collectors.toList()));
+            }
+            if (customModelData != -1) {
+                meta.setCustomModelData(customModelData);
             }
             item.setItemMeta(meta);
         }
@@ -344,17 +364,15 @@ public class PriceEvaluationGUI implements InventoryHolder {
         name = replacePricePlaceholders(name);
         lore = lore.stream().map(this::replacePricePlaceholders).collect(Collectors.toList());
 
-        ItemStack item = createItem(material, name, lore);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            if (customModelData != -1) {
-                meta.setCustomModelData(customModelData);
-            }
-            if (nbtId != null && !nbtId.isEmpty()) {
+        ItemStack item = createItem(material, name, lore, customModelData);
+
+        if (nbtId != null && !nbtId.isEmpty()) {
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
                 NamespacedKey key = new NamespacedKey(main, "sellgui-nbt-id");
                 meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, nbtId);
+                item.setItemMeta(meta);
             }
-            item.setItemMeta(meta);
         }
         return item;
     }
@@ -374,6 +392,41 @@ public class PriceEvaluationGUI implements InventoryHolder {
     }
 
     private double calculateRandomPrice(double minPrice, double maxPrice) {
+        FileConfiguration guiConfig = main.getConfigManager().getGUIConfig();
+        String path = "price_evaluation_gui.random_calculation.";
+
+        double jackpotChance = guiConfig.getDouble(path + "jackpot_chance", 0.0);
+        if (random.nextDouble() * 100 < jackpotChance) {
+            return maxPrice;
+        }
+
+        String distribution = guiConfig.getString(path + "distribution", "uniform").toLowerCase();
+
+        if ("weighted".equals(distribution)) {
+            double lowWeight = guiConfig.getDouble(path + "weighted.low_range_weight", 33.3);
+            double midWeight = guiConfig.getDouble(path + "weighted.mid_range_weight", 33.3);
+            double highWeight = guiConfig.getDouble(path + "weighted.high_range_weight", 33.3);
+            double totalWeight = lowWeight + midWeight + highWeight;
+
+            if (totalWeight <= 0) {
+                return minPrice + (random.nextDouble() * (maxPrice - minPrice));
+            }
+
+            double roll = random.nextDouble() * totalWeight;
+            double priceRange = maxPrice - minPrice;
+
+            if (roll < lowWeight) {
+
+                return minPrice + (random.nextDouble() * (priceRange * 0.33));
+            } else if (roll < lowWeight + midWeight) {
+
+                return (minPrice + priceRange * 0.33) + (random.nextDouble() * (priceRange * 0.34));
+            } else {
+
+                return (minPrice + priceRange * 0.67) + (random.nextDouble() * (priceRange * 0.33));
+            }
+        }
+
         return minPrice + (random.nextDouble() * (maxPrice - minPrice));
     }
 

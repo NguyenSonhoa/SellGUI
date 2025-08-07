@@ -1,9 +1,9 @@
 name: SellGUI
-version: '2.5'
+version: '2.5.11'
 main: me.aov.sellgui.SellGUIMain
 api-version: '1.20'
-description: SellGUI plugin specifically optimized for Minecraft 1.20.6
-author: AOV,SaneNuyan
+description: SellGUI plugin
+author: AOOV,SaneNuyan
 website: https://www.spigotmc.org/resources/sellgui.127355/
 
 depend: [Vault]
@@ -11,14 +11,14 @@ softdepend: [Essentials,MMOItems,PlaceholderAPI,Nexo,NBTAPI]
 
 commands:
   sellgui:
-    description: SellGUI Command for 1.20.6
+    description: SellGUI
     usage: /sellgui [reload|setprice|evaluate|setrange|<playername>]
     aliases: [sg, sell]
   sellguiprice:
-    description: Price Setter GUI Command for 1.20.6
+    description: Price Setter GUI Command
     usage: /sellguiprice
   sellall:
-    description: Sell All Items Command for 1.20.6
+    description: Sell All Items Command
     usage: /sellall
 
 permissions:

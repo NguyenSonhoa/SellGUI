@@ -16,6 +16,7 @@ sell_gui:
   items:
     sell_button:
       material: "EMERALD"
+      custom-model-data: 0
       name: "&a&l💰 Sell Items"
       lore:
         - "&7Click to total"
@@ -23,6 +24,7 @@ sell_gui:
       glow: true
     confirm_button:
       material: "GREEN_CONCRETE"
+      custom-model-data: 0
       name: "&a&l✅ Confirm Sale"
       lore:
         - "&7Click to confirm"
@@ -37,17 +39,11 @@ sell_gui:
       lore: []
     no_items:
       material: "BARRIER"
+      custom-model-data: 0
       name: "&c&l❌ No Items to Sell"
       lore:
         - "&7Add items to sell them"
         - "&7for money!"
-  messages:
-    no_items_title: "&c❌ No items to sell!"
-    no_items_subtitle: "&7Add items to the GUI first"
-    confirm_title: "&a✅ Confirm Sale"
-    confirm_subtitle: "&7Total: &e$%total%"
-    sold_title: "&a✅ Items Sold!"
-    sold_subtitle: "&7You received &e$%amount%"
   item_total_format: "&7%amount%x &f%item% &8= &e$%total%"
   evaluation_required_format: "&7%amount%x &f%item% &c⚠ Needs Evaluation"
   total_format: "&6&lTotal: &e$%total%"
@@ -68,41 +64,48 @@ price_setter_gui:
   items:
     save_button:
       material: "GREEN_CONCRETE"
+      custom-model-data: 0
       name: "&a&l💾 Save Price"
       lore:
         - "&7Click to save the current"
         - "&7price for this item"
     delete_button:
       material: "RED_CONCRETE"
+      custom-model-data: 0
       name: "&c&l🗑️ Delete Price"
       lore:
         - "&7Click to remove the price"
         - "&7from this item"
     cancel_button:
       material: "BARRIER"
+      custom-model-data: 0
       name: "&c&l❌ Cancel"
       lore:
         - "&7Click to close this GUI"
         - "&7without saving changes"
     chat_input_button:
       material: "WRITABLE_BOOK"
+      custom-model-data: 0
       name: "&e&l💬 Chat Input"
       lore:
         - "&7Click to set price via"
         - "&7chat input instead"
     item_placeholder:
       material: "LIGHT_GRAY_STAINED_GLASS_PANE"
+      custom-model-data: 0
       name: "&7Place Item Here"
       lore:
         - "&7Place an item in this slot"
         - "&7to set its price"
     info_current_price:
       material: "GOLD_INGOT"
+      custom-model-data: 0
       name: "&6Current Price"
       lore:
         - "&7Price: &e$%price%"
     info_item_type:
       material: "NAME_TAG"
+      custom-model-data: 0
       name: "&bItem Information"
       lore:
         - "&7Type: &f%type%"
@@ -131,7 +134,7 @@ price_evaluation_gui:
     cancel_button: 18
     instruction_slot: 4
     animation_slot: 10
-    result_slot: 16
+    result_slot: 10 # Make sure it is same animation slot.
     filler: [0, 1, 2, 3, 5, 6, 7, 8, 9, 17, 18, 26, 27, 29, 31, 35, 36, 44, 45, 46, 47, 49, 50, 51, 52, 53]
   animation:
     enabled: true
@@ -160,6 +163,12 @@ price_evaluation_gui:
     enabled: true
     type: "FIREWORK"
   items:
+    result:
+      material: LIME_STAINED_GLASS_PANE
+      name: '&a&l✅ Evaluation Complete!'
+      lore:
+        - ''
+      custom-model-data: 1
     instruction:
       material: "BOOK"
       custom-model-data: 10001
@@ -173,6 +182,7 @@ price_evaluation_gui:
         is_static: true
     animation:
       material: "GOLD_NUGGET"
+      custom-model-data: 0
       name: "&e&l🎲 Evaluating... &f$%current%"
       lore:
         - ""

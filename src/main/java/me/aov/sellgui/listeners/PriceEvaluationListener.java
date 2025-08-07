@@ -35,15 +35,17 @@ public class PriceEvaluationListener implements Listener {
             return;
         }
 
-        int slot = event.getRawSlot();
-
-        if (slot >= gui.getInventory().getSize()) {
+        if (gui.isLocked()) {
+            if (event.getRawSlot() < gui.getInventory().getSize() || event.isShiftClick()) {
+                event.setCancelled(true);
+                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cEvaluation in progress! Please wait..."));
+            }
             return;
         }
 
-        if (gui.isLocked()) {
-            event.setCancelled(true);
-            player.sendMessage("§cEvaluation in progress! Please wait...");
+        int slot = event.getRawSlot();
+
+        if (slot >= gui.getInventory().getSize()) {
             return;
         }
 
