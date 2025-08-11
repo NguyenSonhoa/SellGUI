@@ -43,8 +43,10 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class SellGUIMain extends JavaPlugin {
+   public boolean hasShopGUIPlus;
    private SellGUIAPI sellGUIAPI;
    private static SellGUIMain instance;
+   public boolean isShopGUIPlusEnabled() { return this.hasShopGUIPlus; }
    private static Economy econ;
    private ConfigManager configManager;
    private me.aov.sellgui.gui.GUIManager guiManager;
@@ -124,7 +126,13 @@ public class SellGUIMain extends JavaPlugin {
       } else {
          this.getLogger().info("PlaceholderAPI not found, using built-in placeholder fallbacks.");
       }
-
+      if (Bukkit.getPluginManager().getPlugin("ShopGUIPlus") != null) {
+         this.hasShopGUIPlus = true;
+         this.getLogger().info("ShopGUIPlus found, SellGUI will Support get Price.");
+      } else {
+         this.hasShopGUIPlus = false;
+         this.getLogger().info("ShopGUIPlus not found, disabled support it.");
+      }
       if (!this.setupEconomy()) {
          this.getLogger().severe("Disabled due to no Vault dependency found or no economy provider!");
          this.getServer().getPluginManager().disablePlugin(this);
@@ -306,7 +314,6 @@ public class SellGUIMain extends JavaPlugin {
       this.createConfigs();
       this.checkConfigVersion();
 
-      // Reload all configuration files
       configManager.reloadConfig("gui");
       configManager.reloadConfig("messages");
       configManager.reloadConfig("sounds");
@@ -314,12 +321,10 @@ public class SellGUIMain extends JavaPlugin {
       configManager.reloadConfig("mmoitems");
       configManager.reloadConfig("random-prices");
 
-      // Reload file configurations
       this.nexoPricesFileConfig = YamlConfiguration.loadConfiguration(nexoPricesFile);
       this.mmoItemsPricesFileConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "mmoitems.yml"));
       this.randomPricesConfig = YamlConfiguration.loadConfiguration(randomPricesFile);
 
-      // Reload cached prices
       this.loadMMOItemPricesFromFile();
       this.loadNexoPricesFromFile();
 

@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.*;
-
+import me.aov.sellgui.utils.ItemIdentifier;
 import io.lumine.mythic.lib.api.item.ItemTag;
 import io.lumine.mythic.lib.api.item.NBTCompound;
 import io.lumine.mythic.lib.api.item.NBTItem;
@@ -230,18 +230,14 @@ public class SellGUI implements Listener {
         if (menu == null) return;
         double currentTotal = getTotal(menu);
         if (currentTotal > 0) {
-            if (!isConfirmMode) {
-                makeConfirmItem();
-                setConfirmItem();
-            } else {
-                makeConfirmItem();
-                menu.setItem(sellItemSlot, confirmItem);
-            }
+
+            makeConfirmItem();
+            menu.setItem(sellItemSlot, confirmItem);
+            isConfirmMode = true;
         } else {
-            if (isConfirmMode) {
-                setSellItem();
-            }
-            updateSellItemTotal();
+
+            menu.setItem(sellItemSlot, noItemsItemStack);
+            isConfirmMode = false;
         }
     }
 
@@ -372,7 +368,6 @@ public class SellGUI implements Listener {
                 filler.setItemMeta(fillerMeta);
             }
 
-            // Create the "No items to sell" item
             String noItemsMaterialName = "BARRIER";
             if (guiConfig != null) {
                 noItemsMaterialName = guiConfig.getString("sell_gui.items.no_items.material", "BARRIER");
@@ -444,7 +439,7 @@ public class SellGUI implements Listener {
             if (lore != null) {
                 meta.setLore(lore.stream().map(line -> ChatColor.translateAlternateColorCodes('&', line)).toList());
             }
-            // Gắn tag nhận diện item hệ thống
+
             meta.getPersistentDataContainer().set(
                     new NamespacedKey(SellGUIMain.getInstance(), "system_item"),
                     PersistentDataType.INTEGER,
@@ -549,6 +544,7 @@ public class SellGUI implements Listener {
         HashMap<String, Double> itemTotals = new HashMap<>();
         HashMap<String, Integer> itemsNeedingEvaluation = new HashMap<>();
         ItemStack[] contents = this.getMenu().getContents();
+        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
 
         for (ItemStack item : contents) {
             if (item != null && !sellGUIItem(item, this.player) && !isCustomMenuItem(item)) {
@@ -561,8 +557,14 @@ public class SellGUI implements Listener {
                     itemsNeedingEvaluation.put(itemName, itemsNeedingEvaluation.getOrDefault(itemName, 0) + item.getAmount());
                 } else {
                     double price = getPrice(item, player);
-                    itemCounts.put(itemName, itemCounts.getOrDefault(itemName, 0) + item.getAmount());
-                    itemTotals.put(itemName, itemTotals.getOrDefault(itemName, 0.0) + (price * item.getAmount()));
+                    if (price > 0) {
+                        itemCounts.put(itemName, itemCounts.getOrDefault(itemName, 0) + item.getAmount());
+                        if (calculationMethod.equals("shopguiplus")) {
+                            itemTotals.put(itemName, itemTotals.getOrDefault(itemName, 0.0) + price);
+                        } else {
+                            itemTotals.put(itemName, itemTotals.getOrDefault(itemName, 0.0) + (price * item.getAmount()));
+                        }
+                    }
                 }
             }
         }
@@ -742,7 +744,6 @@ public class SellGUI implements Listener {
             return price;
         }
 
-        // Đọc giá từ NBT của item đã được evaluate trước
         if (itemStack.hasItemMeta()) {
             ItemMeta meta = itemStack.getItemMeta();
             if (meta != null) {
@@ -753,10 +754,9 @@ public class SellGUI implements Listener {
             }
         }
 
-        // Nếu không có giá NBT, tiếp tục với logic cũ
         if (price == 0) {
             PriceManager priceManager = new PriceManager(main);
-            price = priceManager.getItemPrice(itemStack);
+            price = priceManager.getItemPriceWithPlayer(itemStack, player);
 
             if (price == 0) {
                 if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
@@ -771,7 +771,6 @@ public class SellGUI implements Listener {
                 }
             }
         }
-
 
         if (price == 0) {if (main instanceof SellGUIMain) {
             Object rpm = null;
@@ -818,23 +817,26 @@ public class SellGUI implements Listener {
 
     public double getTotal(Inventory inventory) {
         double total = 0.0;
-
+        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack == null || itemStack.getType().isAir()) continue;
             if (isCustomMenuItem(itemStack) || sellGUIItem(itemStack, this.player)) continue;
-
             boolean canSell = main.getRandomPriceManager() == null || main.getRandomPriceManager().canBeSold(itemStack);
-
             if (!canSell) continue;
-
+            if (main.getRandomPriceManager() != null && main.getRandomPriceManager().hasRandomPrice(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack)) {
+                continue;
+            }
             double price = this.getPrice(itemStack, player);
             if (price > 0) {
-                total += price * itemStack.getAmount();
+                if (calculationMethod.equals("shopguiplus")) {
+                    total += price;
+                } else {
+                    total += price * itemStack.getAmount();
+                }
             }
         }
         return total;
     }
-
 
     private boolean isCustomMenuItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
@@ -846,70 +848,15 @@ public class SellGUI implements Listener {
                 Date now = new Date();
                 SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-                String itemType = "VANILLA";
-                String itemId = itemStack.getType().name();
-                String displayName = "Unknown Item";
+                ItemIdentifier.ItemType itemTypeEnum = ItemIdentifier.getItemType(itemStack);
+                String itemType = itemTypeEnum.name();
+                String itemId = ItemIdentifier.getItemIdentifier(itemStack);
+                String displayName = ChatColor.stripColor(ItemIdentifier.getItemDisplayName(itemStack));
                 double unitPrice = this.getPrice(itemStack, player);
                 double totalPrice = unitPrice * itemStack.getAmount();
                 String playerName = this.getPlayer().getName();
 
-                try {
-                    NBTItem nbtItem = new NBTItem(itemStack) {
-                        @Override
-                        public Object get(String s) { return null; }
-                        @Override
-                        public String getString(String s) { return ""; }
-                        @Override
-                        public boolean hasTag(String s) { return false; }
-                        @Override
-                        public boolean getBoolean(String s) { return false; }
-                        @Override
-                        public double getDouble(String s) { return 0; }
-                        @Override
-                        public int getInteger(String s) { return 0; }
-                        @Override
-                        public NBTCompound getNBTCompound(String s) { return null; }
-                        @Override
-                        public NBTItem addTag(List<ItemTag> list) { return null; }
-                        @Override
-                        public NBTItem removeTag(String... strings) { return null; }
-                        @Override
-                        public Set<String> getTags() { return Set.of(); }
-                        @Override
-                        public ItemStack toItem() { return null; }
-                        @Override
-                        public int getTypeId(String s) { return 0; }
-                    };                    if (this.getMain().hasNexo && nbtItem.hasTag("nexo:id")) {
-                        itemType = "NEXO";
-                        String nexoId = nbtItem.getString("nexo:id");
-                        if (nexoId != null && !nexoId.isEmpty()) {
-                            itemId = nexoId;
-                        }
-                        displayName = itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()
-                                ? ChatColor.stripColor(itemStack.getItemMeta().getDisplayName())
-                                : "[Nexo] " + itemId;
-                    } else if (this.getMain().isMMOItemsEnabled() && nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
-                        itemType = "MMOITEMS";
-                        String mmoItemType = nbtItem.getType();
-                        String mmoItemId = nbtItem.getString("MMOITEMS_ITEM_ID");
-                        if (mmoItemType != null && mmoItemId != null) {
-                            itemId = mmoItemType.toUpperCase() + "." + mmoItemId.toUpperCase();
-                        }
-                        displayName = itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()
-                                ? ChatColor.stripColor(itemStack.getItemMeta().getDisplayName())
-                                : "[MMOItems] " + itemId;
-                    } else {
-                        displayName = itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()
-                                ? ChatColor.stripColor(itemStack.getItemMeta().getDisplayName())
-                                : WordUtils.capitalizeFully(itemStack.getType().name().replace('_', ' '));
-                    }
-                } catch (Exception e) {
-                    displayName = itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()
-                            ? ChatColor.stripColor(itemStack.getItemMeta().getDisplayName())
-                            : WordUtils.capitalizeFully(itemStack.getType().name().replace('_', ' '));
-                }
-
-                String logEntry = String.format("%s|%s|%s|%d|%.2f|%.2f|%s|%s",
+                String logEntry = String.format("[SELLGUI] %s|%s|%s|%d|%.2f|%.2f|%s|%s",
                         itemType,
                         itemId,
                         displayName,
@@ -920,7 +867,7 @@ public class SellGUI implements Listener {
                         format.format(now)
                 );
 
-                writer.append(logEntry + "\n"); // Use newline for each entry
+                writer.append(logEntry + "\n");
                 writer.flush();
             } catch (IOException e) {
                 this.getMain().getLogger().severe("Failed to write to sell log: " + e.getMessage());
@@ -930,24 +877,26 @@ public class SellGUI implements Listener {
     }
 
     public void sellItems(Inventory inventory) {
-        double total = getTotal(inventory);
-
-        boolean hasEvaluationItems = false;
+        boolean hasRandomPriceNotEvaluated = false;
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack != null && !itemStack.getType().isAir() && !isCustomMenuItem(itemStack) && !sellGUIItem(itemStack, this.player)) {
-                if (main.getRandomPriceManager() != null && main.getRandomPriceManager().requiresEvaluation(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack)) {
-                    hasEvaluationItems = true;
+                if (main.getRandomPriceManager() != null && main.getRandomPriceManager().hasRandomPrice(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack)) {
+                    hasRandomPriceNotEvaluated = true;
+                    break;
                 }
             }
         }
 
+        if (hasRandomPriceNotEvaluated) {
+            String message = main.getMessagesConfig().getString("sell.evaluation_required", "&cSome items must be evaluated before selling.");
+            player.sendMessage(color(message));
+            setSellItem();
+            return;
+        }
+
+        double total = getTotal(inventory);
         if (total <= 0) {
-            String message;
-            if (hasEvaluationItems) {
-                message = main.getMessagesConfig().getString("sell.evaluation_required", "&cSome items must be evaluated before selling.");
-            } else {
-                message = main.getMessagesConfig().getString("sell.no_items", "&cNothing to sell!");
-            }
+            String message = main.getMessagesConfig().getString("sell.no_items", "&cNothing to sell!");
             player.sendMessage(color(message));
             setSellItem();
             return;
@@ -957,11 +906,82 @@ public class SellGUI implements Listener {
 
         for (ItemStack item : inventory.getContents()) {
             if (item != null && !sellGUIItem(item, this.player) && !isCustomMenuItem(item)) {
-                boolean needsEvaluation = main.getRandomPriceManager() != null &&
-                        main.getRandomPriceManager().requiresEvaluation(item) &&
-                        !main.getRandomPriceManager().isEvaluated(item);
+                boolean hasSetPriceItem = false;
+                for (ItemStack checkItem : inventory.getContents()) {
+                    if (getPrice(checkItem, player) > 0 && !sellGUIItem(checkItem, this.player) && !isCustomMenuItem(checkItem)) {
+                        hasSetPriceItem = true;
+                        break;
+                    }
+                }
+                    NBTItem nbtItem = new NBTItem(item) {
+                    @Override
+                    public Object get(String s) {
+                        return null;
+                    }
 
-                if (!needsEvaluation) {
+                    @Override
+                    public String getString(String s) {
+                        return "";
+                    }
+
+                    @Override
+                    public boolean hasTag(String s) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean getBoolean(String s) {
+                        return false;
+                    }
+
+
+
+                    @Override
+                    public double getDouble(String s) {
+                        return 0;
+                    }
+
+                    @Override
+                    public int getInteger(String s) {
+                        return 0;
+                    }
+
+                    @Override
+                    public NBTCompound getNBTCompound(String s) {
+                        return null;
+                    }
+
+                    @Override
+                    public NBTItem addTag(List<ItemTag> list) {
+                        return null;
+                    }
+
+                    @Override
+                    public NBTItem removeTag(String... strings) {
+                        return null;
+                    }
+
+                    @Override
+                    public Set<String> getTags() {
+                        return Set.of();
+                    }
+
+                    @Override
+                    public ItemStack toItem() {
+                        return null;
+                    }
+
+                    @Override
+                    public int getTypeId(String s) {
+                        return 0;
+                    }
+                };
+                boolean isNexo = this.main.hasNexo && nbtItem.hasTag("nexo:id");
+                boolean isMMO = this.main.isMMOItemsEnabled() && nbtItem.hasTag("MMOITEMS_ITEM_ID");
+                boolean needsEvaluation = main.getRandomPriceManager() != null &&
+                        main.getRandomPriceManager().hasRandomPrice(item) &&
+                        !main.getRandomPriceManager().isEvaluated(item);
+                if (!needsEvaluation && getPrice(item, player) > 0 && (!isNexo && !isMMO || !hasSetPriceItem)) {
                     if (this.main.getConfig().getBoolean("logging.enabled")) {
                         logSell(item);
                     }
@@ -969,7 +989,6 @@ public class SellGUI implements Listener {
                 }
             }
         }
-
         if (this.main.getConfig().getBoolean("general.close-after-sell")) {
             this.player.closeInventory();
             SellCommand.getSellGUIs().remove(this);
@@ -1020,8 +1039,6 @@ public class SellGUI implements Listener {
         }
         return ChatColor.translateAlternateColorCodes('&', s);
     }
-
-
 
     public static double round(double value, int places) {
         if (places < 0) {

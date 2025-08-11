@@ -2,8 +2,12 @@ package me.aov.sellgui.managers;
 
 import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.utils.ItemIdentifier;
+import net.brcdev.shopgui.ShopGuiPlusApi;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +21,14 @@ public class PriceManager {
     public PriceManager(SellGUIMain main) {
         this.main = main;
     }
-
+    private double getShopGUIPlusPrice(ItemStack itemStack, Player player) {
+        if (!main.hasShopGUIPlus) return 0.0;
+        try {
+            return ShopGuiPlusApi.getItemStackPriceSell(player, itemStack);
+        } catch (Throwable t) {
+            return 0.0;
+        }
+    }
     public boolean setItemPrice(ItemStack itemStack, double price) {
         if (itemStack == null) {
             return false;
@@ -60,11 +71,11 @@ public class PriceManager {
 
         if (nbtPricingEnabled && itemStack.hasItemMeta() && itemStack.getItemMeta().getPersistentDataContainer() != null) {
             try {
-                org.bukkit.NamespacedKey worthKey = new org.bukkit.NamespacedKey(main, "worth");
+                NamespacedKey worthKey = new NamespacedKey(main, "worth");
                 if (itemStack.getItemMeta().getPersistentDataContainer().has(worthKey,
-                        org.bukkit.persistence.PersistentDataType.DOUBLE)) {
+                        PersistentDataType.DOUBLE)) {
                     double worthPrice = itemStack.getItemMeta().getPersistentDataContainer().get(worthKey,
-                            org.bukkit.persistence.PersistentDataType.DOUBLE);
+                            PersistentDataType.DOUBLE);
                     if (worthPrice > 0) {
 
                         if (main.getConfig().getBoolean("general.debug", false)) {
@@ -79,7 +90,7 @@ public class PriceManager {
         }
 
         if (!calculationMethod.equals("auto")) {
-            double price = getSpecificMethodPrice(itemStack, calculationMethod);
+            double price = getSpecificMethodPrice(itemStack, calculationMethod, null); // Truyền null nếu không có Player
             if (price > 0) {
                 return applyRandomVariation(price);
             }
@@ -133,30 +144,33 @@ public class PriceManager {
         }
     }
 
-    public double getItemPriceWithPlayer(ItemStack itemStack, org.bukkit.entity.Player player) {
+    public double getItemPriceWithPlayer(ItemStack itemStack, Player player) {
+        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
+        if ("shopguiplus".equalsIgnoreCase(calculationMethod)) {
+            double price = getSpecificMethodPrice(itemStack, "shopguiplus", player);
+            return price > 0 ? price : 0.0;
+        }
         double basePrice = getItemPrice(itemStack);
         if (basePrice <= 0 || player == null) {
             return basePrice;
         }
-
         double multiplier = getPlayerMultiplier(player);
         return basePrice * multiplier;
     }
 
-    private double getSpecificMethodPrice(ItemStack itemStack, String method) {
+    private double getSpecificMethodPrice(ItemStack itemStack, String method, Player player) {
         switch (method.toLowerCase()) {
             case "config":
                 return getConfigPrice(itemStack);
-
             case "essentials":
                 return getEssentialsPrice(itemStack);
-
             case "nbt":
                 if (main.getNBTPriceManager() != null) {
                     return main.getNBTPriceManager().getPriceFromNBT(itemStack);
                 }
                 return 0.0;
-
+            case "shopguiplus":
+                return getShopGUIPlusPrice(itemStack, player);
             default:
                 return 0.0;
         }
@@ -206,7 +220,7 @@ public class PriceManager {
         return Math.min(defaultMultiplier, maxMultiplier);
     }
 
-    public double getPlayerMultiplier(org.bukkit.entity.Player player) {
+    public double getPlayerMultiplier(Player player) {
         if (player == null) return 1.0;
 
         boolean permissionBasedEnabled = main.getConfig().getBoolean("prices.multipliers.permission-based", true);

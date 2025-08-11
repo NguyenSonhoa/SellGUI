@@ -17,7 +17,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.jetbrains.annotations.NotNull;
-
+import me.aov.sellgui.utils.ItemIdentifier;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -38,12 +38,13 @@ public class SellAllCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
+        String NoPerm = main.getMessagesConfig().getString("general.no_permission", "&c❌ You don't have permission to use this command!");
         if (!(sender instanceof Player player)) {
             sender.sendMessage(color("&cThis command can only be used by players!"));
             return true;
         }
         if (!player.hasPermission("sellgui.sellall")) {
-            player.sendMessage(color("&cYou don't have permission to use this command!"));
+            player.sendMessage(color(NoPerm));
             return true;
         }
         if (main.getEcon() == null) {
@@ -87,7 +88,8 @@ public class SellAllCommand implements CommandExecutor {
         }
 
         if (total <= 0) {
-            player.sendMessage(color("&cNo items to sell in your inventory!"));
+            String NoItemMessage = main.getMessagesConfig().getString("sellall.no-items", "&c❌ No items to sell in your inventory!");
+            player.sendMessage(color(NoItemMessage));
             return true;
         }
 
@@ -98,7 +100,10 @@ public class SellAllCommand implements CommandExecutor {
 
             player.sendMessage(color("&6&l=== SellAll Confirmation ==="));
             player.sendMessage("");
-
+            String previewMore = main.getMessagesConfig().getString("sellall.preview-more", "&8... and more");
+            String separator = main.getMessagesConfig().getString("sellall.separator", "&6&l=========================");
+            String confirmProceed = main.getMessagesConfig().getString("sellall.confirm-proceed", "&a&l✓ &f/sellall confirm &7- Proceed with sale");
+            String confirmCancel = main.getMessagesConfig().getString("sellall.confirm-cancel", "&c&l✗ &7Any other action - Cancel");
             String confirmMessage = "&e⚠️ You will receive &a$%total% &efor selling all items.";
             if (main.getMessagesConfig() != null) {
                 confirmMessage = main.getMessagesConfig().getString("sellall.confirm-message", confirmMessage);
@@ -114,8 +119,7 @@ public class SellAllCommand implements CommandExecutor {
                 for (ItemStack item : player.getInventory().getContents()) {
                     if (item != null && item.getType() != Material.AIR && getPrice(item, player) > 0) {
                         if (previewCount < 5) {
-                            String itemName = item.getType().name().toLowerCase().replace("_", " ");
-                            itemName = WordUtils.capitalizeFully(itemName);
+                            String itemName = ItemIdentifier.getItemDisplayName(item);
                             player.sendMessage(color("&8- &f" + itemName + " &7x" + item.getAmount() +
                                     " &8= &e$" + String.format("%.2f", getPrice(item, player) * item.getAmount())));
                             player.sendMessage("");
@@ -124,13 +128,13 @@ public class SellAllCommand implements CommandExecutor {
                     }
                 }
                 if (previewCount >= 5) {
-                    player.sendMessage(color("&8... and more"));
+                    player.sendMessage(color(previewMore));
                     player.sendMessage("");
                 }
-                player.sendMessage(color("&6&l========================="));
-                player.sendMessage(color("&a&l✓ &f/sellall confirm &7- Proceed with sale"));
-                player.sendMessage(color("&c&l✗ &7Any other action - Cancel"));
-                player.sendMessage(color("&6&l========================="));
+                player.sendMessage(color(separator));
+                player.sendMessage(color(confirmProceed));
+                player.sendMessage(color(confirmCancel));
+                player.sendMessage(color(separator));
             }
         }
         return true;
@@ -286,108 +290,13 @@ public class SellAllCommand implements CommandExecutor {
                 Date now = new Date();
                 SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-                String itemType = "VANILLA";
-                String itemId = itemStack.getType().name();
-                String displayName = "Unknown Item";
+                ItemIdentifier.ItemType itemTypeEnum = ItemIdentifier.getItemType(itemStack);
+                String itemType = itemTypeEnum.name();
+                String itemId = ItemIdentifier.getItemIdentifier(itemStack);
+                String displayName = ChatColor.stripColor(ItemIdentifier.getItemDisplayName(itemStack));
                 double unitPrice = this.getPrice(itemStack, player);
                 double totalPrice = unitPrice * itemStack.getAmount();
                 String playerName = player.getName();
-
-                NBTItem nbtItem = new NBTItem(itemStack) {
-                    @Override
-                    public Object get(String s) {
-                        return null;
-                    }
-
-                    @Override
-                    public String getString(String s) {
-                        return "";
-                    }
-
-                    @Override
-                    public boolean hasTag(String s) {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean getBoolean(String s) {
-                        return false;
-                    }
-
-                    @Override
-                    public double getDouble(String s) {
-                        return 0;
-                    }
-
-                    @Override
-                    public int getInteger(String s) {
-                        return 0;
-                    }
-
-                    @Override
-                    public NBTCompound getNBTCompound(String s) {
-                        return null;
-                    }
-
-                    @Override
-                    public NBTItem addTag(List<ItemTag> list) {
-                        return null;
-                    }
-
-                    @Override
-                    public NBTItem removeTag(String... strings) {
-                        return null;
-                    }
-
-                    @Override
-                    public Set<String> getTags() {
-                        return Set.of();
-                    }
-
-                    @Override
-                    public ItemStack toItem() {
-                        return null;
-                    }
-
-                    @Override
-                    public int getTypeId(String s) {
-                        return 0;
-                    }
-                };
-
-                if (this.main.hasNexo && nbtItem.hasTag("nexo:id")) {
-
-                    itemType = "NEXO";
-                    String nexoId = nbtItem.getString("nexo:id");
-                    if (nexoId != null && !nexoId.isEmpty()) {
-                        itemId = nexoId;
-                    }
-                    if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-                        displayName = ChatColor.stripColor(itemStack.getItemMeta().getDisplayName());
-                    } else {
-                        displayName = "[Nexo] " + itemId;
-                    }
-                } else if (this.main.isMMOItemsEnabled() && nbtItem.hasTag("MMOITEMS_ITEM_ID")) {
-
-                    itemType = "MMOITEMS";
-                    String mmoItemType = nbtItem.getType();
-                    String mmoItemId = nbtItem.getString("MMOITEMS_ITEM_ID");
-                    if (mmoItemType != null && mmoItemId != null) {
-                        itemId = mmoItemType.toUpperCase() + "." + mmoItemId.toUpperCase();
-                    }
-                    if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-                        displayName = ChatColor.stripColor(itemStack.getItemMeta().getDisplayName());
-                    } else {
-                        displayName = "[MMOItems] " + itemId;
-                    }
-                } else {
-
-                    if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-                        displayName = ChatColor.stripColor(itemStack.getItemMeta().getDisplayName());
-                    } else {
-                        displayName = WordUtils.capitalizeFully(itemStack.getType().name().replace('_', ' '));
-                    }
-                }
 
                 String logEntry = String.format("[SELLALL] %s|%s|%s|%d|%.2f|%.2f|%s|%s",
                         itemType,

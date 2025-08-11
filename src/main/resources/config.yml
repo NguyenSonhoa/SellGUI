@@ -57,7 +57,8 @@ items:
 prices:
   # 🏷️ Pricing Methods
   nbt-pricing: true               # Enable NBT-based pricing
-  calculation-method: "auto"      # auto, config, essentials, nbt
+  calculation-method: "auto"      # auto, config, essentials, nbt, shopguiplus
+  #shopguiplus option will NOT HOOK NEXO & MMOITEMS OF SELLGUI, because shopguiplus was support it so sellgui will disable support them.
   default-price: 0.0              # Default price for unconfigured items
   
   # 📈 Multipliers
