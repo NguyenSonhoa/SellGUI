@@ -33,8 +33,6 @@ A powerful sell GUI plugin with advanced price management system
 - ✅ Changed from Gradle to Maven for easier building
 - ✅ Added Custom Model Data support for menu items
 - ✅ Added command execution on sell & confirm actions
-- ✅ Enhanced MMOItems integration with price caching
-- ✅ Added Nexo plugin support with proper NBT detection
 - ✅ Improved notification system for empty GUI
 - ✅ Cross-compatibility: Essentials + MMOItems + Nexo
 ## 📋 Commands
@@ -91,7 +89,8 @@ A powerful sell GUI plugin with advanced price management system
 - **MMOItems** - Custom items from MMOItems plugin
 - **Nexo Items** - Custom items from Nexo plugin
 - **EssentialsX Worth** - Use existing Essentials item prices
-
+- **ShopGUI+** - Use ShopGUI+ prices.
+- 
 ### 🔧 Configuration Files
 - `itemprices.yml` - Vanilla item prices
 - `mmoitems.yml` - MMOItems prices by TYPE.ID
