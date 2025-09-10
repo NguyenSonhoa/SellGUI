@@ -42,6 +42,12 @@
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <finalName>SellGUI-1.20.6-${project.version}</finalName>
+                            <relocations>
+                                <relocation>
+                                    <pattern>net.kyori</pattern>
+                                    <shadedPattern>me.aov.sellgui.lib.kyori</shadedPattern>
+                                </relocation>
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>
@@ -98,7 +104,23 @@
             <scope>provided</scope>
         </dependency>
         
-        <!-- Vault (Required) -->
+        <!-- Kyori (Optional) -->
+        <!--  <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <version>4.17.0</version>
+            <scope>compile</scope>
+        </dependency>
+-->
+        <!--
+<dependency>
+    <groupId>net.kyori</groupId>
+    <artifactId>adventure-platform-bukkit</artifactId>
+    <version>4.3.2</version>
+    <scope>compile</scope>
+</dependency>
+-->
+<!-- Vault (Required) -->
         <dependency>
             <groupId>com.github.MilkBowl</groupId>
             <artifactId>VaultAPI</artifactId>
