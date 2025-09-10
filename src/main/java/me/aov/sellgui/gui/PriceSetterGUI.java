@@ -2,9 +2,9 @@ package me.aov.sellgui.gui;
 
 import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.managers.PriceManager;
+import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.utils.ItemIdentifier;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -36,7 +36,7 @@ public class PriceSetterGUI implements InventoryHolder {
         this.main = main;
         this.player = player;
         this.priceManager = new PriceManager(main);
-        this.inventory = Bukkit.createInventory(this, 45, color("&6&lPrice Setter"));
+        this.inventory = Bukkit.createInventory(this, 45, ColorUtils.color("&6&lPrice Setter"));
 
         setupGUI();
         player.openInventory(inventory);
@@ -52,13 +52,13 @@ public class PriceSetterGUI implements InventoryHolder {
         inventory.setItem(PRICE_INPUT_SLOT, null);
 
         ItemStack infoItem = createItem(Material.BOOK,
-                color("&e&lHow to use:"),
+                ColorUtils.color("&e&lHow to use:"),
                 Arrays.asList(
-                        color("&71. Drag an item to the center slot"),
-                        color("&72. Use /sellguiprice <price> to set price"),
-                        color("&73. Click Save to confirm"),
-                        color("&7"),
-                        color("&eSupports: Vanilla, MMOItems, Nexo")
+                        ColorUtils.color("&71. Drag an item to the center slot"),
+                        ColorUtils.color("&72. Use /sellguiprice <price> to set price"),
+                        ColorUtils.color("&73. Click Save to confirm"),
+                        ColorUtils.color("&7"),
+                        ColorUtils.color("&eSupports: Vanilla, MMOItems, Nexo")
                 )
         );
         inventory.setItem(INFO_SLOT, infoItem);
@@ -69,40 +69,40 @@ public class PriceSetterGUI implements InventoryHolder {
     private void setupControlButtons() {
 
         ItemStack saveButton = createItem(Material.GREEN_CONCRETE,
-                color("&a&lSave Price"),
+                ColorUtils.color("&a&lSave Price"),
                 Arrays.asList(
-                        color("&7Click to save the current price"),
-                        color("&7for the item in the center slot")
+                        ColorUtils.color("&7Click to save the current price"),
+                        ColorUtils.color("&7for the item in the center slot")
                 )
         );
         addPersistentData(saveButton, "price-setter-action", "save");
         inventory.setItem(SAVE_BUTTON_SLOT, saveButton);
 
         ItemStack cancelButton = createItem(Material.RED_CONCRETE,
-                color("&c&lCancel"),
+                ColorUtils.color("&c&lCancel"),
                 Arrays.asList(
-                        color("&7Click to close without saving")
+                        ColorUtils.color("&7Click to close without saving")
                 )
         );
         addPersistentData(cancelButton, "price-setter-action", "cancel");
         inventory.setItem(CANCEL_BUTTON_SLOT, cancelButton);
 
         ItemStack deleteButton = createItem(Material.BARRIER,
-                color("&4&lDelete Price"),
+                ColorUtils.color("&4&lDelete Price"),
                 Arrays.asList(
-                        color("&7Click to remove the price"),
-                        color("&7for the item in the center slot")
+                        ColorUtils.color("&7Click to remove the price"),
+                        ColorUtils.color("&7for the item in the center slot")
                 )
         );
         addPersistentData(deleteButton, "price-setter-action", "delete");
         inventory.setItem(DELETE_BUTTON_SLOT, deleteButton);
 
         ItemStack chatButton = createItem(Material.WRITABLE_BOOK,
-                color("&b&lSet Price via Chat"),
+                ColorUtils.color("&b&lSet Price via Chat"),
                 Arrays.asList(
-                        color("&7Click to close GUI and type price in chat"),
-                        color("&7GUI will reopen automatically after setting"),
-                        color("&7Type 'cancel' to cancel input")
+                        ColorUtils.color("&7Click to close GUI and type price in chat"),
+                        ColorUtils.color("&7GUI will reopen automatically after setting"),
+                        ColorUtils.color("&7Type 'cancel' to cancel input")
                 )
         );
         addPersistentData(chatButton, "price-setter-action", "chat");
@@ -134,17 +134,17 @@ public class PriceSetterGUI implements InventoryHolder {
         System.out.println("[SellGUI Debug] Current price: " + currentPrice);
 
         List<String> lore = new ArrayList<>();
-        lore.add(color("&7Item: &f" + itemName));
-        lore.add(color("&7Type: &f" + itemType.name()));
-        lore.add(color("&7Identifier: &f" + (identifier != null ? identifier : "Unknown")));
-        lore.add(color("&7"));
-        lore.add(color("&7Current Price: &e$" + String.format("%.2f", currentPrice)));
-        lore.add(color("&7"));
-        lore.add(color("&eUse: &f/sellguiprice <price>"));
-        lore.add(color("&eto set a new price"));
+        lore.add(ColorUtils.color("&7Item: &f" + itemName));
+        lore.add(ColorUtils.color("&7Type: &f" + itemType.name()));
+        lore.add(ColorUtils.color("&7Identifier: &f" + (identifier != null ? identifier : "Unknown")));
+        lore.add(ColorUtils.color("&7"));
+        lore.add(ColorUtils.color("&7Current Price: &e$" + String.format("%.2f", currentPrice)));
+        lore.add(ColorUtils.color("&7"));
+        lore.add(ColorUtils.color("&eUse: &f/sellguiprice <price>"));
+        lore.add(ColorUtils.color("&eto set a new price"));
 
         ItemStack priceInfo = createItem(Material.GOLD_INGOT,
-                color("&6&lPrice Information"),
+                ColorUtils.color("&6&lPrice Information"),
                 lore
         );
 
@@ -154,23 +154,23 @@ public class PriceSetterGUI implements InventoryHolder {
     public boolean savePrice(double price) {
         ItemStack item = inventory.getItem(ITEM_SLOT);
         if (item == null || item.getType() == Material.AIR) {
-            player.sendMessage(color("&cNo item found to set price for!"));
+            player.sendMessage(ColorUtils.color("&cNo item found to set price for!"));
             return false;
         }
 
         if (price < 0) {
-            player.sendMessage(color("&cPrice cannot be negative!"));
+            player.sendMessage(ColorUtils.color("&cPrice cannot be negative!"));
             return false;
         }
 
         boolean success = priceManager.setItemPrice(item, price);
         if (success) {
             String itemName = ItemIdentifier.getItemDisplayName(item);
-            player.sendMessage(color("&aSuccessfully set price for &f" + itemName + " &ato &e$" + String.format("%.2f", price)));
+            player.sendMessage(ColorUtils.color("&aSuccessfully set price for &f" + itemName + " &ato &e$" + String.format("%.2f", price)));
             updateItemInfo();
             return true;
         } else {
-            player.sendMessage(color("&cFailed to set price! Check console for errors."));
+            player.sendMessage(ColorUtils.color("&cFailed to set price! Check console for errors."));
             return false;
         }
     }
@@ -178,18 +178,18 @@ public class PriceSetterGUI implements InventoryHolder {
     public boolean deletePrice() {
         ItemStack item = inventory.getItem(ITEM_SLOT);
         if (item == null || item.getType() == Material.AIR) {
-            player.sendMessage(color("&cNo item found to delete price for!"));
+            player.sendMessage(ColorUtils.color("&cNo item found to delete price for!"));
             return false;
         }
 
         boolean success = priceManager.removeItemPrice(item);
         if (success) {
             String itemName = ItemIdentifier.getItemDisplayName(item);
-            player.sendMessage(color("&aSuccessfully removed price for &f" + itemName));
+            player.sendMessage(ColorUtils.color("&aSuccessfully removed price for &f" + itemName));
             updateItemInfo();
             return true;
         } else {
-            player.sendMessage(color("&cFailed to remove price! Check console for errors."));
+            player.sendMessage(ColorUtils.color("&cFailed to remove price! Check console for errors."));
             return false;
         }
     }
@@ -217,10 +217,6 @@ public class PriceSetterGUI implements InventoryHolder {
             );
             item.setItemMeta(meta);
         }
-    }
-
-    private String color(String text) {
-        return ChatColor.translateAlternateColorCodes('&', text);
     }
 
     @Override

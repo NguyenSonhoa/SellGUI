@@ -1,8 +1,8 @@
 package me.aov.sellgui.commands;
 
 import me.aov.sellgui.SellGUIMain;
+import me.aov.sellgui.utils.ColorUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -80,7 +80,7 @@ public class CustomItemsCommand implements CommandExecutor {
     }
 
     private void makeMenu() {
-        menu = Bukkit.createInventory(null, 45, color("&c&lCustom Items"));
+        menu = Bukkit.createInventory(null, 45, ColorUtils.color("&c&lCustom Items"));
         filler = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
         delete = new ItemStack(Material.BARRIER);
         next = new ItemStack(Material.GREEN_WOOL);
@@ -89,13 +89,13 @@ public class CustomItemsCommand implements CommandExecutor {
         meta.setDisplayName(" ");
         filler.setItemMeta(meta);
         meta = delete.getItemMeta();
-        meta.setDisplayName(color("&c&lDelete Item"));
+        meta.setDisplayName(ColorUtils.color("&c&lDelete Item"));
         delete.setItemMeta(meta);
         meta = next.getItemMeta();
-        meta.setDisplayName(color("&2&lNext"));
+        meta.setDisplayName(ColorUtils.color("&2&lNext"));
         next.setItemMeta(meta);
         meta = back.getItemMeta();
-        meta.setDisplayName(color("&c&lBack"));
+        meta.setDisplayName(ColorUtils.color("&c&lBack"));
         back.setItemMeta(meta);
 
         for (int i = 0; i < 9; i++) {
@@ -183,10 +183,6 @@ public class CustomItemsCommand implements CommandExecutor {
         main.getCustomItemsConfig().set("items", customItems);
         main.getCustomItemsConfig().set("prices", prices);
         main.saveCustom();
-    }
-
-    private String color(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s);
     }
 
     private static boolean isPrice(ItemStack itemStack) {

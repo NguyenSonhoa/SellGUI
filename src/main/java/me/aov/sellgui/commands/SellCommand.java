@@ -4,8 +4,8 @@ import me.aov.sellgui.SellGUI;
 import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.gui.PriceEvaluationGUI;
 import me.aov.sellgui.managers.PriceManager;
+import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.utils.ItemIdentifier;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -31,35 +31,35 @@ public class SellCommand implements CommandExecutor {
             switch (args[0].toLowerCase()) {
                 case "reload":
                     if (!sender.hasPermission("sellgui.reload")) {
-                        sender.sendMessage(color("&cYou do not have permission."));
+                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
                         return true;
                     }
                     main.reload();
-                    sender.sendMessage(color("&aSellGUI configs and GUIs have been reloaded."));
+                    sender.sendMessage(ColorUtils.color("&aSellGUI configs and GUIs have been reloaded."));
                     return true;
 
                 case "evaluate":
                     if (!(sender instanceof Player)) {
-                        sender.sendMessage(color("&cOnly players can use this command."));
+                        sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
                         return true;
                     }
                     if (!sender.hasPermission("sellgui.evaluate")) {
-                        sender.sendMessage(color("&cYou do not have permission."));
+                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
                         return true;
                     }
                     main.getGUIManager().openPriceEvaluationGUI((Player) sender);
                     return true;
                 case "setprice":
                     if (!(sender instanceof Player)) {
-                        sender.sendMessage(color("&cOnly players can use this command."));
+                        sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
                         return true;
                     }
                     if (!sender.hasPermission("sellgui.setprice")) {
-                        sender.sendMessage(color("&cYou do not have permission."));
+                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
                         return true;
                     }
                     if (args.length != 2) {
-                        sender.sendMessage(color("&cUsage: /sellgui setprice <amount>"));
+                        sender.sendMessage(ColorUtils.color("&cUsage: /sellgui setprice <amount>"));
                         return true;
                     } else {
 
@@ -67,13 +67,13 @@ public class SellCommand implements CommandExecutor {
                     }
                 case "setrange":
                     if (!(sender instanceof Player)) {
-                        sender.sendMessage(color("&cOnly players can use this command."));
+                        sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
                         return true;}
                     if (!sender.hasPermission("sellgui.setrange")) {
-                        sender.sendMessage(color("&cYou do not have permission."));
+                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
                         return true;}
                     if (args.length != 3) {
-                        sender.sendMessage(color("&cUsage: /sellgui setrange <min> <max>"));
+                        sender.sendMessage(ColorUtils.color("&cUsage: /sellgui setrange <min> <max>"));
                         return true;}
                     return handleSetRandomPrice((Player) sender, args[1], args[2]);
 
@@ -87,49 +87,49 @@ public class SellCommand implements CommandExecutor {
         }
 
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "This command can only be executed by a player.");
+            sender.sendMessage(ColorUtils.color("&cThis command can only be executed by a player."));
             return true;
         }
         Player player = (Player) sender;
 
         if (args.length == 0) {
             if (player.hasPermission("sellgui.use")) {
-                sellGUIS.add(new SellGUI(this.main, player));} else {player.sendMessage(color("&cYou do not have permission to use this command."));}
+                sellGUIS.add(new SellGUI(this.main, player));} else {player.sendMessage(ColorUtils.color("&cYou do not have permission to use this command."));}
             return true;}
         if (args.length == 1) {
             if (player.hasPermission("sellgui.others")) {
                 Player target = main.getServer().getPlayer(args[0]);
                 if (target != null) {
                     sellGUIS.add(new SellGUI(this.main, target));
-                    player.sendMessage(color("&aSuccessfully opened SellGUI for " + target.getName() + "."));
+                    player.sendMessage(ColorUtils.color("&aSuccessfully opened SellGUI for " + target.getName() + "."));
                 } else {
-                    player.sendMessage(color("&cPlayer '" + args[0] + "' not found or is not online."));
+                    player.sendMessage(ColorUtils.color("&cPlayer '" + args[0] + "' not found or is not online."));
                 }
             } else {
-                player.sendMessage(color("&cYou do not have permission to open SellGUI for other players."));
+                player.sendMessage(ColorUtils.color("&cYou do not have permission to open SellGUI for other players."));
             }
             return true;
         }
 
-        sender.sendMessage(color("&cInvalid command usage. Try: /" + label + " help"));
+        sender.sendMessage(ColorUtils.color("&cInvalid command usage. Try: /" + label + " help"));
         return true;
     }
 
     private boolean handleSetPriceInHand(Player player, String priceString) {
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
         if (itemInHand.getType() == Material.AIR) {
-            player.sendMessage(color("&cYou must be holding an item to set its price!"));
+            player.sendMessage(ColorUtils.color("&cYou must be holding an item to set its price!"));
             return true;}
 
         double price;
         try {
             price = Double.parseDouble(priceString);
         } catch (NumberFormatException e) {
-            player.sendMessage(color("&cInvalid price! Please enter a valid number."));
+            player.sendMessage(ColorUtils.color("&cInvalid price! Please enter a valid number."));
             return true;}
 
         if (price < 0) {
-            player.sendMessage(color("&cPrice cannot be negative!"));
+            player.sendMessage(ColorUtils.color("&cPrice cannot be negative!"));
             return true;}
 
         PriceManager priceManager = new PriceManager(main);
@@ -138,9 +138,9 @@ public class SellCommand implements CommandExecutor {
             String itemName = ItemIdentifier.getItemDisplayName(itemInHand);
             String itemType = ItemIdentifier.getItemType(itemInHand).name();
             if (price == 0) {
-                player.sendMessage(color("&aSuccessfully removed price for &f" + itemName + " &7(" + itemType + ")"));} else {
-                player.sendMessage(color("&aSuccessfully set price for &f" + itemName + " &7(" + itemType + ") &ato &e$" + String.format("%.2f", price)));}} else {
-            player.sendMessage(color("&cFailed to set price! Check console for errors."));}
+                player.sendMessage(ColorUtils.color("&aSuccessfully removed price for &f" + itemName + " &7(" + itemType + ")"));} else {
+                player.sendMessage(ColorUtils.color("&aSuccessfully set price for &f" + itemName + " &7(" + itemType + ") &ato &e$" + String.format("%.2f", price)));}} else {
+            player.sendMessage(ColorUtils.color("&cFailed to set price! Check console for errors."));}
         return true;
     }
 
@@ -150,23 +150,23 @@ public class SellCommand implements CommandExecutor {
             double maxPrice = Double.parseDouble(maxString);
 
             if (minPrice < 0 || maxPrice < 0) {
-                player.sendMessage(color("&cPrices cannot be negative!"));
+                player.sendMessage(ColorUtils.color("&cPrices cannot be negative!"));
                 return true;
             }
             if (minPrice >= maxPrice) {
-                player.sendMessage(color("&cMinimum price must be less than maximum price!"));
+                player.sendMessage(ColorUtils.color("&cMinimum price must be less than maximum price!"));
                 return true;
             }
 
             ItemStack item = player.getInventory().getItemInMainHand();
             if (item.getType() == Material.AIR) {
-                player.sendMessage(color("&cYou must be holding an item to set its price range."));
+                player.sendMessage(ColorUtils.color("&cYou must be holding an item to set its price range."));
                 return true;
             }
 
             String itemIdentifier = ItemIdentifier.getItemIdentifier(item);
             if (itemIdentifier == null) {
-                player.sendMessage(color("&cCould not identify the item you are holding."));
+                player.sendMessage(ColorUtils.color("&cCould not identify the item you are holding."));
                 return true;
             }
 
@@ -182,42 +182,38 @@ public class SellCommand implements CommandExecutor {
 
             main.getConfigManager().saveConfig("random-prices");
 
-            player.sendMessage(color("&aRandom price range for &e" + ItemIdentifier.getItemDisplayName(item) + " &aset to &e$" + String.format("%.2f", minPrice) + " &ato &e$" + String.format("%.2f", maxPrice)));
+            player.sendMessage(ColorUtils.color("&aRandom price range for &e" + ItemIdentifier.getItemDisplayName(item) + " &aset to &e$" + String.format("%.2f", minPrice) + " &ato &e$" + String.format("%.2f", maxPrice)));
 
             PriceEvaluationGUI gui = main.getGUIManager().getActivePriceEvaluationGUI(player);
             if (gui != null) {
                 gui.setRandomPrice(minPrice, maxPrice);
             }
         } catch (NumberFormatException e) {
-            player.sendMessage(color("&cInvalid price format! Use numbers only."));
+            player.sendMessage(ColorUtils.color("&cInvalid price format! Use numbers only."));
         }
         return true;
     }
 
     private boolean handleHelpCommand(CommandSender sender) {
-        sender.sendMessage(color("&6&l=== SellGUI Help ===="));
+        sender.sendMessage(ColorUtils.color("&6&l=== SellGUI Help ===="));
         sender.sendMessage("");
-        sender.sendMessage(color("&e/sellgui &7- Open the sell GUI"));
-        sender.sendMessage(color("&e/sellgui help &7- Show this help message"));
+        sender.sendMessage(ColorUtils.color("&e/sellgui &7- Open the sell GUI"));
+        sender.sendMessage(ColorUtils.color("&e/sellgui help &7- Show this help message"));
 
         if (sender.hasPermission("sellgui.evaluate")) {
-            sender.sendMessage(color("&e/sellgui evaluate &7- Open the Price Evaluation GUI."));
+            sender.sendMessage(ColorUtils.color("&e/sellgui evaluate &7- Open the Price Evaluation GUI."));
         }
         if (sender.hasPermission("sellgui.setprice")) {
-            sender.sendMessage(color("&e/sellgui setprice <amount> &7- Set fixed price in Evaluation GUI."));
+            sender.sendMessage(ColorUtils.color("&e/sellgui setprice <amount> &7- Set fixed price in Evaluation GUI."));
         }
         if (sender.hasPermission("sellgui.setrange")) {
-            sender.sendMessage(color("&e/sellgui setrange <min> <max> &7- Set random range in Evaluation GUI."));
+            sender.sendMessage(ColorUtils.color("&e/sellgui setrange <min> <max> &7- Set random range in Evaluation GUI."));
         }
         if (sender.hasPermission("sellgui.reload")) {
-            sender.sendMessage(color("&c/sellgui reload &7- Reload plugin configuration."));
+            sender.sendMessage(ColorUtils.color("&c/sellgui reload &7- Reload plugin configuration."));
         }
-        sender.sendMessage(color("&6&l=================="));
+        sender.sendMessage(ColorUtils.color("&6&l=================="));
         return true;
-    }
-
-    public static String color(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s);
     }
 
     public static ArrayList<SellGUI> getSellGUIs() {

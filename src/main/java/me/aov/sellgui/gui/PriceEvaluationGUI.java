@@ -2,6 +2,7 @@ package me.aov.sellgui.gui;
 
 import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.managers.NBTPriceManager;
+import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.utils.ItemIdentifier;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -57,7 +58,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
         this.random = new Random();
 
         FileConfiguration guiConfig = main.getConfigManager().getGUIConfig();
-        String title = color(guiConfig.getString("price_evaluation_gui.title", "&6&lPrice Evaluation"));
+        String title = ColorUtils.color(guiConfig.getString("price_evaluation_gui.title", "&6&lPrice Evaluation"));
         int size = guiConfig.getInt("price_evaluation_gui.size", 54);
 
         loadLayoutFromConfig(guiConfig);
@@ -125,19 +126,19 @@ public class PriceEvaluationGUI implements InventoryHolder {
         this.evaluationMode = EvaluationMode.FIXED;
         this.minPrice = price;
         this.maxPrice = price;
-        player.sendMessage(color(getMessage("fixed_price_set", "&a✅ Fixed price set to &e$%price%").replace("%price%", String.format("%.2f", price))));
+        player.sendMessage(ColorUtils.color(getMessage("fixed_price_set", "&a✅ Fixed price set to &e$%price%").replace("%price%", String.format("%.2f", price))));
         updateButtons();
     }
 
     public void setRandomPrice(double min, double max) {
         if (min >= max) {
-            player.sendMessage(color(getMessage("invalid_range", "&c❌ Invalid price range! Minimum must be less than maximum.")));
+            player.sendMessage(ColorUtils.color(getMessage("invalid_range", "&c❌ Invalid price range! Minimum must be less than maximum.")));
             return;
         }
         this.evaluationMode = EvaluationMode.RANDOM;
         this.minPrice = min;
         this.maxPrice = max;
-        player.sendMessage(color(getMessage("random_range_set", "&a✅ Random price range set to &e$%min% - $%max%")
+        player.sendMessage(ColorUtils.color(getMessage("random_range_set", "&a✅ Random price range set to &e$%min% - $%max%")
                 .replace("%min%", String.format("%.2f", min))
                 .replace("%max%", String.format("%.2f", max))));
         updateButtons();
@@ -145,30 +146,30 @@ public class PriceEvaluationGUI implements InventoryHolder {
 
     public void startEvaluation() {
         if (isLocked) {
-            player.sendMessage(color(getMessage("evaluation_in_progress", "&c❌ Evaluation already in progress!")));
+            player.sendMessage(ColorUtils.color(getMessage("evaluation_in_progress", "&c❌ Evaluation already in progress!")));
             return;
         }
 
         ItemStack item = inventory.getItem(ITEM_SLOT);
         if (item == null || item.getType() == Material.AIR) {
-            player.sendMessage(color(getMessage("no_item", "&c❌ No item to evaluate!")));
+            player.sendMessage(ColorUtils.color(getMessage("no_item", "&c❌ No item to evaluate!")));
             return;
         }
 
         if (!main.getConfigManager().getConfig("config").getBoolean("general.allow-player-evaluation-stack", true) && item.getAmount() > 1) {
-            player.sendMessage(color(getMessage("price_evaluation.stack_evaluation_disabled", "&c❌ You cannot evaluate stacked items.")));
+            player.sendMessage(ColorUtils.color(getMessage("price_evaluation.stack_evaluation_disabled", "&c❌ You cannot evaluate stacked items.")));
             player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.0f, 1.0f);
             return;
         }
 
         if (item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(main, "current_price"), PersistentDataType.DOUBLE)) {
-            player.sendMessage(color(getMessage("item_already_evaluated", "&c⚠️ This item has already been evaluated!")));
+            player.sendMessage(ColorUtils.color(getMessage("item_already_evaluated", "&c⚠️ This item has already been evaluated!")));
             return;
         }
 
         String itemIdentifier = ItemIdentifier.getItemIdentifier(item);
         if (itemIdentifier == null) {
-            player.sendMessage(color(getMessage("could_not_identify", "&c❌ Could not identify the item to evaluate.")));
+            player.sendMessage(ColorUtils.color(getMessage("could_not_identify", "&c❌ Could not identify the item to evaluate.")));
             return;
         }
 
@@ -183,7 +184,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
                 this.maxPrice = savedMax;
                 startRandomAnimation();
             } else {
-                player.sendMessage(color(getMessage("invalid_range_in_config", "&c❌ The stored price range for this item is invalid. Please reset it.")));
+                player.sendMessage(ColorUtils.color(getMessage("invalid_range_in_config", "&c❌ The stored price range for this item is invalid. Please reset it.")));
             }
         } else {
 
@@ -192,18 +193,18 @@ public class PriceEvaluationGUI implements InventoryHolder {
                     if (minPrice > 0) {
                         applyFixedPrice();
                     } else {
-                        player.sendMessage(color(getMessage("no_price_set", "&c❌ Set a price first!")));
+                        player.sendMessage(ColorUtils.color(getMessage("no_price_set", "&c❌ Set a price first!")));
                     }
                     break;
                 case RANDOM:
                     if (minPrice > 0 && maxPrice > minPrice) {
                         startRandomAnimation();
                     } else {
-                        player.sendMessage(color(getMessage("no_price_set", "&c❌ Set a price range first!")));
+                        player.sendMessage(ColorUtils.color(getMessage("no_price_set", "&c❌ Set a price range first!")));
                     }
                     break;
                 default:
-                    player.sendMessage(color(getMessage("no_price_configured", "&c❌ No price is configured for this item. Please set a price range for it first.")));
+                    player.sendMessage(ColorUtils.color(getMessage("no_price_configured", "&c❌ No price is configured for this item. Please set a price range for it first.")));
                     break;
             }
         }
@@ -213,7 +214,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
         isLocked = true;
         final ItemStack itemToEvaluate = inventory.getItem(ITEM_SLOT).clone();
 
-        player.sendMessage(color(getMessage("evaluation_started", "&a⚡ Evaluation started!")));
+        player.sendMessage(ColorUtils.color(getMessage("evaluation_started", "&a⚡ Evaluation started!")));
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1.0f, 1.0f);
 
         final double finalPrice = calculateRandomPrice(minPrice, maxPrice);
@@ -276,12 +277,12 @@ public class PriceEvaluationGUI implements InventoryHolder {
 
         if (isMaxPrice) {
             player.playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1.0f, 1.0f);
-            player.sendMessage(color(getMessage("jackpot_message", "&6🎉 JACKPOT! You got the maximum price!")));
+            player.sendMessage(ColorUtils.color(getMessage("jackpot_message", "&6🎉 JACKPOT! You got the maximum price!")));
         } else {
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
         }
 
-        player.sendMessage(color(getMessage("evaluation_complete_chat", "&a✅ Price evaluation complete! Final price: &e$%price%").replace("%price%", String.format("%.2f", finalPrice))));
+        player.sendMessage(ColorUtils.color(getMessage("evaluation_complete_chat", "&a✅ Price evaluation complete! Final price: &e$%price%").replace("%price%", String.format("%.2f", finalPrice))));
 
         showTemporaryResult();
 
@@ -296,7 +297,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
             ItemStack pricedItem = addEvaluationInfo(item.clone(), minPrice);
             inventory.setItem(ITEM_SLOT, pricedItem);
 
-            player.sendMessage(color(getMessage("evaluation_complete", "&a✅ Price set: &e$%price%").replace("%price%", String.format("%.2f", minPrice))));
+            player.sendMessage(ColorUtils.color(getMessage("evaluation_complete", "&a✅ Price set: &e$%price%").replace("%price%", String.format("%.2f", minPrice))));
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
 
             showTemporaryResult();
@@ -331,10 +332,10 @@ public class PriceEvaluationGUI implements InventoryHolder {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             String processedName = main.setPlaceholders(player, name);
-            meta.setDisplayName(color(processedName));
+            meta.setDisplayName(ColorUtils.color(processedName));
             if (lore != null) {
                 List<String> processedLore = main.setPlaceholders(player, lore);
-                meta.setLore(processedLore.stream().map(this::color).collect(Collectors.toList()));
+                meta.setLore(processedLore.stream().map(ColorUtils::color).collect(Collectors.toList()));
             }
             if (customModelData != -1) {
                 meta.setCustomModelData(customModelData);
@@ -430,10 +431,6 @@ public class PriceEvaluationGUI implements InventoryHolder {
         return minPrice + (random.nextDouble() * (maxPrice - minPrice));
     }
 
-    private String color(String text) {
-        return ChatColor.translateAlternateColorCodes('&', text);
-    }
-
     @Override
     public Inventory getInventory() {
         return inventory;
@@ -456,7 +453,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
 
             lore.removeIf(line -> ChatColor.stripColor(line).startsWith(evaluationLorePrefix));
             lore.add("");
-            lore.add(color(evaluationLore));
+            lore.add(ColorUtils.color(evaluationLore));
 
             meta.setLore(lore);
             item.setItemMeta(meta);
@@ -487,7 +484,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
             player.getInventory().addItem(item).values().forEach(leftover ->
                     player.getWorld().dropItem(player.getLocation(), leftover)
             );
-            player.sendMessage(color(getMessage("item_returned", "&eYour item has been returned to your inventory.")));
+            player.sendMessage(ColorUtils.color(getMessage("item_returned", "&eYour item has been returned to your inventory.")));
         }
     }
 }

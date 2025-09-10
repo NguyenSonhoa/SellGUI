@@ -40,10 +40,12 @@ sellall:
   confirm-footer: "&a&l✓ &f/sellall confirm &7- Proceed with sale"
   cancel-footer: "&c&l✗ &7Any other action - Cancel"
   evaluation_required: "&e⚠️ %count% items require evaluation before selling. Use &f/sellgui evaluate"
-  preview-more: "&8... và nhiều hơn nữa"
+  preview-more: "&8... More"
   separator: "&6&l========================="
   confirm-proceed: "&a&l✓ &f/sellall confirm &7- To confirm sell all"
   confirm-cancel: "&c&l✗ &7Skip this message - To cancel"
+  item-to-be-sold: "&7Items to be sold:"
+  sell-all-format: "&8- &f%item_name% &7x%item_amount% &8= &e$%price%"
 # ┌─────────────────────────────────────────────────────────────────────────────┐
 # │                         📊 PRICE EVALUATION NOTIFICATIONS                   │
 # └─────────────────────────────────────────────────────────────────────────────┘

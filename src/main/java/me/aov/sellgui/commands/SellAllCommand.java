@@ -105,6 +105,7 @@ public class SellAllCommand implements CommandExecutor {
             String confirmProceed = main.getMessagesConfig().getString("sellall.confirm-proceed", "&a&l✓ &f/sellall confirm &7- Proceed with sale");
             String confirmCancel = main.getMessagesConfig().getString("sellall.confirm-cancel", "&c&l✗ &7Any other action - Cancel");
             String confirmMessage = "&e⚠️ You will receive &a$%total% &efor selling all items.";
+            String itemToBeSold = main.getMessagesConfig().getString("sellall.item-to-be-sold", "&7Items to be sold:");
             if (main.getMessagesConfig() != null) {
                 confirmMessage = main.getMessagesConfig().getString("sellall.confirm-message", confirmMessage);
             }
@@ -113,15 +114,24 @@ public class SellAllCommand implements CommandExecutor {
             player.sendMessage("");
 
             if (main.getConfig().getBoolean("sellall-show-preview", true)) {
-                player.sendMessage(color("&7Items to be sold:"));
+                player.sendMessage(color(itemToBeSold));
                 player.sendMessage("");
                 int previewCount = 0;
                 for (ItemStack item : player.getInventory().getContents()) {
                     if (item != null && item.getType() != Material.AIR && getPrice(item, player) > 0) {
                         if (previewCount < 5) {
+                            String format = main.getMessagesConfig().getString("sellall.sell-all-format", "&8- &f%item_name% &7x%item_amount% &8= &e$%price%");
                             String itemName = ItemIdentifier.getItemDisplayName(item);
-                            player.sendMessage(color("&8- &f" + itemName + " &7x" + item.getAmount() +
-                                    " &8= &e$" + String.format("%.2f", getPrice(item, player) * item.getAmount())));
+                            String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
+                            double itemPrice = getPrice(item, player);
+                            double displayPrice = itemPrice;
+                            if (!calculationMethod.equalsIgnoreCase("shopguiplus")) {
+                                displayPrice *= item.getAmount();
+                            }
+                            String message = format.replace("%item_name%", itemName)
+                                    .replace("%item_amount%", String.valueOf(item.getAmount()))
+                                    .replace("%price%", String.format("%.2f", displayPrice));
+                            player.sendMessage(color(message));
                             player.sendMessage("");
                             previewCount++;
                         }
@@ -234,11 +244,16 @@ public class SellAllCommand implements CommandExecutor {
 
     public double getTotal(Inventory inventory, Player player) {
         double total = 0.0D;
+        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack != null && itemStack.getType() != Material.AIR) {
                 double itemPrice = getPrice(itemStack, player);
                 if (itemPrice > 0) {
-                    total += itemPrice * itemStack.getAmount();
+                    if (calculationMethod.equalsIgnoreCase("shopguiplus")) {
+                        total += itemPrice;
+                    } else {
+                        total += itemPrice * itemStack.getAmount();
+                    }
                 }
             }
         }
@@ -295,7 +310,13 @@ public class SellAllCommand implements CommandExecutor {
                 String itemId = ItemIdentifier.getItemIdentifier(itemStack);
                 String displayName = ChatColor.stripColor(ItemIdentifier.getItemDisplayName(itemStack));
                 double unitPrice = this.getPrice(itemStack, player);
-                double totalPrice = unitPrice * itemStack.getAmount();
+                String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
+                double totalPrice;
+                if (calculationMethod.equalsIgnoreCase("shopguiplus")) {
+                    totalPrice = unitPrice;
+                } else {
+                    totalPrice = unitPrice * itemStack.getAmount();
+                }
                 String playerName = player.getName();
 
                 String logEntry = String.format("[SELLALL] %s|%s|%s|%d|%.2f|%.2f|%s|%s",
