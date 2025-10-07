@@ -90,7 +90,7 @@ public class PriceManager {
         }
 
         if (!calculationMethod.equals("auto")) {
-            double price = getSpecificMethodPrice(itemStack, calculationMethod, null); // Truyền null nếu không có Player
+            double price = getSpecificMethodPrice(itemStack, calculationMethod, null);
             if (price > 0) {
                 return applyRandomVariation(price);
             }
@@ -285,7 +285,6 @@ public class PriceManager {
     private File getItemPricesFile() {
         return new File(main.getDataFolder(), "itemprices.yml");
     }
-
 
     private double getVanillaPrice(ItemStack itemStack) {
         return main.getItemPricesConfig().getDouble(itemStack.getType().name(), 0.0);

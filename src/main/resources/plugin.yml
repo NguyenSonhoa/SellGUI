@@ -1,13 +1,13 @@
 name: SellGUI
-version: '2.6.5'
+version: '2.7'
 main: me.aov.sellgui.SellGUIMain
 api-version: '1.20'
 description: SellGUI plugin
 author: AOOV,SaneNuyan
 website: https://www.spigotmc.org/resources/sellgui.127355/
 
-depend: [Vault]
-softdepend: [Essentials,MMOItems,PlaceholderAPI,Nexo,NBTAPI]
+depend: [Vault,PlaceholderAPI]
+softdepend: [Essentials,MMOItems,PlaceholderAPI,Nexo,NBTAPI,ShopGUIPlus,MythicLib]
 
 commands:
   sellgui:

@@ -35,7 +35,7 @@ public class SignListener implements Listener {
         if (event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && isSign(event.getClickedBlock().getType())) {
             Sign sign = (Sign) event.getClickedBlock().getState();
             if(isSellGUISign(sign) && event.getPlayer().hasPermission("sellgui.usesign")){
-                SellCommand.getSellGUIs().add(new SellGUI(main, event.getPlayer()));
+                SellCommand.getSellGUIs().add(new SellGUI(main, event.getPlayer(), main.getItemNBTManager()));
             }
         }
     }

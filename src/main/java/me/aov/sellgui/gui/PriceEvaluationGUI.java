@@ -34,7 +34,6 @@ public class PriceEvaluationGUI implements InventoryHolder {
 
     private final SellGUIMain main;
     private final Player player;
-    private final Inventory inventory;
     private final NBTPriceManager nbtPriceManager;
     private final Random random;
 
@@ -47,14 +46,15 @@ public class PriceEvaluationGUI implements InventoryHolder {
 
     private BukkitTask animationTask;
     private boolean isLocked = false;
+    private final Inventory inventory;
     private EvaluationMode evaluationMode = EvaluationMode.NONE;
     private double minPrice = 0;
     private double maxPrice = 0;
 
-    public PriceEvaluationGUI(SellGUIMain main, Player player) {
+    public PriceEvaluationGUI(SellGUIMain main, Player player, NBTPriceManager nbtPriceManager) {
         this.main = main;
         this.player = player;
-        this.nbtPriceManager = new NBTPriceManager(main);
+        this.nbtPriceManager = nbtPriceManager;
         this.random = new Random();
 
         FileConfiguration guiConfig = main.getConfigManager().getGUIConfig();
@@ -250,7 +250,6 @@ public class PriceEvaluationGUI implements InventoryHolder {
         ItemMeta meta = animItem.getItemMeta();
         if (meta != null) {
             String name = meta.hasDisplayName() ? meta.getDisplayName() : "";
-
             name = name.replace("%current%", String.format("%.2f", price));
             meta.setDisplayName(name);
 
@@ -284,7 +283,8 @@ public class PriceEvaluationGUI implements InventoryHolder {
 
         player.sendMessage(ColorUtils.color(getMessage("evaluation_complete_chat", "&a✅ Price evaluation complete! Final price: &e$%price%").replace("%price%", String.format("%.2f", finalPrice))));
 
-        showTemporaryResult();
+        String evaluatedItemDisplayName = ItemIdentifier.getItemDisplayName(originalItem);
+        showTemporaryResult(evaluatedItemDisplayName);
 
         this.evaluationMode = EvaluationMode.NONE;
         updateButtons();
@@ -300,15 +300,23 @@ public class PriceEvaluationGUI implements InventoryHolder {
             player.sendMessage(ColorUtils.color(getMessage("evaluation_complete", "&a✅ Price set: &e$%price%").replace("%price%", String.format("%.2f", minPrice))));
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
 
-            showTemporaryResult();
+            String evaluatedItemDisplayName = ItemIdentifier.getItemDisplayName(item);
+            showTemporaryResult(evaluatedItemDisplayName);
         }
         isLocked = false;
         this.evaluationMode = EvaluationMode.NONE;
         updateButtons();
     }
 
-    private void showTemporaryResult() {
-        final ItemStack resultItem = createItemFromConfig("result", Material.EMERALD, "&a&l✅ Evaluation Complete!", new ArrayList<>());
+    private void showTemporaryResult(String evaluatedItemDisplayName) {
+        String resultName = main.getConfigManager().getGUIConfig().getString("price_evaluation_gui.items.result.name", "&a&l✅ Evaluation Complete!");
+        resultName = resultName.replace("%evaluated_item_name%", evaluatedItemDisplayName);
+        List<String> resultLore = main.getConfigManager().getGUIConfig().getStringList("price_evaluation_gui.items.result.lore");
+        resultLore = resultLore.stream()
+                .map(line -> line.replace("%evaluated_item_name%", evaluatedItemDisplayName))
+                .collect(Collectors.toList());
+
+        final ItemStack resultItem = createItem(Material.EMERALD, resultName, resultLore, -1);
         inventory.setItem(RESULT_SLOT, resultItem);
 
         new BukkitRunnable() {
@@ -321,10 +329,6 @@ public class PriceEvaluationGUI implements InventoryHolder {
                 }
             }
         }.runTaskLater(main, 100L);
-    }
-
-    private ItemStack createItem(Material material, String name, List<String> lore) {
-        return createItem(material, name, lore, -1);
     }
 
     private ItemStack createItem(Material material, String name, List<String> lore, int customModelData) {
@@ -340,6 +344,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
             if (customModelData != -1) {
                 meta.setCustomModelData(customModelData);
             }
+
             item.setItemMeta(meta);
         }
         return item;
@@ -350,7 +355,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
         String path = "price_evaluation_gui.items." + itemKey;
 
         if (!guiConfig.contains(path)) {
-            return createItem(defaultMaterial, defaultName, defaultLore);
+            return createItem(defaultMaterial, defaultName, defaultLore, -1);
         }
 
         Material material = Material.getMaterial(guiConfig.getString(path + ".material", defaultMaterial.name()).toUpperCase());
@@ -362,8 +367,13 @@ public class PriceEvaluationGUI implements InventoryHolder {
         int customModelData = guiConfig.getInt(path + ".custom-model-data", -1);
         String nbtId = guiConfig.getString(path + ".nbt-id");
 
+        // Apply general price placeholders
         name = replacePricePlaceholders(name);
         lore = lore.stream().map(this::replacePricePlaceholders).collect(Collectors.toList());
+
+        // If it's the animation item, remove %current% temporarily before passing to createItem
+        // as %current% is handled specifically in updateAnimationDisplay
+        // REMOVED THE BLOCK THAT WAS CAUSING THE ISSUE
 
         ItemStack item = createItem(material, name, lore, customModelData);
 

@@ -23,7 +23,7 @@ public class GUIManager {
         if (activeEvaluationGUIs.containsKey(player.getUniqueId())) {
             player.closeInventory();
         }
-        PriceEvaluationGUI gui = new PriceEvaluationGUI(plugin, player);
+        PriceEvaluationGUI gui = new PriceEvaluationGUI(plugin, player, plugin.getNBTPriceManager());
         activeEvaluationGUIs.put(player.getUniqueId(), gui);
         player.openInventory(gui.getInventory());
     }

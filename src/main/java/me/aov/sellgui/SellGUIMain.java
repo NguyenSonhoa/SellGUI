@@ -16,6 +16,7 @@ import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.commands.SellGUITabCompleter;
 import me.aov.sellgui.config.ConfigManager;
 import me.aov.sellgui.handlers.PlaceholderHandler;
+import me.aov.sellgui.handlers.SellGUIPlaceholderExpansion;
 import me.aov.sellgui.listeners.InventoryListeners;
 import me.aov.sellgui.listeners.PlayerLeaveListener;
 import me.aov.sellgui.listeners.PriceEvaluationListener;
@@ -27,6 +28,9 @@ import me.aov.sellgui.managers.AsyncPriceCalculator;
 import me.aov.sellgui.managers.NBTPriceManager;
 import me.aov.sellgui.managers.PriceManager;
 import me.aov.sellgui.managers.RandomPriceManager;
+import me.aov.sellgui.managers.ItemNBTManager;
+import me.aov.sellgui.managers.MythicLibNBTManager;
+import me.aov.sellgui.managers.PersistentDataNBTManager;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -83,6 +87,8 @@ public class SellGUIMain extends JavaPlugin {
    private FileConfiguration randomPricesConfig;
    private File soundsFile;
    private FileConfiguration soundsConfig;
+   private ItemNBTManager itemNBTManager;
+
    public static SellGUIMain getInstance() {
       return instance;
    }
@@ -105,7 +111,7 @@ public class SellGUIMain extends JavaPlugin {
       String bukkitVersion = Bukkit.getBukkitVersion();
       if (!bukkitVersion.contains("1.20.6")) {
          this.getLogger().warning("=== VERSION WARNING ===");
-         this.getLogger().warning("This plugin is best support 1.21+!");
+         this.getLogger().warning("This plugin is best support 1.21+");
          this.getLogger().warning("Current version: " + bukkitVersion);
          this.getLogger().warning("For other versions, author will build soon, im lazy.");
          this.getLogger().warning("=======================");
@@ -121,7 +127,7 @@ public class SellGUIMain extends JavaPlugin {
       PlaceholderHandler.initialize(this);
       this.sellGUIAPI = new SellGUIAPI(this);
       if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-         this.sellGUIAPI.registerExpansion();
+         new SellGUIPlaceholderExpansion(this).register();
          this.getLogger().info("PlaceholderAPI found, SellGUI placeholders registered.");
       } else {
          this.getLogger().info("PlaceholderAPI not found, using built-in placeholder fallbacks.");
@@ -133,6 +139,23 @@ public class SellGUIMain extends JavaPlugin {
          this.hasShopGUIPlus = false;
          this.getLogger().info("ShopGUIPlus not found, disabled support it.");
       }
+
+      if (this.getServer().getPluginManager().getPlugin("MMOItems") != null) {
+         this.hasMMOItems = true;
+         this.getLogger().info("MMOItems detected! SellGUI will attempt to read MMOItem prices for selling.");
+      } else {
+         this.hasMMOItems = false;
+         this.getLogger().warning("MMOItems not found! MMOItem selling support might be limited.");
+      }
+
+      if (Bukkit.getPluginManager().getPlugin("MythicLib") != null) {
+         this.itemNBTManager = new MythicLibNBTManager();
+         this.getLogger().info("MythicLib detected! Using MythicLibNBTManager for NBT operations.");
+      } else {
+         this.itemNBTManager = new PersistentDataNBTManager(this);
+         this.getLogger().info("MythicLib not found. Using PersistentDataNBTManager for NBT operations.");
+      }
+
       if (!this.setupEconomy()) {
          this.getLogger().severe("Disabled due to no Vault dependency found or no economy provider!");
          this.getServer().getPluginManager().disablePlugin(this);
@@ -166,7 +189,13 @@ public class SellGUIMain extends JavaPlugin {
          this.getServer().getPluginManager().registerEvents(new PriceSetterChatListener(this), this);
          this.getServer().getPluginManager().registerEvents(new PlayerLeaveListener(this), this);
          this.priceManager = new PriceManager(this);
-         this.nbtPriceManager = new NBTPriceManager(this);
+
+         if (this.hasMMOItems) {
+            this.nbtPriceManager = new NBTPriceManager(this);
+         } else {
+            this.nbtPriceManager = null;
+         }
+
          this.randomPriceManager = new RandomPriceManager(this);
          this.priceCache = new PriceCache(this);
          this.asyncCalculator = new AsyncPriceCalculator(this);
@@ -181,13 +210,6 @@ public class SellGUIMain extends JavaPlugin {
             }
 
          });
-         if (this.getServer().getPluginManager().getPlugin("MMOItems") != null) {
-            this.hasMMOItems = true;
-            this.getLogger().info("MMOItems detected! SellGUI will attempt to read MMOItem prices for selling.");
-         } else {
-            this.hasMMOItems = false;
-            this.getLogger().warning("MMOItems not found! MMOItem selling support might be limited.");
-         }
 
          this.createPrices();
          Bukkit.getScheduler().runTaskTimer(this, () -> {
@@ -577,10 +599,10 @@ public class SellGUIMain extends JavaPlugin {
                BufferedWriter writer = new BufferedWriter(new FileWriter(this.log, true));
 
                try {
-                  writer.append("=== SellGUI Transaction Log ===\n");
-                  writer.append("Format: ItemType|ItemID|DisplayName|Amount|UnitPrice|TotalPrice|Player|Timestamp\n");
-                  writer.append("ItemTypes: VANILLA, MMOITEMS, NEXO\n");
-                  writer.append("=====================================\n");
+                  writer.append("=== SellGUI Transaction Log === ");
+                  writer.append("Format: ItemType|ItemID|DisplayName|Amount|UnitPrice|TotalPrice|Player|Timestamp");
+                  writer.append("ItemTypes: VANILLA, MMOITEMS, NEXO");
+                  writer.append("===================================== ");
                } catch (Throwable var10) {
                   try {
                      writer.close();
@@ -671,6 +693,10 @@ public class SellGUIMain extends JavaPlugin {
 
    public me.aov.sellgui.gui.GUIManager getGUIManager() {
       return this.guiManager;
+   }
+
+   public ItemNBTManager getItemNBTManager() {
+      return this.itemNBTManager;
    }
 
    public void openPriceEvaluationGUI(Player player) {

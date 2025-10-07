@@ -11,7 +11,6 @@ import io.lumine.mythic.lib.api.item.NBTItem;
 import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.managers.PriceManager;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -22,57 +21,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.persistence.PersistentDataType;
 
-public class SellGUIAPI extends PlaceholderExpansion {
+public class SellGUIAPI {
     private SellGUIMain main;
 
     public SellGUIAPI(SellGUIMain sellGUIMain) {
         this.main = sellGUIMain;
-    }
-
-    @Override
-    public String getIdentifier() {
-        return "sellgui";
-    }
-
-    @Override
-    public String getAuthor() {
-        return "SaneNuyan";
-    }
-
-    @Override
-    public String getVersion() {
-        return "2.5.11";
-    }
-
-    @Override
-    public boolean canRegister() {
-        return true;
-    }
-
-    public void registerExpansion() {
-        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
-            this.register();
-        }
-    }
-
-    @Override
-    public String onPlaceholderRequest(Player player, String identifier) {
-        if (player == null) return "";
-
-        if (identifier.equals("pricehand")) {
-            ItemStack item = player.getInventory().getItemInMainHand();
-            return String.valueOf(getPrice(item, player));
-        }
-
-        if (identifier.equals("pricehandfull")) {
-            ItemStack item = player.getInventory().getItemInMainHand();
-            String itemName = item.getType().name();
-            if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-                itemName = item.getItemMeta().getDisplayName();
-            }
-            return itemName + " - " + getPrice(item, player);
-        }
-        return null;
     }
 
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
@@ -122,7 +75,6 @@ public class SellGUIAPI extends PlaceholderExpansion {
         return round(price, this.main.getConfig().getInt("places-to-round", 2));
     }
 
-
     private double applyPlayerBonuses(double price, @Nullable Player player) {
         if (player == null || price <= 0) {
             return round(price, this.main.getConfig().getInt("places-to-round", 2));
@@ -160,7 +112,7 @@ public class SellGUIAPI extends PlaceholderExpansion {
     }
 
     public void openSellGUI(Player player) {
-        SellCommand.getSellGUIs().add(new SellGUI(this.main, player));
+        SellCommand.getSellGUIs().add(new SellGUI(this.main, player, this.main.getItemNBTManager()));
     }
 
     private static double round(double value, int places) {

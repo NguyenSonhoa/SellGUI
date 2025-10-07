@@ -36,39 +36,72 @@ public class PriceEvaluationListener implements Listener {
         }
 
         if (gui.isLocked()) {
-            if (event.getRawSlot() < gui.getInventory().getSize() || event.isShiftClick()) {
-                event.setCancelled(true);
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cEvaluation in progress! Please wait..."));
-            }
+            event.setCancelled(true);
+            player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cEvaluation in progress! Please wait..."));
             return;
         }
 
-        int slot = event.getRawSlot();
-
-        if (slot >= gui.getInventory().getSize()) {
-            return;
-        }
-
-        if (slot == gui.getItemSlot()) {
-            return;
-        }
-
-        event.setCancelled(true);
-
+        int clickedSlot = event.getRawSlot();
         ItemStack clickedItem = event.getCurrentItem();
-        if (clickedItem == null || !clickedItem.hasItemMeta()) {
+
+        if (event.getClickedInventory() == player.getInventory()) {
+            if (event.isShiftClick()) {
+
+                if (clickedItem != null && clickedItem.getType() != Material.AIR) {
+
+                    if (gui.getInventory().getItem(gui.getItemSlot()) == null || gui.getInventory().getItem(gui.getItemSlot()).getType() == Material.AIR) {
+                        boolean allowStack = main.getConfigManager().getConfig("config").getBoolean("general.allow-player-evaluation-stack", true);
+                        if (!allowStack && clickedItem.getAmount() > 1) {
+                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', main.getConfigManager().getConfig("messages").getString("price-evaluation.drag-stack-not-allowed", "&cYou can't Evaluate more than 1 amount at a time.")));
+                            event.setCancelled(true);
+                            return;
+                        }
+
+                        gui.getInventory().setItem(gui.getItemSlot(), clickedItem.clone());
+                        event.setCurrentItem(null);
+                        event.setCancelled(true);
+                        return;
+                    } else {
+
+                        event.setCancelled(true);
+                        return;
+                    }
+                }
+            }
+
             return;
         }
 
-        ItemMeta meta = clickedItem.getItemMeta();
-        NamespacedKey key = new NamespacedKey(main, "sellgui-nbt-id");
+        if (clickedSlot < gui.getInventory().getSize()) {
 
-        if (meta.getPersistentDataContainer().has(key, PersistentDataType.STRING)) {
-            String nbtId = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
-            handleButtonClick(player, gui, nbtId);
+            if (clickedSlot == gui.getItemSlot() && !event.isShiftClick()) {
+
+                return;
+            }
+
+            else if (clickedSlot == gui.getItemSlot() && event.isShiftClick()) {
+                if (clickedItem != null && clickedItem.getType() != Material.AIR) {
+                    gui.returnItemToPlayer();
+                    event.setCancelled(true);
+                }
+                return;
+            }
+
+            else if (clickedItem != null && clickedItem.hasItemMeta()) {
+                ItemMeta meta = clickedItem.getItemMeta();
+                NamespacedKey key = new NamespacedKey(main, "sellgui-nbt-id");
+                if (meta.getPersistentDataContainer().has(key, PersistentDataType.STRING)) {
+                    String nbtId = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+                    handleButtonClick(player, gui, nbtId);
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+
+            event.setCancelled(true);
+            return;
         }
     }
-
     private void handleButtonClick(Player player, PriceEvaluationGUI gui, String nbtId) {
         if (nbtId == null) return;
 
@@ -81,7 +114,6 @@ public class PriceEvaluationListener implements Listener {
                 break;
         }
     }
-
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
@@ -106,6 +138,7 @@ public class PriceEvaluationListener implements Listener {
 
             ItemStack currentItemInSlot = gui.getInventory().getItem(gui.getItemSlot());
             if (currentItemInSlot != null && currentItemInSlot.getType() != Material.AIR) {
+
                 return;
             }
             ItemStack draggedStack = event.getOldCursor();

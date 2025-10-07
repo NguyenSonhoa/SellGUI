@@ -4,13 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <artifactId>SellGUI</artifactId>
-        <groupId>me.aov.sellgui</groupId>
-        <version>2.5-SNAPSHOT</version>
-    </parent>
-
+    <groupId>me.aov.sellgui</groupId>
     <artifactId>SellGUI</artifactId>
+    <version>2.7</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -141,7 +137,7 @@
         <dependency>
             <groupId>net.Indyuce</groupId>
             <artifactId>MMOItems-API</artifactId>
-            <version>6.9.2-SNAPSHOT</version>
+            <version>6.9.5-SNAPSHOT</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
@@ -150,7 +146,7 @@
         <dependency>
             <groupId>io.lumine</groupId>
             <artifactId>MythicLib-dist</artifactId>
-            <version>1.6-SNAPSHOT</version>
+            <version>1.7.1-SNAPSHOT</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>

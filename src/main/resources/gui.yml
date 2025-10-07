@@ -135,7 +135,7 @@ price_evaluation_gui:
     instruction_slot: 4
     animation_slot: 10
     result_slot: 10 # Make sure it is same animation slot.
-    filler: [0, 1, 2, 3, 5, 6, 7, 8, 9, 17, 18, 26, 27, 29, 31, 35, 36, 44, 45, 46, 47, 49, 50, 51, 52, 53]
+    filler: [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26]
   animation:
     enabled: true
     duration: 20

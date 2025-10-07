@@ -33,6 +33,7 @@ sell:
 # │                            💰 SELLALL NOTIFICATIONS                         │
 # └─────────────────────────────────────────────────────────────────────────────┘
 sellall:
+  section-confirm: "&6&l=== SellAll Confirmation === "
   confirm-message: "&e⚠️ You will receive &a$%total% &efor selling all items."
   no-items: "&c❌ No items to sell in your inventory!"
   sold-message: "&a✅ Sold %count% items for &e$%total%!"

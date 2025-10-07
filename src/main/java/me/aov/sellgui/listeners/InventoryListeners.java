@@ -124,6 +124,10 @@ public class InventoryListeners implements Listener {
                 SoundHandler.playConfigSound(player, "sounds.items.place");
             }
 
+            if (!e.isCancelled()) {
+                SoundHandler.playUIClick(player);
+            }
+
             Bukkit.getScheduler().runTaskLater(main, () -> {
                 if (sellGUI.getMenu() != null && player.isOnline() && SellCommand.getSellGUI(player) != null) {
                     sellGUI.updateButtonState();

@@ -1,6 +1,5 @@
 package me.aov.sellgui.managers;
 
-import io.lumine.mythic.lib.api.item.NBTCompound;
 import io.lumine.mythic.lib.api.item.NBTItem;
 import io.lumine.mythic.lib.api.item.ItemTag;
 import me.aov.sellgui.SellGUIMain;
@@ -33,67 +32,7 @@ public class NBTPriceManager {
         if (itemStack == null) return itemStack;
 
         try {
-            NBTItem nbtItem = new NBTItem(itemStack) {
-                @Override
-                public Object get(String s) {
-                    return null;
-                }
-
-                @Override
-                public String getString(String s) {
-                    return "";
-                }
-
-                @Override
-                public boolean hasTag(String s) {
-                    return false;
-                }
-
-                @Override
-                public boolean getBoolean(String s) {
-                    return false;
-                }
-
-                @Override
-                public double getDouble(String s) {
-                    return 0;
-                }
-
-                @Override
-                public int getInteger(String s) {
-                    return 0;
-                }
-
-                @Override
-                public NBTCompound getNBTCompound(String s) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem addTag(List<ItemTag> list) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem removeTag(String... strings) {
-                    return null;
-                }
-
-                @Override
-                public Set<String> getTags() {
-                    return Set.of();
-                }
-
-                @Override
-                public ItemStack toItem() {
-                    return null;
-                }
-
-                @Override
-                public int getTypeId(String s) {
-                    return 0;
-                }
-            };
+            NBTItem nbtItem = NBTItem.get(itemStack);
             nbtItem.addTag(new ItemTag(PRICE_NBT_KEY, price));
             nbtItem.addTag(new ItemTag(PRICE_TYPE_NBT_KEY, PRICE_TYPE_FIXED));
 
@@ -111,67 +50,7 @@ public class NBTPriceManager {
         try {
             double finalPrice = calculateRandomPrice(minPrice, maxPrice);
 
-            NBTItem nbtItem = new NBTItem(itemStack) {
-                @Override
-                public Object get(String s) {
-                    return null;
-                }
-
-                @Override
-                public String getString(String s) {
-                    return "";
-                }
-
-                @Override
-                public boolean hasTag(String s) {
-                    return false;
-                }
-
-                @Override
-                public boolean getBoolean(String s) {
-                    return false;
-                }
-
-                @Override
-                public double getDouble(String s) {
-                    return 0;
-                }
-
-                @Override
-                public int getInteger(String s) {
-                    return 0;
-                }
-
-                @Override
-                public NBTCompound getNBTCompound(String s) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem addTag(List<ItemTag> list) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem removeTag(String... strings) {
-                    return null;
-                }
-
-                @Override
-                public Set<String> getTags() {
-                    return Set.of();
-                }
-
-                @Override
-                public ItemStack toItem() {
-                    return null;
-                }
-
-                @Override
-                public int getTypeId(String s) {
-                    return 0;
-                }
-            };
+            NBTItem nbtItem = NBTItem.get(itemStack);
             nbtItem.addTag(new ItemTag(PRICE_NBT_KEY, finalPrice));
             nbtItem.addTag(new ItemTag(PRICE_TYPE_NBT_KEY, PRICE_TYPE_RANDOM));
             nbtItem.addTag(new ItemTag("sellgui:min_price", minPrice));
@@ -196,67 +75,7 @@ public class NBTPriceManager {
         if (itemStack == null) return 0.0;
 
         try {
-            NBTItem nbtItem = new NBTItem(itemStack) {
-                @Override
-                public Object get(String s) {
-                    return null;
-                }
-
-                @Override
-                public String getString(String s) {
-                    return "";
-                }
-
-                @Override
-                public boolean hasTag(String s) {
-                    return false;
-                }
-
-                @Override
-                public boolean getBoolean(String s) {
-                    return false;
-                }
-
-                @Override
-                public double getDouble(String s) {
-                    return 0;
-                }
-
-                @Override
-                public int getInteger(String s) {
-                    return 0;
-                }
-
-                @Override
-                public NBTCompound getNBTCompound(String s) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem addTag(List<ItemTag> list) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem removeTag(String... strings) {
-                    return null;
-                }
-
-                @Override
-                public Set<String> getTags() {
-                    return Set.of();
-                }
-
-                @Override
-                public ItemStack toItem() {
-                    return null;
-                }
-
-                @Override
-                public int getTypeId(String s) {
-                    return 0;
-                }
-            };
+            NBTItem nbtItem = NBTItem.get(itemStack);
             if (nbtItem.hasTag(PRICE_NBT_KEY)) {
                 return nbtItem.getDouble(PRICE_NBT_KEY);
             }
@@ -271,67 +90,7 @@ public class NBTPriceManager {
         if (itemStack == null) return false;
 
         try {
-            NBTItem nbtItem = new NBTItem(itemStack) {
-                @Override
-                public Object get(String s) {
-                    return null;
-                }
-
-                @Override
-                public String getString(String s) {
-                    return "";
-                }
-
-                @Override
-                public boolean hasTag(String s) {
-                    return false;
-                }
-
-                @Override
-                public boolean getBoolean(String s) {
-                    return false;
-                }
-
-                @Override
-                public double getDouble(String s) {
-                    return 0;
-                }
-
-                @Override
-                public int getInteger(String s) {
-                    return 0;
-                }
-
-                @Override
-                public NBTCompound getNBTCompound(String s) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem addTag(List<ItemTag> list) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem removeTag(String... strings) {
-                    return null;
-                }
-
-                @Override
-                public Set<String> getTags() {
-                    return Set.of();
-                }
-
-                @Override
-                public ItemStack toItem() {
-                    return null;
-                }
-
-                @Override
-                public int getTypeId(String s) {
-                    return 0;
-                }
-            };
+            NBTItem nbtItem = NBTItem.get(itemStack);
             return nbtItem.hasTag(PRICE_NBT_KEY);
         } catch (Exception e) {
             return false;
@@ -342,67 +101,7 @@ public class NBTPriceManager {
         if (itemStack == null) return null;
 
         try {
-            NBTItem nbtItem = new NBTItem(itemStack) {
-                @Override
-                public Object get(String s) {
-                    return null;
-                }
-
-                @Override
-                public String getString(String s) {
-                    return "";
-                }
-
-                @Override
-                public boolean hasTag(String s) {
-                    return false;
-                }
-
-                @Override
-                public boolean getBoolean(String s) {
-                    return false;
-                }
-
-                @Override
-                public double getDouble(String s) {
-                    return 0;
-                }
-
-                @Override
-                public int getInteger(String s) {
-                    return 0;
-                }
-
-                @Override
-                public NBTCompound getNBTCompound(String s) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem addTag(List<ItemTag> list) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem removeTag(String... strings) {
-                    return null;
-                }
-
-                @Override
-                public Set<String> getTags() {
-                    return Set.of();
-                }
-
-                @Override
-                public ItemStack toItem() {
-                    return null;
-                }
-
-                @Override
-                public int getTypeId(String s) {
-                    return 0;
-                }
-            };
+            NBTItem nbtItem = NBTItem.get(itemStack);
             if (nbtItem.hasTag(PRICE_TYPE_NBT_KEY)) {
                 return nbtItem.getString(PRICE_TYPE_NBT_KEY);
             }
@@ -436,67 +135,7 @@ public class NBTPriceManager {
         if (itemStack == null) return itemStack;
 
         try {
-            NBTItem nbtItem = new NBTItem(itemStack) {
-                @Override
-                public Object get(String s) {
-                    return null;
-                }
-
-                @Override
-                public String getString(String s) {
-                    return "";
-                }
-
-                @Override
-                public boolean hasTag(String s) {
-                    return false;
-                }
-
-                @Override
-                public boolean getBoolean(String s) {
-                    return false;
-                }
-
-                @Override
-                public double getDouble(String s) {
-                    return 0;
-                }
-
-                @Override
-                public int getInteger(String s) {
-                    return 0;
-                }
-
-                @Override
-                public NBTCompound getNBTCompound(String s) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem addTag(List<ItemTag> list) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem removeTag(String... strings) {
-                    return null;
-                }
-
-                @Override
-                public Set<String> getTags() {
-                    return Set.of();
-                }
-
-                @Override
-                public ItemStack toItem() {
-                    return null;
-                }
-
-                @Override
-                public int getTypeId(String s) {
-                    return 0;
-                }
-            };
+            NBTItem nbtItem = NBTItem.get(itemStack);
             nbtItem.removeTag(PRICE_NBT_KEY);
             nbtItem.removeTag(PRICE_TYPE_NBT_KEY);
             nbtItem.removeTag("sellgui:min_price");
@@ -525,67 +164,7 @@ public class NBTPriceManager {
         if (itemStack == null) return null;
 
         try {
-            NBTItem nbtItem = new NBTItem(itemStack) {
-                @Override
-                public Object get(String s) {
-                    return null;
-                }
-
-                @Override
-                public String getString(String s) {
-                    return "";
-                }
-
-                @Override
-                public boolean hasTag(String s) {
-                    return false;
-                }
-
-                @Override
-                public boolean getBoolean(String s) {
-                    return false;
-                }
-
-                @Override
-                public double getDouble(String s) {
-                    return 0;
-                }
-
-                @Override
-                public int getInteger(String s) {
-                    return 0;
-                }
-
-                @Override
-                public NBTCompound getNBTCompound(String s) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem addTag(List<ItemTag> list) {
-                    return null;
-                }
-
-                @Override
-                public NBTItem removeTag(String... strings) {
-                    return null;
-                }
-
-                @Override
-                public Set<String> getTags() {
-                    return Set.of();
-                }
-
-                @Override
-                public ItemStack toItem() {
-                    return null;
-                }
-
-                @Override
-                public int getTypeId(String s) {
-                    return 0;
-                }
-            };
+            NBTItem nbtItem = NBTItem.get(itemStack);
             if (nbtItem.hasTag("sellgui:min_price") && nbtItem.hasTag("sellgui:max_price")) {
                 return new double[]{
                         nbtItem.getDouble("sellgui:min_price"),

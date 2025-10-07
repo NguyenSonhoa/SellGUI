@@ -94,13 +94,13 @@ public class SellCommand implements CommandExecutor {
 
         if (args.length == 0) {
             if (player.hasPermission("sellgui.use")) {
-                sellGUIS.add(new SellGUI(this.main, player));} else {player.sendMessage(ColorUtils.color("&cYou do not have permission to use this command."));}
+                sellGUIS.add(new SellGUI(this.main, player, this.main.getItemNBTManager()));} else {player.sendMessage(ColorUtils.color("&cYou do not have permission to use this command."));}
             return true;}
         if (args.length == 1) {
             if (player.hasPermission("sellgui.others")) {
                 Player target = main.getServer().getPlayer(args[0]);
                 if (target != null) {
-                    sellGUIS.add(new SellGUI(this.main, target));
+                    sellGUIS.add(new SellGUI(this.main, target, this.main.getItemNBTManager()));
                     player.sendMessage(ColorUtils.color("&aSuccessfully opened SellGUI for " + target.getName() + "."));
                 } else {
                     player.sendMessage(ColorUtils.color("&cPlayer '" + args[0] + "' not found or is not online."));
