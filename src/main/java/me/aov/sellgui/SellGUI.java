@@ -16,6 +16,7 @@ import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.managers.ItemNBTManager;
 import org.bukkit.*;
 import org.bukkit.block.ShulkerBox;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
@@ -31,8 +32,6 @@ import org.bukkit.persistence.PersistentDataType;
 import javax.annotation.Nullable;
 import me.aov.sellgui.handlers.SoundHandler;
 
-import static me.aov.sellgui.listeners.InventoryListeners.sellGUIItem;
-
 public class SellGUI implements Listener {
     private final SellGUIMain main;
     private final Player player;
@@ -42,9 +41,11 @@ public class SellGUI implements Listener {
     private static Inventory menu;
     private ItemStack confirmItem;
     private ItemStack noItemsItemStack;
-    private int sellItemSlot;
+    private List<Integer> sellButtonSlots;
+    private List<Integer> confirmButtonSlots;
     private int updateTaskId = -1;
     private boolean isConfirmMode = false;
+    private boolean sold = false;
     private final ItemNBTManager itemNBTManager;
 
     public SellGUI(SellGUIMain main, Player p, ItemNBTManager itemNBTManager) {
@@ -59,17 +60,17 @@ public class SellGUI implements Listener {
     }
 
     private void createMenu() {
-        org.bukkit.configuration.file.FileConfiguration guiConfig = this.main.getConfigManager() != null ?
-                this.main.getConfigManager().getGUIConfig() : null;
-        int size = 54;
-        if (guiConfig != null) {
-            size = guiConfig.getInt("sell_gui.size", 54);
-        }
+        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
+        int size = guiConfig.getInt("sell_gui.size", 54);
+        this.menuTitle = guiConfig.getString("sell_gui.title", "&6&l✦ &eSell GUI &6&l✦");
+
+        this.sellButtonSlots = guiConfig.getIntegerList("sell_gui.positions.sell_button");
+        this.confirmButtonSlots = guiConfig.getIntegerList("sell_gui.positions.confirm_button");
 
         menu = Bukkit.createInventory((InventoryHolder) null, size, color(menuTitle));
 
         this.addFillerFromConfig();
-        this.addSellItem();
+        this.addSellButton();
     }
 
     private boolean isSellItem(ItemStack item) {
@@ -91,15 +92,6 @@ public class SellGUI implements Listener {
 
     private boolean isConfirmItem(ItemStack item) {
         return item(item, confirmItem);
-    }
-
-    private boolean isFillerItem(ItemStack item) {
-        if (item == null || item.getType() != filler.getType()) return false;
-        ItemMeta meta1 = filler.getItemMeta();
-        ItemMeta meta2 = filler.getItemMeta();
-
-        return meta1.hasCustomModelData() == meta2.hasCustomModelData() &&
-                (!meta1.hasCustomModelData() || meta1.getCustomModelData() == meta2.getCustomModelData());
     }
 
     private void addCustomItems() {
@@ -135,48 +127,33 @@ public class SellGUI implements Listener {
         }
     }
 
-    public void addSellItem() {
-
-        org.bukkit.configuration.file.FileConfiguration guiConfig = this.main.getConfigManager() != null ?
-                this.main.getConfigManager().getGUIConfig() : null;
-
-        int slot = 49;
-        if (guiConfig != null) {
-            slot = guiConfig.getInt("sell_gui.positions.sell-button", 49);
-        }
-
-        int maxSlot = menu.getSize() - 1;
-
-        if (slot < 0 || slot > maxSlot) {
-            this.player.sendMessage(color("&cInvalid sell-item slot! It must be between 0 and " + maxSlot + "."));
+    public void addSellButton() {
+        if (sellButtonSlots.isEmpty()) {
+            this.player.sendMessage(color("&cError: sell_button slots are not defined in gui.yml."));
             return;
         }
-
-        menu.setItem(slot, sellItem);
-        this.sellItemSlot = slot;
+        for (int slot : sellButtonSlots) {
+            if (slot >= 0 && slot < menu.getSize()) {
+                menu.setItem(slot, sellItem);
+            }
+        }
         this.makeConfirmItem();
-
     }
 
     private void startAutoUpdateTask() {
-
         if (updateTaskId != -1) {
             this.main.getServer().getScheduler().cancelTask(updateTaskId);
         }
-
         long updateInterval = this.main.getConfig().getLong("performance.gui-update-interval", 20);
-
         updateTaskId = this.main.getServer().getScheduler().runTaskTimer(this.main, () -> {
             if (menu != null && player != null && player.isOnline() && !isConfirmMode) {
                 updateSellItemTotal();
             } else if (!player.isOnline() || menu == null) {
-
                 if (updateTaskId != -1) {
                     this.main.getServer().getScheduler().cancelTask(updateTaskId);
                     updateTaskId = -1;
                 }
             }
-
         }, 0L, updateInterval).getTaskId();
     }
 
@@ -186,37 +163,29 @@ public class SellGUI implements Listener {
         }
 
         double currentTotal = getTotal(menu);
+        ItemStack buttonToShow = (currentTotal > 0) ? sellItem : noItemsItemStack;
 
         if (currentTotal > 0) {
-            if (sellItem == null) return;
-
-            ItemMeta meta = sellItem.getItemMeta();
+            ItemMeta meta = buttonToShow.getItemMeta();
             if (meta != null && meta.hasLore()) {
-                java.util.List<String> lore = new java.util.ArrayList<>(meta.getLore());
-
+                List<String> lore = new ArrayList<>(meta.getLore());
                 for (int i = 0; i < lore.size(); i++) {
                     String line = lore.get(i);
-                    if (org.bukkit.ChatColor.stripColor(line).contains("Total Value:")) {
+                    if (ChatColor.stripColor(line).contains("Total Value:")) {
                         boolean roundPrices = this.main.shouldRoundPrices();
-                        double displayedTotal = currentTotal;
-                        if (roundPrices) {
-                            displayedTotal = Math.round(currentTotal);
-                        }
+                        double displayedTotal = roundPrices ? Math.round(currentTotal) : currentTotal;
                         lore.set(i, color("&eTotal Value: &a$" + String.format("%.2f", displayedTotal)));
                         break;
                     }
                 }
-
                 meta.setLore(color(lore));
-                sellItem.setItemMeta(meta);
-
-                if (sellItemSlot >= 0 && sellItemSlot < menu.getSize()) {
-                    menu.setItem(sellItemSlot, sellItem);
-                }
+                buttonToShow.setItemMeta(meta);
             }
-        } else {
-            if (noItemsItemStack != null && sellItemSlot >= 0 && sellItemSlot < menu.getSize()) {
-                menu.setItem(sellItemSlot, noItemsItemStack);
+        }
+
+        for (int slot : sellButtonSlots) {
+            if (slot >= 0 && slot < menu.getSize()) {
+                menu.setItem(slot, buttonToShow);
             }
         }
     }
@@ -225,32 +194,20 @@ public class SellGUI implements Listener {
         if (menu == null) return;
         double currentTotal = getTotal(menu);
         if (currentTotal > 0) {
-
+            for (int slot : sellButtonSlots) {
+                menu.setItem(slot, null);
+            }
             makeConfirmItem();
-            menu.setItem(sellItemSlot, confirmItem);
+            for (int slot : confirmButtonSlots) {
+                if (slot >= 0 && slot < menu.getSize()) {
+                    menu.setItem(slot, this.confirmItem);
+                }
+            }
             isConfirmMode = true;
         } else {
-
-            menu.setItem(sellItemSlot, noItemsItemStack);
             isConfirmMode = false;
+            updateSellItemTotal();
         }
-    }
-
-    private void right(String z) {
-        if (z.equalsIgnoreCase("left")) {
-            menu.setItem(menu.getSize() - 1, (ItemStack) null);
-            menu.setItem(menu.getSize() - 1, sellItem);
-            this.sellItemSlot = menu.getSize() - 1;
-        } else if (z.equalsIgnoreCase("middle")) {
-            menu.setItem(8 + 9 * menu.getSize() / 9 / 2, (ItemStack) null);
-            menu.setItem(8 + 9 * menu.getSize() / 9 / 2, sellItem);
-            this.sellItemSlot = 8 + 9 * menu.getSize() / 9 / 2;
-        } else if (z.equalsIgnoreCase("right")) {
-            menu.setItem(8, (ItemStack) null);
-            menu.setItem(8, sellItem);
-            this.sellItemSlot = 8;
-        }
-
     }
 
     public void cleanup() {
@@ -261,269 +218,110 @@ public class SellGUI implements Listener {
     }
 
     private void createItems() {
-        if (menuTitle == null || sellItem == null || filler == null) {
+        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
 
-            org.bukkit.configuration.file.FileConfiguration guiConfig = this.main.getConfigManager() != null ?
-                    this.main.getConfigManager().getGUIConfig() : null;
+        NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
+        NamespacedKey actionKey = new NamespacedKey(this.main, "guiAction");
 
-            if (guiConfig != null) {
-                menuTitle = guiConfig.getString("sell_gui.title", "&6&l✦ &eSell GUI &6&l✦");
-            } else {
-                menuTitle = "&6&l✦ &eSell GUI &6&l✦";
+        // Sell Item
+        Material sellMaterial = Material.getMaterial(guiConfig.getString("sell_gui.items.sell_button.material", "EMERALD"));
+        sellItem = new ItemStack(sellMaterial != null ? sellMaterial : Material.EMERALD);
+        ItemMeta sellItemMeta = sellItem.getItemMeta();
+        if (sellItemMeta != null) {
+            sellItemMeta.setDisplayName(color(guiConfig.getString("sell_gui.items.sell_button.name", "&a&lSell Items")));
+            sellItemMeta.setLore(color(guiConfig.getStringList("sell_gui.items.sell_button.lore")));
+            if (guiConfig.getBoolean("sell_gui.items.sell_button.glow", true)) {
+                sellItemMeta.addEnchant(Enchantment.INFINITY, 1, false);
+                sellItemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
-
-            NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
-            NamespacedKey actionKey = new NamespacedKey(this.main, "guiAction");
-
-            String sellItemMaterial = "EMERALD";
-            if (guiConfig != null) {
-                sellItemMaterial = guiConfig.getString("sell_gui.items.sell_button.material", "EMERALD");
+            if (guiConfig.contains("sell_gui.items.sell_button.custom-model-data")) {
+                sellItemMeta.setCustomModelData(guiConfig.getInt("sell_gui.items.sell_button.custom-model-data"));
             }
+            sellItemMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
+            sellItemMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, "sell");
+            sellItem.setItemMeta(sellItemMeta);
+        }
 
-            Material material = Material.getMaterial(sellItemMaterial);
-            if (material == null) {
-                material = Material.EMERALD;
-                this.main.getLogger().warning("Invalid sell-item material: " + sellItemMaterial + ", using EMERALD");
+        // Filler Item
+        Material fillerMaterial = Material.getMaterial(guiConfig.getString("sell_gui.items.filler.material", "GRAY_STAINED_GLASS_PANE"));
+        filler = new ItemStack(fillerMaterial != null ? fillerMaterial : Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta fillerMeta = filler.getItemMeta();
+        if (fillerMeta != null) {
+            fillerMeta.setDisplayName(color(guiConfig.getString("sell_gui.items.filler.name", " ")));
+            if (guiConfig.contains("sell_gui.items.filler.custom-model-data")) {
+                fillerMeta.setCustomModelData(guiConfig.getInt("sell_gui.items.filler.custom-model-data"));
             }
-            sellItem = new ItemStack(material);
-            ItemMeta sellItemMeta = sellItem.getItemMeta();
-            if (sellItemMeta != null) {
-                String itemName = "&a&lSell Items";
-                if (guiConfig != null) {
-                    itemName = guiConfig.getString("sell_gui.items.sell_button.name", "&a&lSell Items");
-                }
-                sellItemMeta.setDisplayName(color(itemName));
+            fillerMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
+            filler.setItemMeta(fillerMeta);
+        }
 
-                List<String> lore;
-                if (guiConfig != null) {
-                    List<String> configLore = guiConfig.getStringList("sell_gui.items.sell_button.lore");
-                    if (configLore.isEmpty()) {
-                        lore = new ArrayList<>();
-                        lore.add("&7Click to sell all items");
-                        lore.add("&7in this GUI");
-                        lore.add("");
-                        lore.add("&eTotal Value: &a$0.00");
-                    } else {
-                        lore = configLore;
-                    }
-                } else {
-                    lore = new ArrayList<>();
-                    lore.add("&7Click to sell all items");
-                }
-                sellItemMeta.setLore(color(lore));
-
-                boolean addGlow = false;
-                if (guiConfig != null) {
-                    addGlow = guiConfig.getBoolean("sell_gui.items.sell_button.glow", true);
-                }
-                if (addGlow) {
-                    sellItemMeta.addEnchant(Enchantment.INFINITY, 1, false);
-                    sellItemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                }
-
-                if (guiConfig != null && guiConfig.contains("sell_gui.items.sell_button.custom_model_data")) {
-                    int modelData = guiConfig.getInt("sell_gui.items.sell_button.custom_model_data");
-                    if (modelData > 0) {
-                        sellItemMeta.setCustomModelData(modelData);
-                    }
-                }
-                sellItemMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
-                sellItemMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, "sell");
-                sellItem.setItemMeta(sellItemMeta);
+        // No Items Item
+        Material noItemsMaterial = Material.getMaterial(guiConfig.getString("sell_gui.items.no_items.material", "BARRIER"));
+        noItemsItemStack = new ItemStack(noItemsMaterial != null ? noItemsMaterial : Material.BARRIER);
+        ItemMeta noItemsMeta = noItemsItemStack.getItemMeta();
+        if (noItemsMeta != null) {
+            noItemsMeta.setDisplayName(color(guiConfig.getString("sell_gui.items.no_items.name", "&cNo items to sell!")));
+            noItemsMeta.setLore(color(guiConfig.getStringList("sell_gui.items.no_items.lore")));
+            if (guiConfig.contains("sell_gui.items.no_items.custom-model-data")) {
+                noItemsMeta.setCustomModelData(guiConfig.getInt("sell_gui.items.no_items.custom-model-data"));
             }
-
-            String fillerMaterial = "GRAY_STAINED_GLASS_PANE";
-            if (guiConfig != null) {
-                fillerMaterial = guiConfig.getString("sell_gui.items.filler.material", "GRAY_STAINED_GLASS_PANE");
-            }
-
-            Material fillerMat = Material.getMaterial(fillerMaterial);
-            if (fillerMat == null) {
-                fillerMat = Material.GRAY_STAINED_GLASS_PANE;
-                this.main.getLogger().warning("Invalid filler material: " + fillerMaterial + ", using GRAY_STAINED_GLASS_PANE");
-            }
-
-            filler = new ItemStack(fillerMat);
-            ItemMeta fillerMeta = filler.getItemMeta();
-            if (fillerMeta != null) {
-                String fillerName = " ";
-                if (guiConfig != null) {
-                    fillerName = guiConfig.getString("sell_gui.items.filler.name", " ");
-                }
-                fillerMeta.setDisplayName(color(fillerName));
-
-                if (guiConfig != null && guiConfig.contains("sell_gui.items.filler.custom_model_data")) {
-                    int modelData = guiConfig.getInt("sell_gui.items.filler.custom_model_data");
-                    if (modelData > 0) {
-                        fillerMeta.setCustomModelData(modelData);
-                    }
-                }
-
-                fillerMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
-                filler.setItemMeta(fillerMeta);
-            }
-
-            String noItemsMaterialName = "BARRIER";
-            if (guiConfig != null) {
-                noItemsMaterialName = guiConfig.getString("sell_gui.items.no_items.material", "BARRIER");
-            }
-            Material noItemsMaterial = Material.getMaterial(noItemsMaterialName);
-            if (noItemsMaterial == null) {
-                noItemsMaterial = Material.BARRIER;
-                this.main.getLogger().warning("Invalid no_items material: " + noItemsMaterialName + ", using BARRIER");
-            }
-            noItemsItemStack = new ItemStack(noItemsMaterial);
-            ItemMeta noItemsMeta = noItemsItemStack.getItemMeta();
-            if (noItemsMeta != null) {
-                String noItemsName = "&cNo items to sell!";
-                if (guiConfig != null) {
-                    noItemsName = guiConfig.getString("sell_gui.items.no_items.name", "&cNo items to sell!");
-                }
-                noItemsMeta.setDisplayName(color(noItemsName));
-
-                List<String> noItemLore;
-                if (guiConfig != null && guiConfig.contains("sell_gui.items.no_items.lore")) {
-                    noItemLore = guiConfig.getStringList("sell_gui.items.no_items.lore");
-                } else {
-                    noItemLore = new ArrayList<>();
-                    noItemLore.add("&7Place items in the GUI");
-                    noItemLore.add("&7to sell them.");
-                }
-                noItemsMeta.setLore(color(noItemLore));
-
-                if (guiConfig != null && guiConfig.contains("sell_gui.items.no_items.custom_model_data")) {
-                    int modelData = guiConfig.getInt("sell_gui.items.no_items.custom_model_data");
-                    if (modelData > 0) {
-                        noItemsMeta.setCustomModelData(modelData);
-                    }
-                }
-
-                noItemsMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
-                noItemsItemStack.setItemMeta(noItemsMeta);
-            }
+            noItemsMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
+            noItemsItemStack.setItemMeta(noItemsMeta);
         }
     }
 
     private void addFillerFromConfig() {
-        org.bukkit.configuration.file.FileConfiguration guiConfig = this.main.getConfigManager() != null ?
-                this.main.getConfigManager().getGUIConfig() : null;
-
-        if (guiConfig != null) {
-
-            List<Integer> fillerSlots = guiConfig.getIntegerList("sell_gui.positions.filler_slots");
-            if (!fillerSlots.isEmpty()) {
-                for (int slot : fillerSlots) {
-                    if (slot >= 0 && slot < menu.getSize()) {
-                        menu.setItem(slot, filler);
-                    }
+        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
+        List<Integer> fillerSlots = guiConfig.getIntegerList("sell_gui.positions.filler_slots");
+        if (!fillerSlots.isEmpty()) {
+            for (int slot : fillerSlots) {
+                if (slot >= 0 && slot < menu.getSize()) {
+                    menu.setItem(slot, filler);
                 }
-                return;
             }
         }
-
-        addFiller("border");
-    }
-    private ItemStack createSystemItem(Material material, String name, List<String> lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            if (name != null) {
-                meta.setDisplayName(color(name));
-            }
-            if (lore != null) {
-                meta.setLore(color(lore));
-            }
-
-            meta.getPersistentDataContainer().set(
-                    new NamespacedKey(SellGUIMain.getInstance(), "system_item"),
-                    PersistentDataType.INTEGER,
-                    1
-            );
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-    private void addFiller(String s) {
-        int i;
-        if (s.equalsIgnoreCase("bottom")) {
-            for (i = menu.getSize() - 9; i < menu.getSize(); ++i) {
-                menu.setItem(i, filler);
-            }
-        } else if (s.equalsIgnoreCase("left")) {
-            for (i = 0; i < menu.getSize(); i += 9) {
-                menu.setItem(i, filler);
-            }
-        } else if (s.equalsIgnoreCase("right")) {
-            for (i = 8; i < menu.getSize(); i += 9) {
-                menu.setItem(i, filler);
-            }
-        } else if (s.equalsIgnoreCase("top")) {
-            for (i = 0; i < 9; ++i) {
-                menu.setItem(i, filler);
-            }
-        } else if (s.equalsIgnoreCase("round")) {
-            for (i = menu.getSize() - 9; i < menu.getSize(); ++i) {
-                menu.setItem(i, filler);
-            }
-
-            for (i = 0; i < menu.getSize(); i += 9) {
-                menu.setItem(i, filler);
-            }
-
-            for (i = 8; i < menu.getSize(); i += 9) {
-                menu.setItem(i, filler);
-            }
-
-            for (i = 0; i < 9; ++i) {
-                menu.setItem(i, filler);
-            }
-        }
-
     }
 
     public void makeConfirmItem() {
-
-        org.bukkit.configuration.file.FileConfiguration guiConfig = this.main.getConfigManager() != null ?
-                this.main.getConfigManager().getGUIConfig() : null;
-
-        String confirmMaterial = "GREEN_CONCRETE";
-        if (guiConfig != null) {
-            confirmMaterial = guiConfig.getString("sell_gui.items.confirm_button.material", "GREEN_CONCRETE");
-
-        }
-
-        Material material = Material.getMaterial(confirmMaterial);
-        if (material == null) {
-            material = Material.GREEN_CONCRETE;
-            this.main.getLogger().warning("Invalid confirm-item material: " + confirmMaterial + ", using GREEN_CONCRETE");
-        }
-        this.confirmItem = new ItemStack(material);
+        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
+        Material material = Material.getMaterial(guiConfig.getString("sell_gui.items.confirm_button.material", "GREEN_CONCRETE"));
+        this.confirmItem = new ItemStack(material != null ? material : Material.GREEN_CONCRETE);
         ItemMeta itemMeta = this.confirmItem.getItemMeta();
+
         if (itemMeta != null) {
-
-            String itemName = "&a&lConfirm Sale";
-            if (guiConfig != null) {
-                itemName = guiConfig.getString("sell_gui.items.confirm_button.name", "&a&lConfirm Sale");
-            }
-            itemMeta.setDisplayName(color(itemName));
-
-            boolean addGlow = false;
-            if (guiConfig != null) {
-                addGlow = guiConfig.getBoolean("sell_gui.items.confirm_button.glow", true);
-            }
-            if (addGlow) {
+            itemMeta.setDisplayName(color(guiConfig.getString("sell_gui.items.confirm_button.name", "&a&lConfirm Sale")));
+            if (guiConfig.getBoolean("sell_gui.items.confirm_button.glow", true)) {
                 itemMeta.addEnchant(Enchantment.POWER, 1, false);
                 itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
-
-            itemMeta.setLore(this.makeLore());
-
-            if (guiConfig != null && guiConfig.contains("sell_gui.items.confirm_button.custom_model_data")) {
-                int modelData = guiConfig.getInt("sell_gui.items.confirm_button.custom_model_data");
-                if (modelData > 0) {
-                    itemMeta.setCustomModelData(modelData);
-                }
+            if (guiConfig.contains("sell_gui.items.confirm_button.custom-model-data")) {
+                itemMeta.setCustomModelData(guiConfig.getInt("sell_gui.items.confirm_button.custom-model-data"));
             }
+
+            // New Lore Logic
+            List<String> finalLore = new ArrayList<>();
+            HashMap<String, Integer> itemsNeedingEvaluation = new HashMap<>();
+            List<String> breakdownLore = generateItemBreakdownLore(itemsNeedingEvaluation);
+
+            if (!breakdownLore.isEmpty()) {
+                finalLore.addAll(breakdownLore);
+                finalLore.add(" ");
+            }
+
+            List<String> loreTemplate = guiConfig.getStringList("sell_gui.items.confirm_button.lore");
+            String totalValue = String.format("%.2f", getTotal(this.menu));
+
+            for (String templateLine : loreTemplate) {
+                finalLore.add(templateLine.replace("%total%", totalValue));
+            }
+
+            if (!itemsNeedingEvaluation.isEmpty()) {
+                finalLore.add(" ");
+                finalLore.add(color("&c⚠ Some items need evaluation"));
+                finalLore.add(color("&7Use /sellgui evaluate"));
+            }
+
+            itemMeta.setLore(color(finalLore));
 
             NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
             NamespacedKey actionKey = new NamespacedKey(this.main, "guiAction");
@@ -533,24 +331,19 @@ public class SellGUI implements Listener {
         }
     }
 
-    public ArrayList<String> makeLore() {
+    private List<String> generateItemBreakdownLore(HashMap<String, Integer> itemsNeedingEvaluation) {
+        List<String> lore = new ArrayList<>();
+        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
+        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
 
         HashMap<String, Integer> itemCounts = new HashMap<>();
         HashMap<String, Double> itemTotals = new HashMap<>();
-        HashMap<String, Integer> itemsNeedingEvaluation = new HashMap<>();
-
         HashMap<String, String> itemDisplayNames = new HashMap<>();
 
-        ItemStack[] contents = this.getMenu().getContents();
-        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
-
-        for (ItemStack item : contents) {
-            if (item != null && !sellGUIItem(item, this.player) && !isCustomMenuItem(item)) {
-
+        for (ItemStack item : this.getMenu().getContents()) {
+            if (item != null && !isGuiItem(item)) {
                 String itemIdentifierKey = ItemIdentifier.getItemIdentifier(item);
-
                 String itemDisplayName = ItemIdentifier.getItemDisplayName(item);
-
                 itemDisplayNames.put(itemIdentifierKey, itemDisplayName);
 
                 boolean needsEvaluation = main.getRandomPriceManager() != null &&
@@ -563,24 +356,14 @@ public class SellGUI implements Listener {
                     double price = getPrice(item, player);
                     if (price > 0) {
                         itemCounts.put(itemIdentifierKey, itemCounts.getOrDefault(itemIdentifierKey, 0) + item.getAmount());
-                        if (calculationMethod.equals("shopguiplus")) {
-                            itemTotals.put(itemIdentifierKey, itemTotals.getOrDefault(itemIdentifierKey, 0.0) + price);
-                        } else {
-                            itemTotals.put(itemIdentifierKey, itemTotals.getOrDefault(itemIdentifierKey, 0.0) + (price * item.getAmount()));
-                        }
+                        double totalItemPrice = calculationMethod.equals("shopguiplus") ? price : price * item.getAmount();
+                        itemTotals.put(itemIdentifierKey, itemTotals.getOrDefault(itemIdentifierKey, 0.0) + totalItemPrice);
                     }
                 }
             }
         }
 
-        ArrayList<String> lore = new ArrayList<>();
-        org.bukkit.configuration.file.FileConfiguration guiConfig = this.main.getConfigManager() != null ?
-                this.main.getConfigManager().getGUIConfig() : null;
-        String format = "&7%amount%x &f%item% &8= &e$%total%";
-        if (guiConfig != null) {
-            format = guiConfig.getString("sell_gui.item_total_format", format);
-        }
-
+        String format = guiConfig.getString("sell_gui.item_total_format", "&7%amount%x &f%item% &8= &e$%total%");
         for (String itemIdentifierKey : itemCounts.keySet()) {
             double total = itemTotals.get(itemIdentifierKey);
             int amount = itemCounts.get(itemIdentifierKey);
@@ -590,49 +373,27 @@ public class SellGUI implements Listener {
             String formatted = format
                     .replace("%item%", displayedItemName)
                     .replace("%amount%", String.valueOf(amount))
-                    .replace("%price%", String.valueOf(averagePrice))
-                    .replace("%total%", String.valueOf(total));
+                    .replace("%price%", String.format("%.2f", averagePrice))
+                    .replace("%total%", String.format("%.2f", total));
             lore.add(formatted);
-            lore.add(" ");
         }
 
-        String evaluationFormat = "&7%amount%x &f%item% &c⚠ Needs Evaluation";
-        if (guiConfig != null) {
-            evaluationFormat = guiConfig.getString("sell_gui.evaluation_required_format", evaluationFormat);
-        }
-
+        String evaluationFormat = guiConfig.getString("sell_gui.evaluation_required_format", "&7%amount%x &f%item% &c⚠ Needs Evaluation");
         for (String itemIdentifierKey : itemsNeedingEvaluation.keySet()) {
             String displayedItemName = itemDisplayNames.get(itemIdentifierKey);
             String formatted = evaluationFormat
                     .replace("%item%", displayedItemName)
                     .replace("%amount%", String.valueOf(itemsNeedingEvaluation.get(itemIdentifierKey)));
             lore.add(formatted);
-            lore.add(" ");
         }
 
-        String totalFormat = "&6&lTotal: &e$%total%";
-        if (guiConfig != null) {
-            totalFormat = guiConfig.getString("sell_gui.total_format", totalFormat);
-        }
-
-        String totalFormatted = totalFormat.replace("%total%", String.valueOf(getTotal(this.menu)));
-        lore.add(totalFormatted);
-
-        if (!itemsNeedingEvaluation.isEmpty()) {
-            lore.add("");
-            lore.add(color("&c⚠ Some items need evaluation"));
-            lore.add(color("&7Use /sellgui evaluate"));
-        }
-
-        return (ArrayList<String>) color(lore);
+        return lore;
     }
 
     public boolean hasUnevaluatedItems() {
-        if (main.getRandomPriceManager() == null) {
-            return false;
-        }
+        if (main.getRandomPriceManager() == null) return false;
         for (ItemStack item : getMenu().getContents()) {
-            if (item != null && !isCustomMenuItem(item) && !sellGUIItem(item, player)) {
+            if (item != null && !isGuiItem(item)) {
                 if (main.getRandomPriceManager().requiresEvaluation(item) && !main.getRandomPriceManager().isEvaluated(item)) {
                     return true;
                 }
@@ -641,16 +402,16 @@ public class SellGUI implements Listener {
         return false;
     }
 
-    public void setConfirmItem() {
-        this.menu.setItem(this.sellItemSlot, (ItemStack) null);
-        this.menu.setItem(this.sellItemSlot, this.confirmItem);
-        this.isConfirmMode = true;
+    public void setConfirmMode() {
+        updateButtonState();
     }
 
     public void setSellItem() {
-        this.menu.setItem(this.sellItemSlot, (ItemStack) null);
-        this.menu.setItem(this.sellItemSlot, this.sellItem);
-        this.isConfirmMode = false;
+        for (int slot : confirmButtonSlots) {
+            menu.setItem(slot, null);
+        }
+        isConfirmMode = false;
+        updateSellItemTotal();
     }
 
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
@@ -754,7 +515,11 @@ public class SellGUI implements Listener {
             totalPrice = applyPermissionBonuses(player, totalPrice);
         }
 
-        return round(totalPrice, this.main.getConfig().getInt("places-to-round"));
+        if (this.main.shouldRoundPrices()) {
+            return round(totalPrice, this.main.getConfig().getInt("places-to-round"));
+        } else {
+            return totalPrice;
+        }
     }
 
     private double applyPermissionBonuses(Player player, double price) {
@@ -782,7 +547,7 @@ public class SellGUI implements Listener {
         String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack == null || itemStack.getType().isAir()) continue;
-            if (isCustomMenuItem(itemStack) || sellGUIItem(itemStack, this.player)) continue;
+            if (isGuiItem(itemStack)) continue;
             boolean canSell = main.getRandomPriceManager() == null || main.getRandomPriceManager().canBeSold(itemStack);
             if (!canSell) continue;
             if (main.getRandomPriceManager() != null && main.getRandomPriceManager().hasRandomPrice(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack)) {
@@ -800,10 +565,18 @@ public class SellGUI implements Listener {
         return total;
     }
 
+    private boolean isGuiItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return false;
+        ItemMeta meta = item.getItemMeta();
+        NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
+        return meta.getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
+    }
+
     private boolean isCustomMenuItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
         return item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(this.main, "custom-menu-item"), PersistentDataType.STRING);
     }
+
     public void logSell(ItemStack itemStack) {
         if (itemStack != null) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(this.getMain().getLog(), true))) {
@@ -847,17 +620,7 @@ public class SellGUI implements Listener {
     }
 
     public void sellItems(Inventory inventory) {
-        boolean hasRandomPriceNotEvaluated = false;
-        for (ItemStack itemStack : inventory.getContents()) {
-            if (itemStack != null && !itemStack.getType().isAir() && !isCustomMenuItem(itemStack) && !sellGUIItem(itemStack, this.player)) {
-                if (main.getRandomPriceManager() != null && main.getRandomPriceManager().hasRandomPrice(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack)) {
-                    hasRandomPriceNotEvaluated = true;
-                    break;
-                }
-            }
-        }
-
-        if (hasRandomPriceNotEvaluated) {
+        if (hasUnevaluatedItems()) {
             String message = main.getMessagesConfig().getString("sell.evaluation_required", "&cSome items must be evaluated before selling.");
             player.sendMessage(color(message));
             setSellItem();
@@ -873,14 +636,11 @@ public class SellGUI implements Listener {
         }
 
         this.main.getEcon().depositPlayer(this.player, total);
+        this.setSold(true);
 
         for (ItemStack item : inventory.getContents()) {
-            if (item != null && !sellGUIItem(item, this.player) && !isCustomMenuItem(item)) {
-
-                boolean needsEvaluation = main.getRandomPriceManager() != null &&
-                        main.getRandomPriceManager().hasRandomPrice(item) &&
-                        !main.getRandomPriceManager().isEvaluated(item);
-                if (!needsEvaluation && getPrice(item, player) > 0) {
+            if (item != null && !isGuiItem(item)) {
+                if (getPrice(item, player) > 0 && !hasUnevaluatedItems()) {
                     if (this.main.getConfig().getBoolean("logging.enabled")) {
                         logSell(item);
                     }
@@ -893,13 +653,9 @@ public class SellGUI implements Listener {
             SellCommand.getSellGUIs().remove(this);
         } else {
             setSellItem();
-            updateSellItemTotal();
         }
 
-        String soldMessage = "&a✅ Sold items for &e$%total%!";
-        if (this.main.getMessagesConfig() != null) {
-            soldMessage = this.main.getMessagesConfig().getString("sell.sold_success", soldMessage);
-        }
+        String soldMessage = main.getMessagesConfig().getString("sell.sold_success", "&a✅ Sold items for &e$%total%!");
         player.sendMessage(color(soldMessage.replace("%total%", String.format("%.2f", total))));
         SoundHandler.playConfigSound(player, "sounds.feedback.success");
     }
@@ -916,14 +672,6 @@ public class SellGUI implements Listener {
         return sellItem;
     }
 
-    public static ItemStack getFiller() {
-        return filler;
-    }
-
-    public String getMenuTitle() {
-        return menuTitle;
-    }
-
     public Inventory getMenu() {
         return menu;
     }
@@ -932,10 +680,20 @@ public class SellGUI implements Listener {
         return this.main;
     }
 
+    public boolean isConfirmMode() {
+        return this.isConfirmMode;
+    }
+
+    public boolean isSold() {
+        return this.sold;
+    }
+
+    public void setSold(boolean sold) {
+        this.sold = sold;
+    }
+
     public String color(String s) {
-        if (s == null) {
-            return "";
-        }
+        if (s == null) return "";
         if (main.isPlaceholderAPIAvailable()) {
             s = main.setPlaceholders(player, s);
         }
@@ -943,39 +701,14 @@ public class SellGUI implements Listener {
     }
 
     public List<String> color(List<String> lore) {
-        if (lore == null) {
-            return new ArrayList<>();
-        }
+        if (lore == null) return new ArrayList<>();
         return lore.stream().map(this::color).collect(Collectors.toList());
     }
 
     public static double round(double value, int places) {
-        if (places < 0) {
-            throw new IllegalArgumentException();
-        } else {
-            BigDecimal bd = new BigDecimal("" + value);
-            bd = bd.setScale(places, RoundingMode.HALF_UP);
-            return bd.doubleValue();
-        }
-    }
-
-    public static double round(String value, int places) {
-        if (places < 0) {
-            throw new IllegalArgumentException();
-        } else {
-            BigDecimal bd = new BigDecimal(value);
-            bd = bd.setScale(places, RoundingMode.HALF_UP);
-            return bd.doubleValue();
-        }
-    }
-
-    public static String roundString(String value, int places) {
-        if (places < 0) {
-            throw new IllegalArgumentException();
-        } else {
-            BigDecimal bd = new BigDecimal("" + value);
-            bd = bd.setScale(places, RoundingMode.HALF_UP);
-            return bd.toPlainString();
-        }
+        if (places < 0) throw new IllegalArgumentException();
+        BigDecimal bd = new BigDecimal(Double.toString(value));
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 }

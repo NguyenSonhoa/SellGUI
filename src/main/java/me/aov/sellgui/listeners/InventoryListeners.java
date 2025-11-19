@@ -10,7 +10,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.inventory.*;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.HashMap;
@@ -30,9 +31,10 @@ public class InventoryListeners implements Listener {
         SellGUI sellGUI = SellCommand.getSellGUI(player);
 
         if (sellGUI != null && event.getInventory().equals(sellGUI.getMenu())) {
-
-            dropItems(event.getInventory(), player);
-
+            // Only return items if the sale was not completed.
+            if (!sellGUI.isSold()) {
+                dropItems(event.getInventory(), player);
+            }
             sellGUI.cleanup();
             SellCommand.getSellGUIs().remove(sellGUI);
         }
@@ -43,7 +45,6 @@ public class InventoryListeners implements Listener {
         if (!(e.getWhoClicked() instanceof Player)) return;
 
         Player player = (Player) e.getWhoClicked();
-        Inventory clickedInventory = e.getClickedInventory();
         ItemStack currentItem = e.getCurrentItem();
 
         SellGUI sellGUI = SellCommand.getSellGUI(player);
@@ -51,14 +52,36 @@ public class InventoryListeners implements Listener {
             return;
         }
 
-        NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
-        NamespacedKey actionKey = new NamespacedKey(main, "guiAction");
+        // Handle clicks during confirm mode
+        if (sellGUI.isConfirmMode()) {
+            boolean isConfirmButton = false;
+            if (isGUIControlItem(currentItem)) {
+                NamespacedKey actionKey = new NamespacedKey(main, "guiAction");
+                String action = currentItem.getItemMeta().getPersistentDataContainer().get(actionKey, PersistentDataType.STRING);
+                if ("confirm".equals(action)) {
+                    isConfirmButton = true;
+                }
+            }
 
-        if (currentItem != null && currentItem.hasItemMeta() &&
-                currentItem.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE)) {
+            if (!isConfirmButton) {
+                // Player is not clicking the confirm button.
+                // If they clicked on a non-movable GUI item, just cancel the event.
+                if (isGUIControlItem(currentItem) || isCustomMenuItem(currentItem)) {
+                    e.setCancelled(true);
+                    return;
+                }
+                
+                // Otherwise, they are modifying items. Exit confirm mode to allow changes.
+                sellGUI.setSellItem();
+                // The event is not cancelled, so the item move will happen.
+                // The logic below will schedule an update to the GUI.
+            }
+        }
 
+        if (isGUIControlItem(currentItem)) {
             e.setCancelled(true);
 
+            NamespacedKey actionKey = new NamespacedKey(main, "guiAction");
             String action = currentItem.getItemMeta().getPersistentDataContainer().get(actionKey, PersistentDataType.STRING);
             if (action == null) return;
 
@@ -75,100 +98,30 @@ public class InventoryListeners implements Listener {
                     break;
                 case "sell":
                     if (sellGUI.getTotal(sellGUI.getMenu()) <= 0) {
-
-                        String soundName = main.getSoundsConfig().getString("legacy.no-items-sound", "BLOCK_NOTE_BLOCK_BASS");
-                        float volume = (float) main.getSoundsConfig().getDouble("legacy.no-items-volume", 1.0);
-                        float pitch = (float) main.getSoundsConfig().getDouble("legacy.no-items-pitch", 1.0);
-
-                        try {
-                            Sound sound = Sound.valueOf(soundName);
-                            player.playSound(player.getLocation(), sound, volume, pitch);
-                        } catch (IllegalArgumentException ex) {
-                            main.getLogger().warning("Invalid sound name: " + soundName);
-                        }
-
-                        player.closeInventory();
-                        player.sendTitle(
-                                main.getMessagesConfig().getString("titles.no-items-title", "&cNo items to sell!"),
-                                main.getMessagesConfig().getString("titles.no-items-subtitle", ""),
-                                10, 70, 20
-                        );
+                        SoundHandler.playConfigSound(player, "sounds.feedback.fail");
                         return;
                     }
                     SoundHandler.playUIClick(player);
-                    sellGUI.makeConfirmItem();
-                    sellGUI.setConfirmItem();
+                    sellGUI.updateButtonState(); // This will switch to confirm mode
                     break;
             }
-        }
-
-        else if (currentItem != null && isCustomMenuItem(currentItem)) {
+        } else if (isCustomMenuItem(currentItem)) {
             e.setCancelled(true);
             handleCustomMenuItemClick(player, currentItem);
-        }
-
-        else if (clickedInventory != null && clickedInventory.equals(sellGUI.getMenu())) {
-
-            if (isGUIControlItem(currentItem, sellGUI)) {
-                e.setCancelled(true);
-                return;
-            }
-
-            if (e.isShiftClick() && wouldGoToReservedSlot(e.getSlot(), sellGUI)) {
-                e.setCancelled(true);
-                return;
-            }
-
-            if (e.getCursor() != null && e.getCursor().getType() != Material.AIR &&
-                    (e.getCurrentItem() == null || e.getCurrentItem().getType() == Material.AIR)) {
-                SoundHandler.playConfigSound(player, "sounds.items.place");
-            }
-
-            if (!e.isCancelled()) {
-                SoundHandler.playUIClick(player);
-            }
-
+        } else {
+            // For any other click (moving items), schedule an update to the button total.
             Bukkit.getScheduler().runTaskLater(main, () -> {
-                if (sellGUI.getMenu() != null && player.isOnline() && SellCommand.getSellGUI(player) != null) {
-                    sellGUI.updateButtonState();
-                }
-            }, 1L);
-        }
-
-        else if (clickedInventory != null && clickedInventory.equals(player.getInventory())) {
-
-            if (e.isShiftClick() && currentItem != null && currentItem.getType() != Material.AIR) {
-                SoundHandler.playConfigSound(player, "sounds.items.place");
-            }
-
-            Bukkit.getScheduler().runTaskLater(main, () -> {
-                if (sellGUI.getMenu() != null && player.isOnline() && SellCommand.getSellGUI(player) != null) {
-                    sellGUI.updateButtonState();
+                if (SellCommand.getSellGUI(player) != null) {
+                    sellGUI.updateSellItemTotal();
                 }
             }, 1L);
         }
     }
 
-    private boolean isGUIControlItem(ItemStack item, SellGUI sellGUI) {
-        if (item == null) return false;
-
+    private boolean isGUIControlItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return false;
         NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
-        return item.hasItemMeta() &&
-                item.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
-    }
-
-    private boolean wouldGoToReservedSlot(int slot, SellGUI sellGUI) {
-
-        if (main.getConfigManager() != null && main.getConfigManager().getGUIConfig() != null) {
-            var guiConfig = main.getConfigManager().getGUIConfig();
-            var fillerSlots = guiConfig.getIntegerList("sell_gui.positions.filler_slots");
-            int sellButtonSlot = guiConfig.getInt("sell_gui.positions.sell-button", 49);
-            int confirmButtonSlot = guiConfig.getInt("sell_gui.positions.confirm_button", 53);
-
-            return fillerSlots.contains(slot) || slot == sellButtonSlot || slot == confirmButtonSlot;
-        }
-
-        return slot < 9 || slot > 44 || slot % 9 == 0 || slot % 9 == 8;
+        return item.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
     }
 
     private void handleCustomMenuItemClick(Player player, ItemStack item) {
@@ -179,7 +132,6 @@ public class InventoryListeners implements Listener {
             String[] commandArray = commands.split(";");
             for (String command : commandArray) {
                 if (!command.trim().isEmpty()) {
-
                     String finalCommand = command.trim().replace("%player%", player.getName());
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
                 }
@@ -190,14 +142,7 @@ public class InventoryListeners implements Listener {
     private void dropItems(Inventory inventory, Player player) {
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack == null || itemStack.getType() == Material.AIR) continue;
-
-            NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
-            if (itemStack.hasItemMeta() &&
-                    itemStack.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE)) {
-                continue;
-            }
-
-            if (isCustomMenuItem(itemStack)) {
+            if (isGUIControlItem(itemStack) || isCustomMenuItem(itemStack)) {
                 continue;
             }
 
@@ -220,15 +165,5 @@ public class InventoryListeners implements Listener {
                 new NamespacedKey(main, "custom-menu-item"),
                 PersistentDataType.STRING
         );
-    }
-
-    public static boolean sellGUIItem(ItemStack item, Player player) {
-        if (item == null || !item.hasItemMeta()) return false;
-
-        SellGUIMain instance = SellGUIMain.getInstance();
-        if (instance == null) return false;
-
-        NamespacedKey guiKey = new NamespacedKey(instance, "sellgui");
-        return item.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
     }
 }

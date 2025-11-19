@@ -24,7 +24,7 @@ economy:
   min-transaction: 0.01           # Minimum transaction amount
   max-transaction: 1000000.0      # Maximum transaction amount
   tax-rate: 0.0                   # Tax rate (0.0 = no tax, 0.1 = 10% tax)
-  round-prices: true
+  round-prices: false
 
 
 # ┌─────────────────────────────────────────────────────────────────────────────┐
