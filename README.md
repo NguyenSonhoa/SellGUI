@@ -13,6 +13,7 @@ A powerful sell GUI plugin with advanced price management system
 ## ✨ Key Features
 - **🎯 Drag & Drop GUI** - Intuitive selling interface
 - **💰 Advanced Price Setter** - Set prices for any item type with GUI
+- **💰 Auto Sell** - Sell your items while AFK farm.
 - **🔧 Multi-Plugin Support** - Vanilla, MMOItems, Nexo items
 - **⚙️ EssentialsX Integration** - Use existing Essentials prices
 - **🎨 Fully Customizable** - Custom model data, commands, messages
@@ -46,6 +47,7 @@ A powerful sell GUI plugin with advanced price management system
 | `/sellall` | Sell all items in inventory | `sellgui.sellall` |
 | `/sellall confirm` | Confirm selling all items | `sellgui.sellall` |
 | `/sellgui evaluation` | Open the Evaluation GUI | `sellgui.evaluate` |
+| `/autosell` | Open the Autosell Settings GUI | `sellgui.autosell` |
 
 ### 🆕 Price Setter Commands
 | Command | Description | Permission |
@@ -69,8 +71,7 @@ A powerful sell GUI plugin with advanced price management system
 | `sellgui.sellall` | Use `/sellall` command | `true` |
 | `sellgui.others` | Open GUI for other players | `op` |
 | `sellgui.reload` | Reload plugin configs | `op` |
-| `sellgui.usesign` | Use SellGUI signs | `true` |
-| `sellgui.createsign` | Create SellGUI signs | `op` |
+| `sellgui.autosell` | Use Autosell | `true` |
 
 ### 🆕 Price Setter Permission
 | Permission | Description | Default |
