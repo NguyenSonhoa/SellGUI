@@ -10,15 +10,20 @@ import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
-public class SellCommand implements CommandExecutor {
+public class SellCommand implements CommandExecutor, TabCompleter {
     private final SellGUIMain main;
     private static ArrayList<SellGUI> sellGUIS;
     public SellCommand(SellGUIMain main) {
@@ -76,6 +81,20 @@ public class SellCommand implements CommandExecutor {
                         sender.sendMessage(ColorUtils.color("&cUsage: /sellgui setrange <min> <max>"));
                         return true;}
                     return handleSetRandomPrice((Player) sender, args[1], args[2]);
+
+                case "autosell":
+
+                    if (!(sender instanceof Player)) {
+                        sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
+                        return true;
+                    }
+                    if (!sender.hasPermission("sellgui.autosell")) {
+                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
+                        return true;
+                    }
+                    main.getGUIManager().openAutosellSettingsGUI((Player) sender);
+
+                    return true;
 
                 case "help":
                     return handleHelpCommand(sender);
@@ -209,11 +228,62 @@ public class SellCommand implements CommandExecutor {
         if (sender.hasPermission("sellgui.setrange")) {
             sender.sendMessage(ColorUtils.color("&e/sellgui setrange <min> <max> &7- Set random range in Evaluation GUI."));
         }
+        if (sender.hasPermission("sellgui.autosell")) {
+
+            sender.sendMessage(ColorUtils.color("&e/sellgui autosell &7- Open the autosell settings menu."));
+        }
         if (sender.hasPermission("sellgui.reload")) {
             sender.sendMessage(ColorUtils.color("&c/sellgui reload &7- Reload plugin configuration."));
         }
         sender.sendMessage(ColorUtils.color("&6&l=================="));
         return true;
+    }
+
+    @Override
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        List<String> completions = new ArrayList<>();
+        if (args.length == 1) {
+            if (sender.hasPermission("sellgui.reload")) {
+                completions.add("reload");
+            }
+            if (sender.hasPermission("sellgui.evaluate")) {
+                completions.add("evaluate");
+            }
+            if (sender.hasPermission("sellgui.setprice")) {
+                completions.add("setprice");
+            }
+            if (sender.hasPermission("sellgui.setrange")) {
+                completions.add("setrange");
+            }
+            if (sender.hasPermission("sellgui.autosell")) {
+                completions.add("autosell");
+            }
+            completions.add("help");
+
+            return completions.stream()
+                    .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .collect(Collectors.toList());
+        } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("setprice")) {
+
+                return Arrays.asList("0", "10", "100").stream()
+                        .filter(s -> s.startsWith(args[1]))
+                        .collect(Collectors.toList());
+            } else if (args[0].equalsIgnoreCase("setrange")) {
+
+                return Arrays.asList("0", "10", "100").stream()
+                        .filter(s -> s.startsWith(args[1]))
+                        .collect(Collectors.toList());
+            }
+        } else if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("setrange")) {
+
+                return Arrays.asList("10", "100", "1000").stream()
+                        .filter(s -> s.startsWith(args[2]))
+                        .collect(Collectors.toList());
+            }
+        }
+        return new ArrayList<>();
     }
 
     public static ArrayList<SellGUI> getSellGUIs() {
@@ -237,3 +307,4 @@ public class SellCommand implements CommandExecutor {
         return sellGUIS.stream().anyMatch(sellGUI -> sellGUI.getPlayer().equals(player));
     }
 }
+

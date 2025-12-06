@@ -9,10 +9,12 @@ import org.apache.commons.lang.WordUtils;
 
 public class PersistentDataNBTManager implements ItemNBTManager {
 
+    private final SellGUIMain plugin; // Added to access plugin for NamespacedKey
     private final NamespacedKey sellPriceKey;
     private final NamespacedKey needsEvaluationKey;
 
     public PersistentDataNBTManager(SellGUIMain plugin) {
+        this.plugin = plugin; // Initialize plugin
         this.sellPriceKey = new NamespacedKey(plugin, "sellgui_sell_price");
         this.needsEvaluationKey = new NamespacedKey(plugin, "sellgui_needs_evaluation");
     }
@@ -83,5 +85,37 @@ public class PersistentDataNBTManager implements ItemNBTManager {
         }
 
         return WordUtils.capitalizeFully(item.getType().name().replace('_', ' '));
+    }
+
+    @Override
+    public void addNBTTag(ItemStack item, String key, String value) {
+        if (item == null || item.getType().isAir() || !item.hasItemMeta()) {
+            return;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            NamespacedKey specificKey = new NamespacedKey(plugin, key);
+            meta.getPersistentDataContainer().set(specificKey, PersistentDataType.STRING, value);
+            item.setItemMeta(meta);
+            plugin.getLogger().info("Added NBT Tag: " + key + " -> " + value + " to item " + item.getType().name());
+        }
+    }
+
+    @Override
+    public String getNBTTag(ItemStack item, String key) { // Removed PersistentDataType parameter
+        if (item == null || item.getType().isAir() || !item.hasItemMeta()) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            NamespacedKey specificKey = new NamespacedKey(plugin, key);
+            if (meta.getPersistentDataContainer().has(specificKey, PersistentDataType.STRING)) {
+                String value = meta.getPersistentDataContainer().get(specificKey, PersistentDataType.STRING);
+                plugin.getLogger().info("Retrieved NBT Tag: " + key + " -> " + value + " from item " + item.getType().name());
+                return value;
+            }
+        }
+        plugin.getLogger().info("NBT Tag not found: " + key + " from item " + item.getType().name());
+        return null;
     }
 }

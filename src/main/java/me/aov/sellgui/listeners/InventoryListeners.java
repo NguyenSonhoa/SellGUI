@@ -31,10 +31,10 @@ public class InventoryListeners implements Listener {
         SellGUI sellGUI = SellCommand.getSellGUI(player);
 
         if (sellGUI != null && event.getInventory().equals(sellGUI.getMenu())) {
-            // Only return items if the sale was not completed.
-            if (!sellGUI.isSold()) {
-                dropItems(event.getInventory(), player);
-            }
+            // The sellItems() method has already removed sold items.
+            // Any remaining items are unsold and should be returned to the player.
+            dropItems(event.getInventory(), player);
+            
             sellGUI.cleanup();
             SellCommand.getSellGUIs().remove(sellGUI);
         }

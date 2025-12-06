@@ -144,6 +144,31 @@ public class PriceManager {
         }
     }
 
+    // New method to get price by item identifier string
+    public double getPrice(String itemIdentifier) {
+        ItemIdentifier.ItemType type = ItemIdentifier.getItemTypeFromString(itemIdentifier);
+        if (type == null) return 0.0;
+
+        switch (type) {
+            case MMOITEMS:
+                String mmoKey = itemIdentifier.substring("MMOITEMS:".length());
+                return main.getLoadedMMOItemPrices().getOrDefault(mmoKey, 0.0);
+            case NEXO:
+                String nexoKey = itemIdentifier.substring("NEXO:".length());
+                return main.getLoadedNexoPrices().getOrDefault(nexoKey, 0.0);
+            case VANILLA:
+                String vanillaKey = itemIdentifier.substring("VANILLA:".length());
+                return main.getItemPricesConfig().getDouble(vanillaKey, 0.0);
+            default:
+                return 0.0;
+        }
+    }
+
+    // New method to check if an item has a price by item identifier string
+    public boolean hasPrice(String itemIdentifier) {
+        return getPrice(itemIdentifier) > 0.0;
+    }
+
     public double getItemPriceWithPlayer(ItemStack itemStack, Player player) {
         String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
         if ("shopguiplus".equalsIgnoreCase(calculationMethod)) {
@@ -415,5 +440,14 @@ public class PriceManager {
         }
 
         return prices;
+    }
+
+    // New method to get all priced items across all types
+    public Map<String, Double> getAllPricedItems() {
+        Map<String, Double> allPricedItems = new HashMap<>();
+        for (ItemIdentifier.ItemType type : ItemIdentifier.ItemType.values()) {
+            allPricedItems.putAll(getAllPricesForType(type));
+        }
+        return allPricedItems;
     }
 }

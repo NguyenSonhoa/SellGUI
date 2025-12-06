@@ -10,7 +10,7 @@ sell_gui:
   size: 54
   positions:
     sell_button: [49]
-    confirm_button: [53]
+    confirm_button: [49]
     filler_slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 50, 51, 52]
     item_slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
   items:
@@ -134,7 +134,7 @@ price_evaluation_gui:
     instruction_slot: 4
     animation_slot: 10
     result_slot: 10 # Make sure it is same animation slot.
-    filler: [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26]
+    filler: [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 20, 21, 23, 24, 25, 26]
   animation:
     enabled: true
     duration: 20
@@ -222,3 +222,82 @@ price_evaluation_gui:
     show_individual_prices: true
     show_stack_totals: true
     show_item_source: true
+
+# ===================================
+# Autosell Settings GUI
+# ===================================
+autosell_settings_gui:
+  title: "&6&lAutosell Settings"
+  size: 54
+  positions:
+    next_page_button: [50]
+    previous_page_button: [48]
+    enable_all_button: [49]
+    disable_all_button: [51]
+    search_button: [49]
+    filler_slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 52, 53]
+    item_slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
+  items:
+    enabled_autosell_item:
+      material: "LIME_DYE"
+      custom-model-data: 0
+      name: "&a&l✅ %item_name%"
+      lore:
+        - "&7Autosell Status: &aENABLED"
+        - "&7Price: &e$%price%"
+        - ""
+        - "&eClick to DISABLE autosell for this item."
+      glow: true
+    disabled_autosell_item:
+      material: "GRAY_DYE"
+      custom-model-data: 0
+      name: "&c&l❌ %item_name%"
+      lore:
+        - "&7Autosell Status: &cDISABLED"
+        - "&7Price: &e$%price%"
+        - ""
+        - "&eClick to ENABLE autosell for this item."
+    next_page_button:
+      material: "ARROW"
+      custom-model-data: 0
+      name: "&aNext Page"
+      lore:
+        - "&7Click to go to the next page."
+    previous_page_button:
+      material: "ARROW"
+      custom-model-data: 0
+      name: "&cPrevious Page"
+      lore:
+        - "&7Click to go to the previous page."
+    enable_all_button:
+      material: "LIME_CONCRETE"
+      custom-model-data: 0
+      name: "&a&l✅ Enable All Autosell"
+      lore:
+        - "&7Click to enable autosell"
+        - "&7for all priced items."
+    disable_all_button:
+      material: "RED_CONCRETE"
+      custom-model-data: 0
+      name: "&c&l❌ Disable All Autosell"
+      lore:
+        - "&7Click to disable autosell"
+        - "&7for all priced items."
+    search_button:
+      material: "OAK_SIGN"
+      custom-model-data: 0
+      name: "&a&lSearch"
+      lore:
+        - "&7Click to search for an item."
+    no_priced_items:
+      material: "BARRIER"
+      custom-model-data: 0
+      name: "&c&l❌ No Priced Items"
+      lore:
+        - "&7There are no items with a set price."
+        - "&7Use /sellgui setprice to add some!"
+    filler:
+      material: "GRAY_STAINED_GLASS_PANE"
+      custom-model-data: 0
+      name: " "
+      lore: []

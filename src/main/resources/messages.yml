@@ -85,6 +85,18 @@ price_evaluation:
   cannot_remove_item: "&c❌ Cannot remove item during evaluation!"
   gui_locked: "&c🔒 GUI is locked during evaluation!"
 
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                             ⚙️ AUTOSELL MESSAGES                            │
+# └─────────────────────────────────────────────────────────────────────────────┘
+autosell:
+  enabled: "&a✅ Autosell for &f%item_name% &a has been &eENABLED&a!"
+  disabled: "&c❌ Autosell for &f%item_name% &c has been &eDISABLED&c!"
+  enable_autosell: "&a✅ Autosell has been &eENABLED&a for all priced items!"
+  disable_autosell: "&c❌ Autosell has been &eDISABLED&c for all priced items!"
+  no_items_set: "&cYou haven't set prices for any items yet!"
+  sold: "Autosell: +$%amount%%bonus%"
+  search_prompt: "&aType the item name in chat to search. Type 'clear' to reset."
+
 # Command Messages
 commands:
   # Main command
@@ -96,6 +108,7 @@ commands:
       - "&e/sellgui reload &7- Reload the plugin"
       - "&e/sellgui setprice <price> &7- Set price for held item"
       - "&e/sellgui evaluate &7- Evaluate inventory prices"
+      - "&e/sellgui autosell &7- Open the autosell settings menu" # New command
       - "&6&l======================="
     
     opened_for_player: "&aOpened SellGUI for %player%"

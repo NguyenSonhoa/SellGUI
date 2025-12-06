@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Map;
 import me.aov.sellgui.cache.PriceCache;
+import me.aov.sellgui.commands.AutosellCommand;
 import me.aov.sellgui.commands.PriceSetterCommand;
 import me.aov.sellgui.commands.PriceSetterTabCompleter;
 import me.aov.sellgui.commands.SellAllCommand;
@@ -17,6 +18,7 @@ import me.aov.sellgui.commands.SellGUITabCompleter;
 import me.aov.sellgui.config.ConfigManager;
 import me.aov.sellgui.handlers.PlaceholderHandler;
 import me.aov.sellgui.handlers.SellGUIPlaceholderExpansion;
+import me.aov.sellgui.listeners.AutosellSearchListener;
 import me.aov.sellgui.listeners.InventoryListeners;
 import me.aov.sellgui.listeners.PlayerLeaveListener;
 import me.aov.sellgui.listeners.PriceEvaluationListener;
@@ -31,6 +33,8 @@ import me.aov.sellgui.managers.RandomPriceManager;
 import me.aov.sellgui.managers.ItemNBTManager;
 import me.aov.sellgui.managers.MythicLibNBTManager;
 import me.aov.sellgui.managers.PersistentDataNBTManager;
+import me.aov.sellgui.managers.AutosellManager; // Import AutosellManager
+import me.aov.sellgui.listeners.AutosellPlayerListener; // Import AutosellPlayerListener
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -88,6 +92,7 @@ public class SellGUIMain extends JavaPlugin {
    private File soundsFile;
    private FileConfiguration soundsConfig;
    private ItemNBTManager itemNBTManager;
+   private AutosellManager autosellManager; // Added AutosellManager field
 
    public static SellGUIMain getInstance() {
       return instance;
@@ -170,6 +175,12 @@ public class SellGUIMain extends JavaPlugin {
             this.getLogger().severe("Command 'sellgui' not found in plugin.yml!");
          }
 
+         if (this.getCommand("autosell") != null) {
+            this.getCommand("autosell").setExecutor(new AutosellCommand(this));
+         } else {
+            this.getLogger().severe("Command 'autosell' not found in plugin.yml!");
+         }
+
          if (this.getCommand("sellall") != null) {
             this.getCommand("sellall").setExecutor(new SellAllCommand(this));
          } else {
@@ -188,6 +199,7 @@ public class SellGUIMain extends JavaPlugin {
          this.getServer().getPluginManager().registerEvents(new PriceSetterListener(this), this);
          this.getServer().getPluginManager().registerEvents(new PriceSetterChatListener(this), this);
          this.getServer().getPluginManager().registerEvents(new PlayerLeaveListener(this), this);
+         this.getServer().getPluginManager().registerEvents(new AutosellSearchListener(this), this);
          this.priceManager = new PriceManager(this);
 
          if (this.hasMMOItems) {
@@ -201,6 +213,7 @@ public class SellGUIMain extends JavaPlugin {
          this.asyncCalculator = new AsyncPriceCalculator(this);
          this.priceEvaluationListener = new PriceEvaluationListener(this);
          this.getServer().getPluginManager().registerEvents(this.priceEvaluationListener, this);
+         this.autosellManager = new AutosellManager(this, this.priceManager);         this.getServer().getPluginManager().registerEvents(new AutosellPlayerListener(this.autosellManager), this); // Register AutosellPlayerListener
          (new UpdateChecker(this, 127355)).getVersion((version) -> {
             if (this.getDescription().getVersion().equalsIgnoreCase(version)) {
                this.getLogger().info("Plugin is up to date (Version: " + version + ")");
@@ -267,6 +280,10 @@ public class SellGUIMain extends JavaPlugin {
 
       if (this.asyncCalculator != null) {
          this.asyncCalculator.shutdown();
+      }
+
+      if (this.autosellManager != null) {
+         this.autosellManager.shutdown();
       }
 
       this.getLogger().info("SellGUI has been disabled.");
@@ -697,6 +714,10 @@ public class SellGUIMain extends JavaPlugin {
 
    public ItemNBTManager getItemNBTManager() {
       return this.itemNBTManager;
+   }
+
+   public AutosellManager getAutosellManager() {
+      return this.autosellManager;
    }
 
    public void openPriceEvaluationGUI(Player player) {

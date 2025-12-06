@@ -1,5 +1,5 @@
 name: SellGUI
-version: '2.7.1'
+version: '2.8.5'
 main: me.aov.sellgui.SellGUIMain
 api-version: '1.20'
 description: SellGUI plugin
@@ -10,9 +10,12 @@ depend: [Vault,PlaceholderAPI]
 softdepend: [Essentials,MMOItems,PlaceholderAPI,Nexo,NBTAPI,ShopGUIPlus,MythicLib]
 
 commands:
+  autosell:
+    description: Autosell GUI Command
+    usage: /autosell
   sellgui:
     description: SellGUI
-    usage: /sellgui [reload|setprice|evaluate|setrange|<playername>]
+    usage: /sellgui [reload|setprice|evaluate|setrange|autosell|<playername>]
     aliases: [sg, sell]
   sellguiprice:
     description: Price Setter GUI Command
@@ -31,6 +34,7 @@ permissions:
       sellgui.setrange: true
       sellgui.evaluate: true
       sellgui.sellall: true
+      sellgui.autosell: true # Added autosell permission
   sellgui.use:
     description: Allows player to use basic SellGUI features
     default: true
@@ -55,6 +59,9 @@ permissions:
   sellgui.bypass:
     description: Bypasses certain restrictions
     default: op
+  sellgui.autosell: # New permission for autosell menu
+    description: Allows player to open the autosell settings menu
+    default: true
   sellgui.bonus.*:
     description: Permission-based bonus system
     default: false
