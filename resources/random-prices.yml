@@ -1,0 +1,41 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                      SellGUI - Random Prices Storage                         ║
+# ║                    🎲 Stores min/max prices for random pricing               ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                           📊 RANDOM PRICE RANGES                            │
+# └─────────────────────────────────────────────────────────────────────────────┘
+
+# Format supports:
+# - Vanilla items: MATERIAL_NAME (e.g., DIAMOND, IRON_INGOT)
+# - MMOItems: mmoitems:TYPE:ID (e.g., mmoitems:SWORD:EXCALIBUR)
+# - Nexo items: nexo:ITEM_ID (e.g., nexo:RUBY_SWORD)
+
+# Example entries (will be auto-generated when players set random prices):
+# DIAMOND:
+#   min_price: 10.0
+#   max_price: 25.0
+#   last_updated: 1640995200000
+#   set_by: "PlayerName" #check advanced
+#   item_type: "VANILLA"
+#
+# mmoitems:SWORD:EXCALIBUR:
+#   min_price: 100.0
+#   max_price: 250.0
+#   last_updated: 1640995200000
+#   set_by: "PlayerName"
+#   item_type: "MMOITEMS"
+#
+# nexo:ruby_block:
+#   min_price: 75.0
+#   max_price: 150.0
+#   last_updated: 1640995200000
+#   set_by: "PlayerName"
+#   item_type: "NEXO"
+#
+# IRON_INGOT:
+#   min_price: 2.0
+#   max_price: 5.0
+#   last_updated: 1640995200000
+#   set_by: "PlayerName"

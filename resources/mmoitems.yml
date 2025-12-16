@@ -1,0 +1,9 @@
+mmoitems: {}
+#  SWORD: # This is TYPE
+#    LONG_SWORD: 2.0 # This is ID, price is 2.0
+#    STEEL_SWORD: 10.0
+#  AXE:
+#    BATTLE_AXE: 15.0
+#  MATERIAL:
+#    MAGIC_DUST: 5.0
+#    REFINED_ORE: 25.0

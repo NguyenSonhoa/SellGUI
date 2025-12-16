@@ -1,0 +1,140 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                            SellGUI         Configuration                     ║
+# ║                          Optimized                                           ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+# Formatted By Spiderman No-Way-Home for my gyat SaneNuyan
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                              🔧 GENERAL SETTINGS                            │
+# └─────────────────────────────────────────────────────────────────────────────┘
+general:
+  config-version: "4"
+  debug: false                    # Enable debug mode for troubleshooting
+  check-updates: true # Check for updates on startup
+  language: "messages"            # Language file (without .yml extension) - now uses messages.yml
+  auto-save-config: true          # Auto-save config changes
+  close-after-sell: false
+  allow-player-evaluation-stack: false # Allow players to evaluate stack prices
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                              💰 AUTOSELL SETTINGS                           │
+# └─────────────────────────────────────────────────────────────────────────────┘
+autosell:
+  show-item-summary: true
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                              💰 ECONOMY SETTINGS                            │
+# └─────────────────────────────────────────────────────────────────────────────┘
+economy:
+  use-vault: true                 # Use Vault for economy integration
+  money-format: "$%.2f"           # Money display format
+  min-transaction: 0.01           # Minimum transaction amount
+  max-transaction: 1000000.0      # Maximum transaction amount
+  tax-rate: 0.0                   # Tax rate (0.0 = no tax, 0.1 = 10% tax)
+  round-prices: false
+
+
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                              📦 ITEM SETTINGS                               │
+# └─────────────────────────────────────────────────────────────────────────────┘
+items:
+  # 🔧 Custom Item Support
+  custom-items: true
+  
+  # 🗡️ MMOItems Integration
+  mmoitems:
+    enabled: true
+    use-custom-prices: true
+    price-multiplier: 1.0 #<< beta, will not work etc..
+  
+  # 🎯 Nexo Integration  
+  nexo:
+    enabled: true
+    use-custom-prices: true
+    price-multiplier: 1.0  #<< beta, will not work etc..
+  
+  # 📝 Display Settings
+  name-format: "&f%item_name%"    # Item name format
+  show-item-lore: true            # Show item lore in GUI
+  max-lore-lines: 5               # Maximum lore lines to show
+
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                              💎 PRICE SETTINGS                              │
+# └─────────────────────────────────────────────────────────────────────────────┘
+prices:
+  # 🏷️ Pricing Methods
+  nbt-pricing: true               # Enable NBT-based pricing
+  calculation-method: "auto"      # auto, config, essentials, nbt, shopguiplus
+  #shopguiplus option will NOT HOOK NEXO & MMOITEMS OF SELLGUI, because shopguiplus was support it so sellgui will disable support them.
+  default-price: 0.0              # Default price for unconfigured items
+  
+  # 📈 Multipliers
+  multipliers:
+    enabled: true                 # Enable price multipliers
+    permission-based: true        # Use permission-based multipliers
+    default-multiplier: 1.0       # Default multiplier
+    max-multiplier: 5.0           # Maximum allowed multiplier
+  
+  # 🎲 Random Pricing
+  random-pricing:
+    enabled: false                # Enable random price variations
+    variation-percent: 10.0       # Max variation percentage (±10%)
+
+
+
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                            ⚡ PERFORMANCE SETTINGS                          │
+# └─────────────────────────────────────────────────────────────────────────────┘
+performance:
+  cache-prices: true              # Cache prices for better performance
+  cache-duration: 300             # Cache duration in seconds
+  async-calculations: true        # Use async price calculations
+  max-concurrent-operations: 10   # Max concurrent async operations
+  
+  # 🔄 Update Intervals
+  gui-update-interval: 20         # GUI update interval in ticks
+  price-update-interval: 100      # Price update interval in ticks
+
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                             📝 LOGGING SETTINGS                             │
+# └─────────────────────────────────────────────────────────────────────────────┘
+logging:
+  enabled: true                   # Enable transaction logging
+
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                            🔗 INTEGRATION SETTINGS                          │
+# └─────────────────────────────────────────────────────────────────────────────┘
+integrations:
+  placeholderapi: true            # PlaceholderAPI support
+  essentials: true                # Essentials integration
+  worldguard: false               # WorldGuard integration # beta, will not work etc..
+  vault: true                     # Vault integration (required)
+
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                            🚀 ADVANCED SETTINGS       SOON                  │
+# └─────────────────────────────────────────────────────────────────────────────┘
+advanced:
+
+  # 💰 SellAll Command Settings
+  sellall-show-preview: true      # Show preview of items to be sold
+  sell-all-command-sell-enchanted: false # Allow selling enchanted items
+
+# ┌─────────────────────────────────────────────────────────────────────────────┐
+# │                              📊 STATISTICS    SOON                          │
+# └─────────────────────────────────────────────────────────────────────────────┘
+statistics:
+  enabled: true                   # Enable statistics tracking
+  track-player-sales: true        # Track individual player sales
+  track-item-popularity: true     # Track most sold items
+  reset-interval: 30              # Reset statistics every X days
+
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  🎯 SellGUI         - Core Configuration (Clean & Organized)                 ║
+# ║                                                                              ║
+# ║  📁 Additional Configuration Files:                                          ║
+# ║  • gui.yml        - GUI layouts, buttons, positions, visual effects        ║
+# ║  • sounds.yml     - Sound effects, volume, pitch settings                  ║
+# ║  • messages.yml   - All plugin messages, notifications, errors             ║
+# ║  • itemprices.yml - Item pricing, multipliers, custom prices               ║
+# ║  • mmoitems.yml   - MMOItems integration and pricing                       ║
+# ║  • nexo.yml       - Nexo items integration and pricing                     ║
+# ║                                                                              ║
+# ║  🔧 This separation keeps configs organized and easy to manage!             ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
