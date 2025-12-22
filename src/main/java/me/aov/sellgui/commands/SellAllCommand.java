@@ -180,7 +180,7 @@ public class SellAllCommand implements CommandExecutor {
                     main.getLogger().info("  SellAll debug - PriceManager price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + price);
                 }
                 if (price > 0) {
-                    return round(price, 3);
+                    return price;
                 }
             } catch (Exception e) {
                 if (main.getConfig().getBoolean("general.debug", false)) {
@@ -196,7 +196,7 @@ public class SellAllCommand implements CommandExecutor {
                     main.getLogger().info("  SellAll debug - NBTPriceManager price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + price);
                 }
                 if (price > 0) {
-                    return round(price, 3);
+                    return price;
                 }
             } catch (Exception e) {
                 if (main.getConfig().getBoolean("general.debug", false)) {
@@ -212,7 +212,7 @@ public class SellAllCommand implements CommandExecutor {
                     main.getLogger().info("  SellAll debug - RandomPriceManager price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + price);
                 }
                 if (price > 0) {
-                    return round(price, 3);
+                    return price;
                 }
             } catch (Exception e) {
                 if (main.getConfig().getBoolean("general.debug", false)) {
@@ -228,7 +228,7 @@ public class SellAllCommand implements CommandExecutor {
                     main.getLogger().info("  SellAll debug - Essentials price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + essentialsPrice);
                 }
                 if (essentialsPrice > 0) {
-                    return round(essentialsPrice, 3);
+                    return essentialsPrice;
                 }
             }
         }
@@ -242,7 +242,7 @@ public class SellAllCommand implements CommandExecutor {
                     if (main.getConfig().getBoolean("general.debug", false)) {
                         main.getLogger().info("  SellAll debug - Price found for custom item " + itemIdentifier + " in item-prices.yml: $" + price);
                     }
-                    return round(price, 3);
+                    return price;
                 }
             } else {
                 if (main.getConfig().getBoolean("general.debug", false)) {
@@ -302,7 +302,7 @@ public class SellAllCommand implements CommandExecutor {
                 }
             }
         }
-        return round(price, 3);
+        return price;
     }
 
     public double getTotal(Inventory inventory, Player player) {
@@ -320,7 +320,7 @@ public class SellAllCommand implements CommandExecutor {
                 }
             }
         }
-        return round(total, 3);
+        return total;
     }
 
     public void sellItems(Inventory inventory, Player player) {
@@ -404,13 +404,5 @@ public class SellAllCommand implements CommandExecutor {
 
     public static String color(String s) {
         return ChatColor.translateAlternateColorCodes('&', s);
-    }
-
-    public static double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
-
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
     }
 }

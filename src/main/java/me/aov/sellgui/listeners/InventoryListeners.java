@@ -8,8 +8,10 @@ import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -41,6 +43,35 @@ public class InventoryListeners implements Listener {
     }
 
     @EventHandler
+    public void onInventoryDrag(InventoryDragEvent e) {
+        if (!(e.getWhoClicked() instanceof Player)) return;
+        Player player = (Player) e.getWhoClicked();
+        SellGUI sellGUI = SellCommand.getSellGUI(player);
+
+        if (sellGUI == null || !e.getView().getTopInventory().equals(sellGUI.getMenu())) {
+            return;
+        }
+
+        // Cancel drag if it affects any GUI control items
+        for (int slot : e.getRawSlots()) {
+            if (slot < e.getView().getTopInventory().getSize()) {
+                ItemStack item = e.getView().getTopInventory().getItem(slot);
+                if (isGUIControlItem(item) || isCustomMenuItem(item)) {
+                    e.setCancelled(true);
+                    return;
+                }
+            }
+        }
+
+        // Update price after drag
+        Bukkit.getScheduler().runTaskLater(main, () -> {
+            if (SellCommand.getSellGUI(player) != null) {
+                sellGUI.updateSellItemTotal();
+            }
+        }, 1L);
+    }
+
+    @EventHandler
     public void onInventoryClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player)) return;
 
@@ -49,6 +80,12 @@ public class InventoryListeners implements Listener {
 
         SellGUI sellGUI = SellCommand.getSellGUI(player);
         if (sellGUI == null || !e.getView().getTopInventory().equals(sellGUI.getMenu())) {
+            return;
+        }
+
+        // Prevent collecting items to cursor (double-click) as it can pull items from the GUI
+        if (e.getAction() == InventoryAction.COLLECT_TO_CURSOR) {
+            e.setCancelled(true);
             return;
         }
 

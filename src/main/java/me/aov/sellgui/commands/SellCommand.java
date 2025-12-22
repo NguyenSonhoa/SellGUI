@@ -32,102 +32,104 @@ public class SellCommand implements CommandExecutor, TabCompleter {
     }
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (args.length > 0) {
-            switch (args[0].toLowerCase()) {
-                case "reload":
-                    if (!sender.hasPermission("sellgui.reload")) {
-                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
-                        return true;
-                    }
-                    main.reload();
-                    sender.sendMessage(ColorUtils.color("&aSellGUI configs and GUIs have been reloaded."));
-                    return true;
-
-                case "evaluate":
-                    if (!(sender instanceof Player)) {
-                        sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
-                        return true;
-                    }
-                    if (!sender.hasPermission("sellgui.evaluate")) {
-                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
-                        return true;
-                    }
-                    main.getGUIManager().openPriceEvaluationGUI((Player) sender);
-                    return true;
-                case "setprice":
-                    if (!(sender instanceof Player)) {
-                        sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
-                        return true;
-                    }
-                    if (!sender.hasPermission("sellgui.setprice")) {
-                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
-                        return true;
-                    }
-                    if (args.length != 2) {
-                        sender.sendMessage(ColorUtils.color("&cUsage: /sellgui setprice <amount>"));
-                        return true;
-                    } else {
-
-                        return handleSetPriceInHand((Player) sender, args[1]);
-                    }
-                case "setrange":
-                    if (!(sender instanceof Player)) {
-                        sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
-                        return true;}
-                    if (!sender.hasPermission("sellgui.setrange")) {
-                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
-                        return true;}
-                    if (args.length != 3) {
-                        sender.sendMessage(ColorUtils.color("&cUsage: /sellgui setrange <min> <max>"));
-                        return true;}
-                    return handleSetRandomPrice((Player) sender, args[1], args[2]);
-
-                case "autosell":
-
-                    if (!(sender instanceof Player)) {
-                        sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
-                        return true;
-                    }
-                    if (!sender.hasPermission("sellgui.autosell")) {
-                        sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
-                        return true;
-                    }
-                    main.getGUIManager().openAutosellSettingsGUI((Player) sender);
-
-                    return true;
-
-                case "help":
-                    return handleHelpCommand(sender);
-
-                default:
-
-                    break;
-            }
-        }
-
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(ColorUtils.color("&cThis command can only be executed by a player."));
-            return true;
-        }
-        Player player = (Player) sender;
-
         if (args.length == 0) {
-            if (player.hasPermission("sellgui.use")) {
-                sellGUIS.add(new SellGUI(this.main, player, this.main.getItemNBTManager()));} else {player.sendMessage(ColorUtils.color("&cYou do not have permission to use this command."));}
-            return true;}
-        if (args.length == 1) {
-            if (player.hasPermission("sellgui.others")) {
-                Player target = main.getServer().getPlayer(args[0]);
-                if (target != null) {
-                    sellGUIS.add(new SellGUI(this.main, target, this.main.getItemNBTManager()));
-                    player.sendMessage(ColorUtils.color("&aSuccessfully opened SellGUI for " + target.getName() + "."));
+            if (sender instanceof Player) {
+                Player player = (Player) sender;
+                if (player.hasPermission("sellgui.use")) {
+                    sellGUIS.add(new SellGUI(this.main, player, this.main.getItemNBTManager()));
                 } else {
-                    player.sendMessage(ColorUtils.color("&cPlayer '" + args[0] + "' not found or is not online."));
+                    player.sendMessage(ColorUtils.color("&cYou do not have permission to use this command."));
                 }
             } else {
-                player.sendMessage(ColorUtils.color("&cYou do not have permission to open SellGUI for other players."));
+                sender.sendMessage(ColorUtils.color("&cUsage: /sellgui <player>"));
             }
             return true;
+        }
+
+        // args.length > 0 from here
+        switch (args[0].toLowerCase()) {
+            case "reload":
+                if (!sender.hasPermission("sellgui.reload")) {
+                    sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
+                    return true;
+                }
+                main.reload();
+                sender.sendMessage(ColorUtils.color("&aSellGUI configs and GUIs have been reloaded."));
+                return true;
+
+            case "evaluate":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
+                    return true;
+                }
+                if (!sender.hasPermission("sellgui.evaluate")) {
+                    sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
+                    return true;
+                }
+                main.getGUIManager().openPriceEvaluationGUI((Player) sender);
+                return true;
+            case "setprice":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
+                    return true;
+                }
+                if (!sender.hasPermission("sellgui.setprice")) {
+                    sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
+                    return true;
+                }
+                if (args.length != 2) {
+                    sender.sendMessage(ColorUtils.color("&cUsage: /sellgui setprice <amount>"));
+                    return true;
+                } else {
+
+                    return handleSetPriceInHand((Player) sender, args[1]);
+                }
+            case "setrange":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
+                    return true;}
+                if (!sender.hasPermission("sellgui.setrange")) {
+                    sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
+                    return true;}
+                if (args.length != 3) {
+                    sender.sendMessage(ColorUtils.color("&cUsage: /sellgui setrange <min> <max>"));
+                    return true;}
+                return handleSetRandomPrice((Player) sender, args[1], args[2]);
+
+            case "autosell":
+
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage(ColorUtils.color("&cOnly players can use this command."));
+                    return true;
+                }
+                if (!sender.hasPermission("sellgui.autosell")) {
+                    sender.sendMessage(ColorUtils.color("&cYou do not have permission."));
+                    return true;
+                }
+                main.getGUIManager().openAutosellSettingsGUI((Player) sender);
+
+                return true;
+
+            case "help":
+                return handleHelpCommand(sender);
+
+            default:
+                // This handles /sellgui <player>
+                if (args.length == 1) {
+                    if (sender.hasPermission("sellgui.others") || !(sender instanceof Player)) {
+                        Player target = main.getServer().getPlayer(args[0]);
+                        if (target != null) {
+                            sellGUIS.add(new SellGUI(this.main, target, this.main.getItemNBTManager()));
+                            sender.sendMessage(ColorUtils.color("&aSuccessfully opened SellGUI for " + target.getName() + "."));
+                        } else {
+                            sender.sendMessage(ColorUtils.color("&cPlayer '" + args[0] + "' not found or is not online."));
+                        }
+                    } else {
+                        sender.sendMessage(ColorUtils.color("&cYou do not have permission to open SellGUI for other players."));
+                    }
+                    return true;
+                }
+                break; // break to show invalid usage message
         }
 
         sender.sendMessage(ColorUtils.color("&cInvalid command usage. Try: /" + label + " help"));
@@ -307,4 +309,3 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         return sellGUIS.stream().anyMatch(sellGUI -> sellGUI.getPlayer().equals(player));
     }
 }
-

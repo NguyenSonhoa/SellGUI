@@ -123,6 +123,16 @@ public class PriceManager {
             }
         }
 
+        if (main.hasEssentials()) {
+            double essPrice = getEssentialsPrice(itemStack);
+            if (essPrice > 0) {
+                if (main.getConfig().getBoolean("general.debug", false)) {
+                    main.getLogger().info("Using Essentials price for " + itemStack.getType() + ": $" + essPrice);
+                }
+                return applyRandomVariation(essPrice);
+            }
+        }
+
         ItemIdentifier.ItemType type = ItemIdentifier.getItemType(itemStack);
 
         switch (type) {
@@ -176,6 +186,11 @@ public class PriceManager {
             return price > 0 ? price : 0.0;
         }
         double basePrice = getItemPrice(itemStack);
+
+        if (basePrice == 0 && player != null && main.getConfig().getBoolean("use-shopguiplus-price") && main.hasShopGUIPlus) {
+            basePrice = getShopGUIPlusPrice(itemStack, player);
+        }
+
         if (basePrice <= 0 || player == null) {
             return basePrice;
         }
@@ -220,7 +235,9 @@ public class PriceManager {
     }
 
     private double getEssentialsPrice(ItemStack itemStack) {
-
+        if (main.hasEssentials() && main.getEssentialsHolder() != null) {
+            return main.getEssentialsHolder().getPrice(itemStack).doubleValue();
+        }
         return 0.0;
     }
 

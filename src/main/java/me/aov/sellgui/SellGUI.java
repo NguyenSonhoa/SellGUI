@@ -4,7 +4,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,10 +34,10 @@ import me.aov.sellgui.handlers.SoundHandler;
 public class SellGUI implements Listener {
     private final SellGUIMain main;
     private final Player player;
-    private static ItemStack sellItem;
-    private static ItemStack filler;
+    private ItemStack sellItem;
+    private ItemStack filler;
     private String menuTitle;
-    private static Inventory menu;
+    private Inventory menu;
     private ItemStack confirmItem;
     private ItemStack noItemsItemStack;
     private List<Integer> sellButtonSlots;
@@ -172,9 +171,7 @@ public class SellGUI implements Listener {
                 for (int i = 0; i < lore.size(); i++) {
                     String line = lore.get(i);
                     if (ChatColor.stripColor(line).contains("Total Value:")) {
-                        boolean roundPrices = this.main.shouldRoundPrices();
-                        double displayedTotal = roundPrices ? Math.round(currentTotal) : currentTotal;
-                        lore.set(i, color("&eTotal Value: &a$" + String.format("%.2f", displayedTotal)));
+                        lore.set(i, color("&eTotal Value: &a$" + String.format("%.2f", currentTotal)));
                         break;
                     }
                 }
@@ -341,7 +338,7 @@ public class SellGUI implements Listener {
         HashMap<String, String> itemDisplayNames = new HashMap<>();
 
         for (ItemStack item : this.getMenu().getContents()) {
-            if (item != null && !isGuiItem(item)) {
+            if (item != null && !isGuiItem(item) && !isCustomMenuItem(item)) {
                 String itemIdentifierKey = ItemIdentifier.getItemIdentifier(item);
                 String itemDisplayName = ItemIdentifier.getItemDisplayName(item);
                 itemDisplayNames.put(itemIdentifierKey, itemDisplayName);
@@ -393,7 +390,7 @@ public class SellGUI implements Listener {
     public boolean hasUnevaluatedItems() {
         if (main.getRandomPriceManager() == null) return false;
         for (ItemStack item : getMenu().getContents()) {
-            if (item != null && !isGuiItem(item)) {
+            if (item != null && !isGuiItem(item) && !isCustomMenuItem(item)) {
                 if (main.getRandomPriceManager().requiresEvaluation(item) && !main.getRandomPriceManager().isEvaluated(item)) {
                     return true;
                 }
@@ -415,155 +412,146 @@ public class SellGUI implements Listener {
     }
 
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
-        double contentsPrice = 0.0;
-
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return 0.0;
         }
-        if (itemStack.getType().name().endsWith("_SHULKER_BOX")) {
-            if (itemStack.hasItemMeta() && itemStack.getItemMeta() instanceof BlockStateMeta) {
-                BlockStateMeta meta = (BlockStateMeta) itemStack.getItemMeta();
-                if (meta.getBlockState() instanceof ShulkerBox) {
-                    ShulkerBox shulker = (ShulkerBox) meta.getBlockState();
-                    String calculationMethod = this.main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
-                    for (ItemStack contained : shulker.getInventory().getContents()) {
-                        if (contained != null && !contained.getType().isAir()) {
-                            double price = this.getPrice(contained, player);
-                            if (calculationMethod.equals("shopguiplus")) {
-                                contentsPrice += price;
-                            } else {
-                                contentsPrice += price * contained.getAmount();
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
-        double itemPrice = 0.0;
-        ItemStack itemToPrice = itemStack;
-        if(itemStack.getType().name().endsWith("_SHULKER_BOX")) {
-            itemToPrice = itemStack.clone();
-            itemToPrice.setAmount(1);
-        }
+        BigDecimal itemPrice = BigDecimal.ZERO;
+        ItemStack itemToPrice = itemStack.clone();
+        itemToPrice.setAmount(1);
 
+        // Check for pre-calculated price in NBT
         if (itemToPrice.hasItemMeta()) {
             ItemMeta meta = itemToPrice.getItemMeta();
             if (meta != null) {
                 NamespacedKey key = new NamespacedKey(main, "current_price");
                 if (meta.getPersistentDataContainer().has(key, PersistentDataType.DOUBLE)) {
-                    itemPrice = meta.getPersistentDataContainer().get(key, PersistentDataType.DOUBLE);
+                    itemPrice = BigDecimal.valueOf(meta.getPersistentDataContainer().get(key, PersistentDataType.DOUBLE));
                 }
             }
         }
 
-        if (itemPrice == 0) {
+        // If no NBT price, calculate it
+        if (itemPrice.compareTo(BigDecimal.ZERO) == 0) {
             PriceManager priceManager = new PriceManager(main);
-            itemPrice = priceManager.getItemPriceWithPlayer(itemToPrice, player);
-
-            if (itemPrice == 0) {
-                if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
-                    double essentialsPrice = round(this.main.getEssentialsHolder().getPrice(itemToPrice).doubleValue(),
-                            this.main.getConfig().getInt("places-to-round"));
-                    if (essentialsPrice > 0) {
-                        itemPrice = essentialsPrice;
-                    }
+            double price = priceManager.getItemPriceWithPlayer(itemToPrice, player);
+            if (price > 0) {
+                itemPrice = BigDecimal.valueOf(price);
+            } else if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
+                BigDecimal essentialsPrice = this.main.getEssentialsHolder().getPrice(itemToPrice);
+                if (essentialsPrice.compareTo(BigDecimal.ZERO) > 0) {
+                    itemPrice = essentialsPrice;
                 }
-                if (itemPrice == 0 && this.main.getItemPricesConfig().contains(itemToPrice.getType().name())) {
-                    itemPrice = this.main.getItemPricesConfig().getDouble(itemToPrice.getType().name());
-                }
-            }
-        }
-        if (itemPrice == 0 && player != null) {
-
-            if (this.main.getServer().getPluginManager().getPlugin("ShopGuiPlus") != null && this.main.getServer().getPluginManager().getPlugin("ShopGuiPlus").isEnabled()) {
+            } else if (this.main.getItemPricesConfig().contains(itemToPrice.getType().name())) {
+                itemPrice = BigDecimal.valueOf(this.main.getItemPricesConfig().getDouble(itemToPrice.getType().name()));
+            } else if (player != null && this.main.getServer().getPluginManager().getPlugin("ShopGuiPlus") != null && this.main.getServer().getPluginManager().getPlugin("ShopGuiPlus").isEnabled()) {
                 try {
                     double shopGuiPrice = net.brcdev.shopgui.ShopGuiPlusApi.getItemStackPriceSell(player, itemToPrice);
                     if (shopGuiPrice > 0) {
-                        itemPrice = shopGuiPrice;
+                        itemPrice = BigDecimal.valueOf(shopGuiPrice);
                     }
                 } catch (NoClassDefFoundError e) {
-
                     this.main.getLogger().warning("ShopGuiPlusApi class not found, skipping ShopGuiPlus pricing. Error: " + e.getMessage());
                 } catch (Exception e) {
-
                     this.main.getLogger().warning("An error occurred while getting price from ShopGuiPlus: " + e.getMessage());
                 }
-            } else {
-
             }
         }
-        if (itemPrice == 0) {if (main instanceof SellGUIMain) {
-            Object rpm = null;
-            try {
-                rpm = main.getClass().getMethod("getRandomPriceManager").invoke(main);
-            } catch (Exception ignored) {}
-            if (rpm != null) {
-                try {
-                    boolean canSell = (boolean) rpm.getClass().getMethod("canBeSold", ItemStack.class).invoke(rpm, itemToPrice);
-                    if (!canSell) {
-                        itemPrice = 0.0;
+
+        // Handle RandomPriceManager
+        if (main.getRandomPriceManager() != null && !main.getRandomPriceManager().canBeSold(itemToPrice)) {
+            return 0.0;
+        }
+
+        // Calculate shulker box contents price
+        BigDecimal contentsPrice = BigDecimal.ZERO;
+        if (itemStack.getType().name().endsWith("_SHULKER_BOX") && itemStack.hasItemMeta() && itemStack.getItemMeta() instanceof BlockStateMeta) {
+            BlockStateMeta meta = (BlockStateMeta) itemStack.getItemMeta();
+            if (meta.getBlockState() instanceof ShulkerBox) {
+                ShulkerBox shulker = (ShulkerBox) meta.getBlockState();
+                for (ItemStack contained : shulker.getInventory().getContents()) {
+                    if (contained != null && !contained.getType().isAir()) {
+                        contentsPrice = contentsPrice.add(BigDecimal.valueOf(getPrice(contained, player)).multiply(BigDecimal.valueOf(contained.getAmount())));
                     }
-                } catch (Exception ignored) {}
+                }
             }
         }
-        }
 
-        double totalPrice = contentsPrice + itemPrice;
+        BigDecimal totalPrice = itemPrice.add(contentsPrice);
 
-        if (totalPrice > 0) {
+        // Apply permission bonuses
+        if (totalPrice.compareTo(BigDecimal.ZERO) > 0) {
             totalPrice = applyPermissionBonuses(player, totalPrice);
         }
 
-        if (this.main.shouldRoundPrices()) {
-            return round(totalPrice, this.main.getConfig().getInt("places-to-round"));
-        } else {
-            return totalPrice;
-        }
+        return totalPrice.doubleValue();
     }
 
-    private double applyPermissionBonuses(Player player, double price) {
-        if (player == null || price <= 0) return price;
 
-        double bonusPercent = 0.0;
-        double multiplier = 1.0;
+    private BigDecimal applyPermissionBonuses(Player player, BigDecimal price) {
+        if (player == null || price.compareTo(BigDecimal.ZERO) <= 0) return price;
+
+        BigDecimal bonusPercent = BigDecimal.ZERO;
 
         for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
             if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
-                double percent = Double.parseDouble(pai.getPermission().replace("sellgui.bonus.", ""));
-                bonusPercent += percent;
-            }
-            if (pai.getPermission().startsWith("sellgui.multiplier.") && pai.getValue()) {
-                multiplier *= Double.parseDouble(pai.getPermission().replace("sellgui.multiplier.", ""));
-            }
-        }
-
-        price = price * (1 + bonusPercent / 100) * multiplier;
-        return price;
-    }
-
-    public double getTotal(Inventory inventory) {
-        double total = 0.0;
-        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
-        for (ItemStack itemStack : inventory.getContents()) {
-            if (itemStack == null || itemStack.getType().isAir()) continue;
-            if (isGuiItem(itemStack)) continue;
-            boolean canSell = main.getRandomPriceManager() == null || main.getRandomPriceManager().canBeSold(itemStack);
-            if (!canSell) continue;
-            if (main.getRandomPriceManager() != null && main.getRandomPriceManager().hasRandomPrice(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack)) {
-                continue;
-            }
-            double price = this.getPrice(itemStack, player);
-            if (price > 0) {
-                if (calculationMethod.equals("shopguiplus")) {
-                    total += price;
-                } else {
-                    total += price * itemStack.getAmount();
+                try {
+                    String percentStr = pai.getPermission().substring("sellgui.bonus.".length());
+                    bonusPercent = bonusPercent.add(new BigDecimal(percentStr));
+                } catch (NumberFormatException e) {
+                    main.getLogger().warning("Invalid sell bonus permission format: " + pai.getPermission());
                 }
             }
         }
-        return total;
+
+        if (bonusPercent.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal multiplier = BigDecimal.ONE.add(bonusPercent.divide(new BigDecimal("100")));
+            price = price.multiply(multiplier);
+        }
+
+        return price;
     }
+
+
+    public double getTotal(Inventory inventory) {
+        BigDecimal total = BigDecimal.ZERO;
+        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
+
+        for (ItemStack itemStack : inventory.getContents()) {
+            if (itemStack == null || itemStack.getType().isAir() || isGuiItem(itemStack) || isCustomMenuItem(itemStack)) {
+                continue;
+            }
+
+            if (main.getRandomPriceManager() != null) {
+                if (!main.getRandomPriceManager().canBeSold(itemStack) ||
+                        (main.getRandomPriceManager().hasRandomPrice(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack))) {
+                    continue;
+                }
+            }
+
+            double pricePerItem = getPrice(itemStack, player);
+
+            if (pricePerItem > 0) {
+                if (calculationMethod.equals("shopguiplus")) {
+                    // ShopGUIPlus price is often for the whole stack, but our getPrice is for one item.
+                    // Let's assume getPrice is correct per item and multiply by amount unless it's a shulker.
+                    if (itemStack.getType().name().endsWith("_SHULKER_BOX")) {
+                        total = total.add(BigDecimal.valueOf(pricePerItem));
+                    } else {
+                        total = total.add(BigDecimal.valueOf(pricePerItem).multiply(BigDecimal.valueOf(itemStack.getAmount())));
+                    }
+                } else {
+                     if (itemStack.getType().name().endsWith("_SHULKER_BOX")) {
+                        total = total.add(BigDecimal.valueOf(pricePerItem));
+                    } else {
+                        total = total.add(BigDecimal.valueOf(pricePerItem).multiply(BigDecimal.valueOf(itemStack.getAmount())));
+                    }
+                }
+            }
+        }
+        return total.doubleValue();
+    }
+
 
     private boolean isGuiItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
@@ -639,7 +627,7 @@ public class SellGUI implements Listener {
         this.setSold(true);
 
         for (ItemStack item : inventory.getContents()) {
-            if (item != null && !isGuiItem(item)) {
+            if (item != null && !isGuiItem(item) && !isCustomMenuItem(item)) {
                 if (getPrice(item, player) > 0 && !hasUnevaluatedItems()) {
                     if (this.main.getConfig().getBoolean("logging.enabled")) {
                         logSell(item);
@@ -668,7 +656,7 @@ public class SellGUI implements Listener {
         return this.player;
     }
 
-    public static ItemStack getSellItem() {
+    public ItemStack getSellItem() {
         return sellItem;
     }
 
@@ -705,10 +693,4 @@ public class SellGUI implements Listener {
         return lore.stream().map(this::color).collect(Collectors.toList());
     }
 
-    public static double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
-        BigDecimal bd = new BigDecimal(Double.toString(value));
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
-    }
 }

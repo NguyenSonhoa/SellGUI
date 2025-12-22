@@ -674,7 +674,7 @@ public class SellGUIMain extends JavaPlugin {
       }
    }
    public boolean shouldRoundPrices() {
-      return this.getConfig().getBoolean("economy.round-prices", true);
+      return this.getConfig().getBoolean("economy.round-prices", false);
    }
    public Map<String, Double> getLoadedNexoPrices() {
       return this.loadedNexoPrices;
