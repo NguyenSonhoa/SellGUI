@@ -20,6 +20,7 @@ A powerful sell GUI plugin with advanced price management system
 - **💰 EVALUATION** - Set your random item price, and make player evaluation random it in GUI.
 - **🔒 Secure & Safe** - No item duplication, automatic backups
 - **💰 Worth LORE AUTO CALCULATION Clientside**
+- **💰 AUTOSELL**
 ## 🚀 What's New in This Version?
 
 ### 🆕 **NEW: Price Setter System**
