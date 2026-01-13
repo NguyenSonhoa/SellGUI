@@ -28,6 +28,7 @@ sell:
   sold_summary: "&7📦 Sold %count% items"
   transaction_failed: "&c❌ Transaction failed! Please try again."
   evaluation_required: "&c⚠️ This item requires evaluation before selling! Use &f/sellgui evaluate"
+  lore_worth: "&7Worth: &a$%price%"
 
 # ┌─────────────────────────────────────────────────────────────────────────────┐
 # │                            💰 SELLALL NOTIFICATIONS                         │

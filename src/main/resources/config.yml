@@ -14,6 +14,8 @@ general:
   auto-save-config: true          # Auto-save config changes
   close-after-sell: false
   allow-player-evaluation-stack: false # Allow players to evaluate stack prices
+  add-worth-lore: false           # Add worth lore to items in SellGUI using PacketEvents (Requires PacketEvents), Restart Server, edit lore in messages.yml
+
 # ┌─────────────────────────────────────────────────────────────────────────────┐
 # │                              💰 AUTOSELL SETTINGS                           │
 # └─────────────────────────────────────────────────────────────────────────────┘

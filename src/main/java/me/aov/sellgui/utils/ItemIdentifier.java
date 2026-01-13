@@ -26,14 +26,12 @@ public class ItemIdentifier {
         hasMMOItemsPlugin = Bukkit.getPluginManager().getPlugin("MMOItems") != null;
         hasNexoPlugin = Bukkit.getPluginManager().getPlugin("Nexo") != null;
 
-        // Lấy key "nexo:id" từ NexoItems.ITEM_ID (cách chính xác nhất)
         if (hasNexoPlugin) {
             try {
                 Class<?> nexoItemsClass = Class.forName("com.nexomc.nexo.api.NexoItems");
                 Method getItemIdMethod = nexoItemsClass.getMethod("getITEM_ID");
                 NEXO_ID_KEY = (NamespacedKey) getItemIdMethod.invoke(null);
             } catch (Exception e) {
-                // Fallback nếu không lấy được
                 NEXO_ID_KEY = new NamespacedKey("nexo", "id");
             }
         }
@@ -43,8 +41,6 @@ public class ItemIdentifier {
         VANILLA, MMOITEMS, NEXO, UNKNOWN
     }
 
-    // =====================================================================
-    // LẤY LOẠI ITEM
     // =====================================================================
     public static ItemType getItemType(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return ItemType.UNKNOWN;
@@ -61,8 +57,6 @@ public class ItemIdentifier {
         return ItemType.VANILLA;
     }
 
-    // =====================================================================
-    // LẤY ID ĐỂ LƯU CONFIG
     // =====================================================================
     public static String getItemIdentifier(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return null;
@@ -90,8 +84,6 @@ public class ItemIdentifier {
         return type == ItemType.VANILLA ? "VANILLA:" + item.getType().name() : null;
     }
 
-    // =====================================================================
-    // LẤY TÊN HIỂN THỊ THẬT (có màu, ký tự đặc biệt)
     // =====================================================================
     public static String getItemDisplayName(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return "Unknown Item";
@@ -137,8 +129,6 @@ public class ItemIdentifier {
         return name.substring(0, 1).toUpperCase() + name.substring(1);
     }
 
-    // =====================================================================
-    // TẠO ITEM TỪ ID (WITHDRAW)
     // =====================================================================
     public static ItemStack getItemStackFromIdentifier(String identifier) {
         if (identifier == null || identifier.isEmpty()) return null;
@@ -197,8 +187,6 @@ public class ItemIdentifier {
     }
 
     // =====================================================================
-    // NEXO MỚI: DÙNG PDC KEY "nexo:id"
-    // =====================================================================
     private static boolean isNexoItem(ItemStack item) {
         if (!hasNexoPlugin || item == null || !item.hasItemMeta()) return false;
         PersistentDataContainer pdc = item.getItemMeta().getPersistentDataContainer();
@@ -211,8 +199,6 @@ public class ItemIdentifier {
         return pdc.get(NEXO_ID_KEY, PersistentDataType.STRING);
     }
 
-    // =====================================================================
-    // UTILS
     // =====================================================================
     public static ItemType getItemTypeFromString(String id) {
         if (id == null || !id.contains(":")) return ItemType.UNKNOWN;
@@ -234,8 +220,6 @@ public class ItemIdentifier {
         return i;
     }
 
-    // =====================================================================
-    // DEBUG TOOL (giữ lại để PriceSetterGUI gọi được)
     // =====================================================================
     public static void debugItemNBT(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) {

@@ -24,8 +24,16 @@ public class PriceManager {
     private double getShopGUIPlusPrice(ItemStack itemStack, Player player) {
         if (!main.hasShopGUIPlus) return 0.0;
         try {
-            return ShopGuiPlusApi.getItemStackPriceSell(player, itemStack);
+            double price = ShopGuiPlusApi.getItemStackPriceSell(player, itemStack);
+            if (price <= 0) {
+                // Fallback to checking price without player (ignores permissions)
+                price = ShopGuiPlusApi.getItemStackPriceSell(itemStack);
+            }
+            return price;
         } catch (Throwable t) {
+            if (main.getConfig().getBoolean("general.debug", false)) {
+                main.getLogger().warning("Error getting ShopGUI+ price: " + t.getMessage());
+            }
             return 0.0;
         }
     }
@@ -91,9 +99,7 @@ public class PriceManager {
 
         if (!calculationMethod.equals("auto")) {
             double price = getSpecificMethodPrice(itemStack, calculationMethod, null);
-            if (price > 0) {
-                return applyRandomVariation(price);
-            }
+            return applyRandomVariation(price);
         }
 
         if (main.getRandomPriceManager() != null) {

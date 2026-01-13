@@ -437,24 +437,6 @@ public class SellGUI implements Listener {
             double price = priceManager.getItemPriceWithPlayer(itemToPrice, player);
             if (price > 0) {
                 itemPrice = BigDecimal.valueOf(price);
-            } else if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
-                BigDecimal essentialsPrice = this.main.getEssentialsHolder().getPrice(itemToPrice);
-                if (essentialsPrice.compareTo(BigDecimal.ZERO) > 0) {
-                    itemPrice = essentialsPrice;
-                }
-            } else if (this.main.getItemPricesConfig().contains(itemToPrice.getType().name())) {
-                itemPrice = BigDecimal.valueOf(this.main.getItemPricesConfig().getDouble(itemToPrice.getType().name()));
-            } else if (player != null && this.main.getServer().getPluginManager().getPlugin("ShopGuiPlus") != null && this.main.getServer().getPluginManager().getPlugin("ShopGuiPlus").isEnabled()) {
-                try {
-                    double shopGuiPrice = net.brcdev.shopgui.ShopGuiPlusApi.getItemStackPriceSell(player, itemToPrice);
-                    if (shopGuiPrice > 0) {
-                        itemPrice = BigDecimal.valueOf(shopGuiPrice);
-                    }
-                } catch (NoClassDefFoundError e) {
-                    this.main.getLogger().warning("ShopGuiPlusApi class not found, skipping ShopGuiPlus pricing. Error: " + e.getMessage());
-                } catch (Exception e) {
-                    this.main.getLogger().warning("An error occurred while getting price from ShopGuiPlus: " + e.getMessage());
-                }
             }
         }
 

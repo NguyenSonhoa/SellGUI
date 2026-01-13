@@ -214,6 +214,24 @@ public class SellGUIMain extends JavaPlugin {
          this.priceEvaluationListener = new PriceEvaluationListener(this);
          this.getServer().getPluginManager().registerEvents(this.priceEvaluationListener, this);
          this.autosellManager = new AutosellManager(this, this.priceManager);         this.getServer().getPluginManager().registerEvents(new AutosellPlayerListener(this.autosellManager), this); // Register AutosellPlayerListener
+         
+         if (this.getConfig().getBoolean("general.add-worth-lore", false)) {
+             if (Bukkit.getPluginManager().getPlugin("PacketEvents") != null) {
+                 try {
+                     Class.forName("me.aov.sellgui.hooks.PacketEventsHook").getMethod("register", SellGUIMain.class).invoke(null, this);
+                     this.getLogger().info("PacketEvents found and add-worth-lore is enabled. Registered packet listener for item worth lore.");
+                 } catch (Exception e) {
+                     this.getLogger().severe("Failed to register PacketEvents listener: " + e.getMessage());
+                     e.printStackTrace();
+                 }
+             } else {
+                 this.getLogger().warning("add-worth-lore is enabled in config, but PacketEvents plugin was not found!");
+                 this.getLogger().warning("Please install PacketEvents to use the item worth lore feature.");
+             }
+         } else {
+             this.getLogger().info("add-worth-lore is disabled in config. PacketEvents listener will not be registered.");
+         }
+
          (new UpdateChecker(this, 127355)).getVersion((version) -> {
             if (this.getDescription().getVersion().equalsIgnoreCase(version)) {
                this.getLogger().info("Plugin is up to date (Version: " + version + ")");
