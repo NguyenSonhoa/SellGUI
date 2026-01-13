@@ -21,6 +21,7 @@ public class PriceManager {
     public PriceManager(SellGUIMain main) {
         this.main = main;
     }
+
     private double getShopGUIPlusPrice(ItemStack itemStack, Player player) {
         if (!main.hasShopGUIPlus) return 0.0;
         try {
@@ -29,7 +30,13 @@ public class PriceManager {
                 // Fallback to checking price without player (ignores permissions)
                 price = ShopGuiPlusApi.getItemStackPriceSell(itemStack);
             }
-            return price;
+            
+            // Return price per item
+            if (price > 0) {
+                return price / itemStack.getAmount();
+            }
+            
+            return 0.0;
         } catch (Throwable t) {
             if (main.getConfig().getBoolean("general.debug", false)) {
                 main.getLogger().warning("Error getting ShopGUI+ price: " + t.getMessage());
@@ -37,6 +44,7 @@ public class PriceManager {
             return 0.0;
         }
     }
+
     public boolean setItemPrice(ItemStack itemStack, double price) {
         if (itemStack == null) {
             return false;

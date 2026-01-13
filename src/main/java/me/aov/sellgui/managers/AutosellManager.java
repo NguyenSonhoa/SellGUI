@@ -112,16 +112,22 @@ public class AutosellManager {
                 if (item == null || item.getType().isAir()) continue;
 
                 String identifier = ItemIdentifier.getItemIdentifier(item);
-                if (identifier == null || !priceManager.hasPrice(identifier)) continue;
+                if (identifier == null) continue;
+                
+                // Only check hasPrice if we are strictly using config pricing
+                if (calcMethod.equals("config") && !priceManager.hasPrice(identifier)) continue;
+                
                 if (!isAutosellEnabled(player.getUniqueId(), identifier)) continue;
 
                 // bonus
-                double priceWithBonus = priceManager.getItemPriceWithPlayer(item, player);
-                if (priceWithBonus <= 0) continue;
+                double pricePerItem = priceManager.getItemPriceWithPlayer(item, player);
+                if (pricePerItem <= 0) continue;
 
                 int amount = item.getAmount();
 
-                double finalPrice = calcMethod.equals("shopguiplus") ? priceWithBonus : priceWithBonus * amount;
+                // Always multiply by amount since pricePerItem is now consistently per item
+                double finalPrice = pricePerItem * amount;
+                
                 totalEarned += finalPrice;
                 soldSummary.merge(ItemIdentifier.getItemDisplayName(item), amount, Integer::sum);
 
@@ -160,11 +166,16 @@ public class AutosellManager {
         for (ItemStack item : player.getInventory().getContents()) {
             if (item == null || item.getType().isAir()) continue;
             String id = ItemIdentifier.getItemIdentifier(item);
-            if (id == null || !priceManager.hasPrice(id)) continue;
+            if (id == null) continue;
+            
+            if (calcMethod.equals("config") && !priceManager.hasPrice(id)) continue;
+            
             if (!isAutosellEnabled(player.getUniqueId(), id)) continue;
-            double price = priceManager.getItemPrice(item); // giá gốc, không bonus
-            if (price <= 0) continue;
-            total += calcMethod.equals("shopguiplus") ? price : price * item.getAmount();
+            
+            double pricePerItem = priceManager.getItemPrice(item); // giá gốc, không bonus
+            if (pricePerItem <= 0) continue;
+            
+            total += pricePerItem * item.getAmount();
         }
         return total;
     }
