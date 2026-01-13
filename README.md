@@ -136,7 +136,7 @@ A powerful sell GUI plugin with advanced price management system
 ## 📖 Documentation
 - [Price Setter Guide](README_PRICE_SETTER.md) - Detailed guide for the new price setter
 - [Nexo Integration](NEXO_INTEGRATION_GUIDE.md) - Specific guide for Nexo items
-- [AutoSell Configuration](README_AUTOSELL. md) - AutoSell system setup guide
+- [AutoSell Configuration](README_AUTOSELL.md) - AutoSell system setup guide
 
 ## 🔄 Installation
 1. Download the latest release
