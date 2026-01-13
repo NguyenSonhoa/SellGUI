@@ -47,11 +47,27 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         if (player == null) return;
 
         WrapperPlayServerWindowItems wrapper = new WrapperPlayServerWindowItems(event);
+        int windowId = wrapper.getWindowId();
         List<com.github.retrooper.packetevents.protocol.item.ItemStack> items = wrapper.getItems();
         boolean modified = false;
         List<com.github.retrooper.packetevents.protocol.item.ItemStack> newItems = new ArrayList<>();
 
-        for (com.github.retrooper.packetevents.protocol.item.ItemStack item : items) {
+        // If windowId is not 0 (not player inventory), we only process the last 36 items
+        // which correspond to the player's inventory in the open container view.
+        // This prevents modifying the GUI items of other plugins.
+        int startIndex = 0;
+        if (windowId != 0) {
+            startIndex = Math.max(0, items.size() - 36);
+        }
+
+        // Add skipped items (GUI items) without modification
+        for (int i = 0; i < startIndex; i++) {
+            newItems.add(items.get(i));
+        }
+
+        // Process the rest (Player inventory items)
+        for (int i = startIndex; i < items.size(); i++) {
+            com.github.retrooper.packetevents.protocol.item.ItemStack item = items.get(i);
             if (item == null || item.isEmpty()) {
                 newItems.add(item);
                 continue;
@@ -97,6 +113,11 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         if (player == null) return;
 
         WrapperPlayServerSetSlot wrapper = new WrapperPlayServerSetSlot(event);
+        
+        // Only process SetSlot for the player's own inventory (windowId 0).
+        // Processing SetSlot for other windows is risky as we don't know which slot corresponds to what.
+        if (wrapper.getWindowId() != 0) return;
+
         com.github.retrooper.packetevents.protocol.item.ItemStack item = wrapper.getItem();
 
         if (item == null || item.isEmpty()) return;
