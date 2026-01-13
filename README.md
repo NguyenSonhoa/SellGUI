@@ -18,6 +18,7 @@ A powerful sell GUI plugin with advanced price management system
 - **🔒 Secure & Safe** - No item duplication, automatic backups
 - **🤖 AutoSell System** - Automatically sell items based on whitelist configuration
 - **💾 Persistent Pricing** - NBT-based pricing system with support for random ranges
+- **💎 Item Worth Display** - Show item value in lore (requires PacketEvents plugin)
 
 ## 🚀 What's New in This Version? 
 
