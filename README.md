@@ -47,14 +47,14 @@ A powerful sell GUI plugin with advanced price management system
 | `/sellall` | Sell all items in inventory | `sellgui.sellall` |
 | `/sellall confirm` | Confirm selling all items | `sellgui.sellall` |
 | `/sellgui evaluation` | Open the Evaluation GUI | `sellgui.evaluate` |
-
+| `/autosell | Open the AutoSell Settings GUI | `sellgui.autosell` |
 ### 🆕 Price Setter Commands
 | Command | Description | Permission |
 |---------|-------------|------------|
-| `/sellgui setprice` | Open price setter GUI | `sellgui.setprice` |
+| `/sellgui setprice <price>` | Open price setter GUI | `sellgui.setprice` |
 | `/sellgui setrange` | Set random MIN-MAX handheld item | `sellgui.setrange` |
 | `/sellguiprice` | Open price setter GUI | `sellgui.setprice` |
-| `/sellguiprice <price>` | Set price for item in GUI | `sellgui.setprice` |
+| `/sellguiprice` | Set price for item in GUI | `sellgui.setprice` |
 
 ## 🔧 PlaceholderAPI Support
 | Placeholder | Description |
@@ -70,12 +70,6 @@ A powerful sell GUI plugin with advanced price management system
 | `sellgui.sellall` | Use `/sellall` command | `true` |
 | `sellgui.others` | Open GUI for other players | `op` |
 | `sellgui.reload` | Reload plugin configs | `op` |
-| `sellgui.usesign` | Use SellGUI signs | `true` |
-| `sellgui.createsign` | Create SellGUI signs | `op` |
-
-### 🆕 Price Setter Permission
-| Permission | Description | Default |
-|------------|-------------|---------|
 | `sellgui.setprice` | Use price setter GUI and commands | `op` |
 
 ### 💰 Price Bonuses
@@ -104,21 +98,9 @@ A powerful sell GUI plugin with advanced price management system
 ### Quick Start
 1. **Open GUI:** `/sellguiprice`
 2. **Drag item** into the center slot
-3. **Set price:** `/sellguiprice 100.0`
+3. **Set price:** `Enter the chat`
 4. **Save:** Click the green "Save" button
 
-### Example Workflow
-```bash
-# Open the price setter GUI
-/sellguiprice
-
-# Drag a diamond into the GUI
-# Set price to $50
-/sellguiprice 50.0
-
-# Click Save button to confirm
-# Diamond now sells for $50 in /sellgui
-```
 
 ### Supported Items
 - **Vanilla:** `DIAMOND` → `itemprices.yml`
@@ -140,14 +122,11 @@ A powerful sell GUI plugin with advanced price management system
 - ✅ ~~MMOItems Support~~ **COMPLETED**
 - ✅ ~~Nexo Support~~ **COMPLETED**
 - ✅ ~~Advanced Price Setter GUI~~ **COMPLETED**
-- 🔄 MMOCore Integration
-- 🔄 ItemsAdder Support
 - 🔄 Advanced Statistics & Analytics
 
 ## 🤝 Credits & Support
 - **Original Plugin:** SellGUI by [Original Author]
 - **Enhanced Version:** Forked and improved with advanced features
-- **Price Setter System:** Custom development for this version
 
 ### 🐛 Bug Reports & Feature Requests
 - Create an issue on GitHub
