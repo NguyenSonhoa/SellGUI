@@ -10,7 +10,7 @@ A powerful sell GUI plugin with advanced price management system
 ## ✨ Key Features
 - **🎯 Drag & Drop GUI** - Intuitive selling interface
 - **💰 Advanced Price Setter** - Set prices for any item type with GUI
-- **🔧 Multi-Plugin Support** - Vanilla, MMOItems, Nexo, ShopGUI+ items
+- **🔧 Multi-Plugin Support** - MMOItems, Nexo, ShopGUI+ items
 - **⚙️ EssentialsX Integration** - Use existing Essentials prices
 - **🎨 Fully Customizable** - Custom model data, commands, messages, GUIs
 - **📊 Permission-based Bonuses** - Multipliers and flat bonuses
