@@ -4,6 +4,9 @@ import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.listeners.AutosellSearchListener;
 import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.utils.ItemIdentifier;
+import net.brcdev.shopgui.ShopGuiPlusApi;
+import net.brcdev.shopgui.shop.Shop;
+import net.brcdev.shopgui.shop.item.ShopItem;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -23,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class AutosellSettingsGUI implements InventoryHolder, Listener {
 
@@ -46,8 +50,33 @@ public class AutosellSettingsGUI implements InventoryHolder, Listener {
         this.searchQuery = (searchQuery != null && searchQuery.equalsIgnoreCase("clear")) ? null : searchQuery;
         Bukkit.getPluginManager().registerEvents(this, plugin);
 
-        Map<String, Double> allPricedItems = plugin.getPriceManager().getAllPricedItems();
-        pricedItemIdentifiers.addAll(allPricedItems.keySet());
+        String calculationMethod = plugin.getConfig().getString("prices.calculation-method", "auto");
+        if ("shopguiplus".equalsIgnoreCase(calculationMethod) && plugin.hasShopGUIPlus) {
+            try {
+                Set<Shop> shops = ShopGuiPlusApi.getPlugin().getShopManager().getShops();
+                if (shops != null) {
+                    for (Shop shop : shops) {
+                        List<ShopItem> shopItems = shop.getShopItems();
+                        if (shopItems != null) {
+                            for (ShopItem shopItem : shopItems) {
+                                ItemStack item = shopItem.getItem();
+                                if (item != null) {
+                                    String identifier = ItemIdentifier.getItemIdentifier(item);
+                                    if (identifier != null && !pricedItemIdentifiers.contains(identifier)) {
+                                        pricedItemIdentifiers.add(identifier);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("Error loading ShopGUI+ items for Autosell GUI: " + e.getMessage());
+            }
+        } else {
+            Map<String, Double> allPricedItems = plugin.getPriceManager().getAllPricedItems();
+            pricedItemIdentifiers.addAll(allPricedItems.keySet());
+        }
 
         String title = ColorUtils.color(plugin.getConfigManager().getAutosellGuiTitle());
         int size = plugin.getConfigManager().getAutosellGuiSize();
@@ -151,7 +180,9 @@ public class AutosellSettingsGUI implements InventoryHolder, Listener {
                     if (displayItem != null) {
                         ItemMeta meta = displayItem.getItemMeta();
                         String originalItemName = ItemIdentifier.getItemDisplayName(originalItem);
-                        double price = plugin.getPriceManager().getPrice(itemIdentifier);
+                        
+                        // Use getItemPriceWithPlayer to get the correct price (including ShopGUI+ if enabled)
+                        double price = plugin.getPriceManager().getItemPriceWithPlayer(originalItem, player);
 
                         if (meta.hasDisplayName()) {
                             String displayName = meta.getDisplayName().replace("%item_name%", originalItemName)

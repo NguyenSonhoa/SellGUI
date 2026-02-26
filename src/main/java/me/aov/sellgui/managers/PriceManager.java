@@ -294,16 +294,6 @@ public class PriceManager {
             }
         }
 
-        if (player.hasPermission("sellgui.vip")) {
-            multiplier = Math.max(multiplier, 1.5);
-        }
-        if (player.hasPermission("sellgui.premium")) {
-            multiplier = Math.max(multiplier, 2.0);
-        }
-        if (player.hasPermission("sellgui.elite")) {
-            multiplier = Math.max(multiplier, 3.0);
-        }
-
         return Math.min(multiplier, maxMultiplier);
     }
 

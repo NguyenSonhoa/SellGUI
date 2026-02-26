@@ -20,4 +20,11 @@ public class ColorUtils {
         }
         return org.bukkit.ChatColor.translateAlternateColorCodes('&', matcher.appendTail(buffer).toString());
     }
+
+    public static String stripColor(String text) {
+        if (text == null) {
+            return null;
+        }
+        return org.bukkit.ChatColor.stripColor(color(text));
+    }
 }

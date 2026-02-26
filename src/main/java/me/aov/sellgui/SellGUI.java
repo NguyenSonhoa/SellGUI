@@ -477,6 +477,10 @@ public class SellGUI implements Listener {
 
         for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
             if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
+                if (player.isOp() && pai.getAttachment() == null) {
+                    continue; 
+                }
+
                 try {
                     String percentStr = pai.getPermission().substring("sellgui.bonus.".length());
                     bonusPercent = bonusPercent.add(new BigDecimal(percentStr));
