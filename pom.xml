@@ -6,7 +6,7 @@
 
     <groupId>me.aov.sellgui</groupId>
     <artifactId>SellGUI</artifactId>
-    <version>2.9</version>
+    <version>2.9.5</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -37,13 +37,7 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <finalName>SellGUI-1.20.6-${project.version}</finalName>
-                            <relocations>
-                                <relocation>
-                                    <pattern>net.kyori</pattern>
-                                    <shadedPattern>me.aov.sellgui.lib.kyori</shadedPattern>
-                                </relocation>
-                            </relocations>
+                            <finalName>SellGUI-${project.version}</finalName>
                         </configuration>
                     </execution>
                 </executions>
@@ -90,6 +84,11 @@
             <id>codemc-snapshots</id>
             <url>https://repo.codemc.io/repository/maven-snapshots/</url>
         </repository>
+        <repository>
+            <id>codemc-repo</id>
+            <url>https://repo.codemc.io/repository/maven-public/</url>
+            <layout>default</layout>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -104,43 +103,35 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.20.6-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.21.10-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
             <version>1.21.11-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.github.retrooper</groupId>
             <artifactId>packetevents-spigot</artifactId>
-            <version>2.11.1</version>
-            <scope>compile</scope>
+            <version>2.11.2</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>de.tr7zw</groupId>
+            <artifactId>item-nbt-api-plugin</artifactId>
+            <version>2.15.5</version>
+            <scope>provided</scope>
         </dependency>
         <!-- Kyori (Optional) -->
-        <!--  <dependency>
+        <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-api</artifactId>
-            <version>4.17.0</version>
+            <version>4.26.1</version>
             <scope>compile</scope>
         </dependency>
--->
-        <!--
+
 <dependency>
     <groupId>net.kyori</groupId>
     <artifactId>adventure-platform-bukkit</artifactId>
     <version>4.3.2</version>
     <scope>compile</scope>
 </dependency>
--->
 <!-- Vault (Required) -->
         <dependency>
             <groupId>com.github.MilkBowl</groupId>
