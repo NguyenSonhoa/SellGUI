@@ -86,6 +86,14 @@ public class NBTPriceManager {
         return 0.0;
     }
 
+    public double getSellPrice(ItemStack itemStack) {
+        return getPriceFromNBT(itemStack);
+    }
+
+    public void setSellPrice(ItemStack itemStack, double price) {
+        setFixedPrice(itemStack, price);
+    }
+
     public boolean hasNBTPrice(ItemStack itemStack) {
         if (itemStack == null) return false;
 

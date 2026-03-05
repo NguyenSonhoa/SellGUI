@@ -95,6 +95,15 @@ public class SellGUI implements Listener {
 
     private void addCustomItems() {
         for (String itemPath : this.main.getCustomMenuItemsConfig().getKeys(false)) {
+            if (!this.main.getCustomMenuItemsConfig().contains(itemPath + ".slot")) {
+                continue;
+            }
+
+            if (this.main.getCustomMenuItemsConfig().getBoolean(itemPath + ".disabled")) {
+                menu.setItem(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".slot"), filler);
+                continue;
+            }
+
             ItemStack customItem = new ItemStack(Material.valueOf(this.main.getCustomMenuItemsConfig().getString(itemPath + ".material")));
             ItemMeta itemMeta = customItem.getItemMeta();
 
@@ -447,7 +456,7 @@ public class SellGUI implements Listener {
 
         // Calculate shulker box contents price
         BigDecimal contentsPrice = BigDecimal.ZERO;
-        if (itemStack.getType().name().endsWith("_SHULKER_BOX") && itemStack.hasItemMeta() && itemStack.getItemMeta() instanceof BlockStateMeta) {
+        if (isShulkerBox(itemStack) && itemStack.hasItemMeta() && itemStack.getItemMeta() instanceof BlockStateMeta) {
             BlockStateMeta meta = (BlockStateMeta) itemStack.getItemMeta();
             if (meta.getBlockState() instanceof ShulkerBox) {
                 ShulkerBox shulker = (ShulkerBox) meta.getBlockState();
@@ -498,6 +507,27 @@ public class SellGUI implements Listener {
         return price;
     }
 
+    private boolean isShulkerBox(ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) return false;
+        Material type = item.getType();
+        return type == Material.SHULKER_BOX ||
+                type == Material.WHITE_SHULKER_BOX ||
+                type == Material.ORANGE_SHULKER_BOX ||
+                type == Material.MAGENTA_SHULKER_BOX ||
+                type == Material.LIGHT_BLUE_SHULKER_BOX ||
+                type == Material.YELLOW_SHULKER_BOX ||
+                type == Material.LIME_SHULKER_BOX ||
+                type == Material.PINK_SHULKER_BOX ||
+                type == Material.GRAY_SHULKER_BOX ||
+                type == Material.LIGHT_GRAY_SHULKER_BOX ||
+                type == Material.CYAN_SHULKER_BOX ||
+                type == Material.PURPLE_SHULKER_BOX ||
+                type == Material.BLUE_SHULKER_BOX ||
+                type == Material.BROWN_SHULKER_BOX ||
+                type == Material.GREEN_SHULKER_BOX ||
+                type == Material.RED_SHULKER_BOX ||
+                type == Material.BLACK_SHULKER_BOX;
+    }
 
     public double getTotal(Inventory inventory) {
         BigDecimal total = BigDecimal.ZERO;
@@ -521,13 +551,13 @@ public class SellGUI implements Listener {
                 if (calculationMethod.equals("shopguiplus")) {
                     // ShopGUIPlus price is often for the whole stack, but our getPrice is for one item.
                     // Let's assume getPrice is correct per item and multiply by amount unless it's a shulker.
-                    if (itemStack.getType().name().endsWith("_SHULKER_BOX")) {
+                    if (isShulkerBox(itemStack)) {
                         total = total.add(BigDecimal.valueOf(pricePerItem));
                     } else {
                         total = total.add(BigDecimal.valueOf(pricePerItem).multiply(BigDecimal.valueOf(itemStack.getAmount())));
                     }
                 } else {
-                     if (itemStack.getType().name().endsWith("_SHULKER_BOX")) {
+                     if (isShulkerBox(itemStack)) {
                         total = total.add(BigDecimal.valueOf(pricePerItem));
                     } else {
                         total = total.add(BigDecimal.valueOf(pricePerItem).multiply(BigDecimal.valueOf(itemStack.getAmount())));

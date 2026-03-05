@@ -32,4 +32,3 @@ public class SellGUIEvents extends Event {
         return handlers;
     }
 }
-

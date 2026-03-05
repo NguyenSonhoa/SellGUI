@@ -92,6 +92,7 @@ public class PriceCache {
         priceCache.clear();
     }
 
+
     private static class CachedPrice {
         private final double price;
         private final long expiryTime;

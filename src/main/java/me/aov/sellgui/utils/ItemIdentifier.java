@@ -76,8 +76,6 @@ public class ItemIdentifier {
                 if (id != null && !id.isEmpty()) {
                     return "NEXO:" + id.toUpperCase();
                 }
-            } else if (type == ItemType.VANILLA) {
-                return "VANILLA:" + item.getType().name();
             }
         } catch (Exception ignored) {}
 

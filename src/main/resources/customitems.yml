@@ -1,3 +1,14 @@
-items: []
-prices: []
-# This is in-game editor custom item price
+# This file stores prices for custom items with specific names, lore, or NBT tags.
+# Items are added to this file automatically when you use /sellguiprice on a custom item.
+custom-items:
+  # Example entry (do not edit manually unless you know what you are doing):
+  # some-unique-id:
+  #   price: 100.0
+  #   item:
+  #     ==: org.bukkit.inventory.ItemStack
+  #     v: 3700
+  #     type: APPLE
+  #     meta:
+  #       ==: ItemMeta
+  #       meta-type: UNSPECIFIC
+  #       display-name: '{"text":"Custom Apple"}'

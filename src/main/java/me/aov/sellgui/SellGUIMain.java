@@ -49,7 +49,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
-
+import org.bukkit.ChatColor;
 public class SellGUIMain extends JavaPlugin {
    public boolean hasShopGUIPlus;
    private SellGUIAPI sellGUIAPI;
@@ -109,19 +109,29 @@ public class SellGUIMain extends JavaPlugin {
    public void onEnable() {
       instance = this;
       this.guiManager = new me.aov.sellgui.gui.GUIManager(this);
-      this.getLogger().info("=== SellGUI Edition ===");
-      this.getLogger().info("Specifically optimized for Minecraft 1.21+");
-      this.getLogger().info("Server: " + Bukkit.getVersion());
-      this.getLogger().info("Bukkit Version: " + Bukkit.getBukkitVersion());
+
       String bukkitVersion = Bukkit.getBukkitVersion();
+
+      getLogger().info(ChatColor.AQUA + "   _____      _ _  _____ _    _ _____ ");
+      getLogger().info(ChatColor.AQUA + "  / ____|    | | |/ ____| |  | |_   _|");
+      getLogger().info(ChatColor.AQUA + " | (___   ___| | | |  __| |  | | | |  ");
+      getLogger().info(ChatColor.AQUA + "  \\___ \\ / _ \\ | | | |_ | |  | | | |  ");
+      getLogger().info(ChatColor.AQUA + "  ____) |  __/ | | |__| | |__| |_| |_ ");
+      getLogger().info(ChatColor.AQUA + " |_____/ \\___|_|_|\\_____|\\____/|_____|");
+
+      getLogger().info(ChatColor.GRAY + "------------------------------------------------");
+      getLogger().info(ChatColor.YELLOW + " SellGUI Edition " + ChatColor.GRAY + "» " + ChatColor.WHITE + "Plugin Enabled");
+      getLogger().info(ChatColor.GRAY + " Server  » " + ChatColor.WHITE + Bukkit.getVersion());
+      getLogger().info(ChatColor.GRAY + " Bukkit  » " + ChatColor.WHITE + bukkitVersion);
+      getLogger().info(ChatColor.GRAY + " Optimized for " + ChatColor.AQUA + "Minecraft 1.21+");
+      getLogger().info(ChatColor.GRAY + "------------------------------------------------");
+
       if (!bukkitVersion.contains("1.20.6")) {
-         this.getLogger().warning("=== VERSION WARNING ===");
-         this.getLogger().warning("This plugin is best support 1.21+");
-         this.getLogger().warning("Current version: " + bukkitVersion);
-         this.getLogger().warning("For other versions, author will build soon, im lazy.");
-         this.getLogger().warning("=======================");
+         getLogger().warning(ChatColor.RED + "⚠ Version Warning!");
+         getLogger().warning(ChatColor.GRAY + "Best supported for " + ChatColor.WHITE + "Minecraft 1.21+");
+         getLogger().warning(ChatColor.GRAY + "Current version » " + ChatColor.WHITE + bukkitVersion);
       } else {
-         this.getLogger().info("Perfect! Running on Minecraft 1.21+");
+         getLogger().info(ChatColor.GREEN + "✔ Perfect! Running on supported version.");
       }
 
       this.configManager = new ConfigManager(this);
@@ -367,16 +377,8 @@ public class SellGUIMain extends JavaPlugin {
    }
 
    public void reload() {
-      this.reloadConfig();
-      this.createConfigs();
-      this.checkConfigVersion();
-
-      configManager.reloadConfig("gui");
-      configManager.reloadConfig("messages");
-      configManager.reloadConfig("sounds");
-      configManager.reloadConfig("nexo");
-      configManager.reloadConfig("mmoitems");
-      configManager.reloadConfig("random-prices");
+      this.messagesConfig = YamlConfiguration.loadConfiguration(new File(this.getDataFolder(), "messages.yml"));
+      configManager.reload();
 
       this.nexoPricesFileConfig = YamlConfiguration.loadConfiguration(nexoPricesFile);
       this.mmoItemsPricesFileConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "mmoitems.yml"));
@@ -703,8 +705,12 @@ public class SellGUIMain extends JavaPlugin {
    }
 
    public PriceManager getPriceManager() {
-      return this.priceManager;
-   }
+        return this.priceManager;
+    }
+
+    public PriceCache getPriceCache() {
+        return this.priceCache;
+    }
 
    public NBTPriceManager getNBTPriceManager() {
       return this.nbtPriceManager;
@@ -712,10 +718,6 @@ public class SellGUIMain extends JavaPlugin {
 
    public RandomPriceManager getRandomPriceManager() {
       return this.randomPriceManager;
-   }
-
-   public PriceCache getPriceCache() {
-      return this.priceCache;
    }
 
    public AsyncPriceCalculator getAsyncCalculator() {

@@ -7,194 +7,194 @@
 # │                            💬 GENERAL MESSAGES                              │
 # └─────────────────────────────────────────────────────────────────────────────┘
 general:
-  prefix: "&6[&eSellGUI&6] "      # 🏷️ Plugin prefix
-  no_permission: "&c❌ You don't have permission to use this command!"
-  player_only: "&c👤 This command can only be used by players!"
-  invalid_usage: "&c⚠️ Invalid usage! Use: &e%usage%"
-  plugin_reloaded: "&a✅ Plugin reloaded successfully!"
-  not_a_command: "&c❌ Not a valid command!"
+  prefix: "&6[&eѕᴇʟʟɢᴜɪ&6] "      # 🏷️ Plugin prefix
+  no_permission: "&c❌ ʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ᴘᴇʀᴍɪѕѕɪᴏɴ ᴛᴏ ᴜѕᴇ ᴛʜɪѕ ᴄᴏᴍᴍᴀɴᴅ!"
+  player_only: "&c👤 ᴛʜɪѕ ᴄᴏᴍᴍᴀɴᴅ ᴄᴀɴ ᴏɴʟʏ ʙᴇ ᴜѕᴇᴅ ʙʏ ᴘʟᴀʏᴇʀѕ!"
+  invalid_usage: "&c⚠️ ɪɴᴠᴀʟɪᴅ ᴜѕᴀɢᴇ! ᴜѕᴇ: &e%usage%"
+  plugin_reloaded: "&a✅ ᴘʟᴜɢɪɴ ʀᴇʟᴏᴀᴅᴇᴅ ѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ!"
+  not_a_command: "&c❌ ɴᴏᴛ ᴀ ᴠᴀʟɪᴅ ᴄᴏᴍᴍᴀɴᴅ!"
 
   # 📝 Placeholder Messages
-  placeholder_not_found: "&c[Placeholder %placeholder% not found]"
-  placeholder_fallback: "&7[N/A]"
-  placeholderapi_not_found: "&e⚠️ PlaceholderAPI not found - using built-in placeholders"
-  
+  placeholder_not_found: "&c[ᴘʟᴀᴄᴇʜᴏʟᴅᴇʀ %placeholder% ɴᴏᴛ ꜰᴏᴜɴᴅ]"
+  placeholder_fallback: "&7[ɴ/ᴀ]"
+  placeholderapi_not_found: "&e⚠️ ᴘʟᴀᴄᴇʜᴏʟᴅᴇʀᴀᴘɪ ɴᴏᴛ ꜰᴏᴜɴᴅ - ᴜѕɪɴɢ ʙᴜɪʟᴛ-ɪɴ ᴘʟᴀᴄᴇʜᴏʟᴅᴇʀѕ"
+
 # ┌─────────────────────────────────────────────────────────────────────────────┐
 # │                             🛒 SELL NOTIFICATIONS                           │
 # └─────────────────────────────────────────────────────────────────────────────┘
 sell:
-  no_items: "&c❌ No items to sell!"
-  sold_success: "&a✅ Sold items for &e$%total%!"
-  sold_summary: "&7📦 Sold %count% items"
-  transaction_failed: "&c❌ Transaction failed! Please try again."
-  evaluation_required: "&c⚠️ This item requires evaluation before selling! Use &f/sellgui evaluate"
-  lore_worth: "&7Worth: &a$%price%"
+  no_items: "&c❌ ɴᴏ ɪᴛᴇᴍѕ ᴛᴏ ѕᴇʟʟ!"
+  sold_success: "&a✅ ѕᴏʟᴅ ɪᴛᴇᴍѕ ꜰᴏʀ &e$%total%!"
+  sold_summary: "&7📦 ѕᴏʟᴅ %count% ɪᴛᴇᴍѕ"
+  transaction_failed: "&c❌ ᴛʀᴀɴѕᴀᴄᴛɪᴏɴ ꜰᴀɪʟᴇᴅ! ᴘʟᴇᴀѕᴇ ᴛʀʏ ᴀɢᴀɪɴ."
+  evaluation_required: "&c⚠️ ᴛʜɪѕ ɪᴛᴇᴍ ʀᴇǫᴜɪʀᴇѕ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ ʙᴇꜰᴏʀᴇ ѕᴇʟʟɪɴɢ! ᴜѕᴇ &f/ѕᴇʟʟɢᴜɪ ᴇᴠᴀʟᴜᴀᴛᴇ"
+  lore_worth: "&7ᴡᴏʀᴛʜ: &a$%price%"
 
 # ┌─────────────────────────────────────────────────────────────────────────────┐
 # │                            💰 SELLALL NOTIFICATIONS                         │
 # └─────────────────────────────────────────────────────────────────────────────┘
 sellall:
-  section-confirm: "&6&l=== SellAll Confirmation === "
-  confirm-message: "&e⚠️ You will receive &a$%total% &efor selling all items."
-  no-items: "&c❌ No items to sell in your inventory!"
-  sold-message: "&a✅ Sold %count% items for &e$%total%!"
-  preview-header: "&7📦 Items to be sold:"
-  confirm-footer: "&a&l✓ &f/sellall confirm &7- Proceed with sale"
-  cancel-footer: "&c&l✗ &7Any other action - Cancel"
-  evaluation_required: "&e⚠️ %count% items require evaluation before selling. Use &f/sellgui evaluate"
-  preview-more: "&8... More"
-  separator: "&6&l========================="
-  confirm-proceed: "&a&l✓ &f/sellall confirm &7- To confirm sell all"
-  confirm-cancel: "&c&l✗ &7Skip this message - To cancel"
-  item-to-be-sold: "&7Items to be sold:"
-  sell-all-format: "&8- &f%item_name% &7x%item_amount% &8= &e$%price%"
+  section_confirm: "&fѕᴇʟʟᴀʟʟ ᴄᴏɴꜰɪʀᴍᴀᴛɪᴏɴ"
+  confirm_message: "&eʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ &a$%total% &eꜰꜰᴏʀ ѕᴇʟʟɪɴɢ ᴀʟʟ ɪᴛᴇᴍѕ."
+  no_items: "&c❌ ɴᴏ ɪᴛᴇᴍѕ ᴛᴏ ѕᴇʟʟ ɪɴ ʏᴏᴜʀ ɪɴᴠᴇɴᴛᴏʀʏ!"
+  sold_message: "&a✔ ѕᴏʟᴅ %count% ɪᴛᴇᴍѕ ꜰᴏʀ &e$%total%!"
+  preview_header: "&f⛏ ɪᴛᴇᴍ ᴛᴏ ʙᴇ ѕᴏʟᴅ:"
+  confirm_footer: "&a&ʟ✔ &f/ѕᴇʟʟᴀʟʟ ᴄᴏɴꜰɪʀᴍ &7- ᴘʀᴏᴄᴇᴇᴇᴅ ᴡɪᴛʜ ѕᴀʟᴇ"
+  cancel_footer: "&c&ʟ✗ &7ᴀɴʏ ᴏᴛʜᴇʀ ᴀᴄᴛɪᴏɴ - ᴄᴀɴᴄᴇʟ"
+  evaluation_required: "&e⚠️ %count% ɪᴛᴇᴍѕ ʀᴇǫᴜɪʀᴇ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ ʙᴇꜰᴏʀᴇ ѕᴇʟʟɪɴɢ. ᴜѕᴇ &f/ѕᴇʟʟɢᴜɪ ᴇᴠᴀʟᴜᴀᴛᴇ"
+  preview_more: "&8... ᴍᴏʀᴇ"
+  separator: "&f "
+  confirm_proceed: "&a&ʟ✔ &f/ѕᴇʟʟᴀʟʟ ᴄᴏɴꜰɪʀᴍ &7- ᴛᴏ ᴄᴏɴꜰɪʀᴍ ѕᴇʟʟ ᴀʟʟ"
+  confirm_cancel: "&c&ʟ❌ &7ѕᴋɪᴘ ᴛʜɪѕ ᴍᴇѕѕᴀɢᴇ - ᴛᴏ ᴄᴀɴᴄᴇʟ"
+  item_to_be_sold: "&f⛏ ɪᴛᴇᴍ ᴛᴏ ʙᴇ ѕᴏʟᴅ:"
+  sell_all_format: "&8- &f%item_name% &7x%item_amount% &f→ &a$%price%"
 # ┌─────────────────────────────────────────────────────────────────────────────┐
 # │                         📊 PRICE EVALUATION NOTIFICATIONS                   │
 # └─────────────────────────────────────────────────────────────────────────────┘
 price_evaluation:
   # Basic messages
-  no_item: "&c❌ Place an item in the center slot first!"
-  no_price_set: "&c❌ Set a price range first!"
-  evaluation_started: "&a⚡ Price evaluation started!"
-  evaluation_complete: "&a✅ Evaluation Complete!"
-  evaluation_complete_chat: "&a✅ Price evaluation complete! Final price: &e$%price%"
+  no_item: "&c❌ ᴘʟᴀᴄᴇ ᴀɴ ɪᴛᴇᴍ ɪɴ ᴛʜᴇ ᴄᴇɴᴛᴇʀ ѕʟᴏᴛ ꜰɪʀѕᴛ!"
+  no_price_set: "&c❌ ѕᴇᴛ ᴀ ᴘʀɪᴄᴇ ʀᴀɴɢᴇ ꜰɪʀѕᴛ!"
+  evaluation_started: "&a⚡ ᴘʀɪᴄᴇ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ ѕᴛᴀʀᴛᴇᴅ!"
+  evaluation_complete: "&a✅ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ ᴄᴏᴍᴘʟᴇᴛᴇ!"
+  evaluation_complete_chat: "&a✅ ᴘʀɪᴄᴇ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ ᴄᴏᴍᴘʟᴇᴛᴇ! ꜰɪɴᴀʟ ᴘʀɪᴄᴇ: &e$%price%"
 
   # Animation messages
-  rolling: "&e🎲 Rolling price... $%price%"
-  current_price: "&7Current: &e$%price%"
-  final_price: "&a✅ Final Price: &e$%price%"
+  rolling: "&e🎲 ʀᴏʟʟɪɴɢ ᴘʀɪᴄᴇ... $%price%"
+  current_price: "&7ᴄᴜʀʀᴇɴᴛ: &e$%price%"
+  final_price: "&a✅ ꜰɪɴᴀʟ ᴘʀɪᴄᴇ: &e$%price%"
 
   # Success messages
-  jackpot: "&6&lJACKPOT! Maximum price!"
-  good_luck: "&eGood luck!"
-  price_set: "&aPrice has been set!"
+  jackpot: "&6&ʟᴊᴀᴄᴋᴘᴏᴛ! ᴍᴀxɪᴍᴜᴍ ᴘʀɪᴄᴇ!"
+  good_luck: "&eɢᴏᴏᴅ ʟᴜᴄᴋ!"
+  price_set: "&aᴘʀɪᴄᴇ ʜᴀѕ ʙᴇᴇɴ ѕᴇᴛ!"
 
   # Error messages
-  invalid_range: "&c❌ Invalid price range!"
-  price_too_low: "&c❌ Price too low! Minimum: $%min%"
-  price_too_high: "&c❌ Price too high! Maximum: $%max%"
+  invalid_range: "&c❌ ɪɴᴠᴀʟɪᴅ ᴘʀɪᴄᴇ ʀᴀɴɢᴇ!"
+  price_too_low: "&c❌ ᴘʀɪᴄᴇ ᴛᴏᴏ ʟᴏᴡ! ᴍɪɴɪᴍᴜᴍ: $%min%"
+  price_too_high: "&c❌ ᴘʀɪᴄᴇ ᴛᴏᴏ ʜɪɢʜ! ᴍᴀxɪᴍᴜᴍ: $%max%"
 
   # Validation messages
-  no_item_in_slot: "&c❌ Please place an item in the center slot!"
-  no_price_configured: "&c❌ Please set a price first! Use Fixed or Random price buttons."
-  evaluation_in_progress: "&c❌ Evaluation already in progress!"
-  stack_evaluation_disabled: "&c❌ You cannot evaluate stacked items."
+  no_item_in_slot: "&c❌ ᴘʟᴇᴀѕᴇ ᴘʟᴀᴄᴇ ᴀɴ ɪᴛᴇᴍ ɪɴ ᴛʜᴇ ᴄᴇɴᴛᴇʀ ѕʟᴏᴛ!"
+  no_price_configured: "&c❌ ᴘʟᴇᴀѕᴇ ѕᴇᴛ ᴀ ᴘʀɪᴄᴇ ꜰɪʀѕᴛ! ᴜѕᴇ ꜰɪxᴇᴅ ᴏʀ ʀᴀɴᴅᴏᴍ ᴘʀɪᴄᴇ ʙᴜᴛᴛᴏɴѕ."
+  evaluation_in_progress: "&c❌ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ ᴀʟʀᴇᴀᴅʏ ɪɴ ᴘʀᴏɢʀᴇѕѕ!"
+  stack_evaluation_disabled: "&c❌ ʏᴏᴜ ᴄᴀɴɴᴏᴛ ᴇᴠᴀʟᴜᴀᴛᴇ ѕᴛᴀᴄᴋᴇᴅ ɪᴛᴇᴍѕ."
   # State messages
-  max_price_achieved: "&6🎉 JACKPOT! You got the maximum price!"
-  animation_running: "&e⚡ Price evaluation in progress..."
-  animation_complete: "&a✅ Animation complete!"
-  cannot_remove_item: "&c❌ Cannot remove item during evaluation!"
-  gui_locked: "&c🔒 GUI is locked during evaluation!"
+  max_price_achieved: "&6🎉 ᴊᴀᴄᴋᴘᴏᴛ! ʏᴏᴜ ɢᴏᴛ ᴛʜᴇ ᴍᴀxɪᴍᴜᴍ ᴘʀɪᴄᴇ!"
+  animation_running: "&e⚡ ᴘʀɪᴄᴇ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ ɪɴ ᴘʀᴏɢʀᴇѕѕ..."
+  animation_complete: "&a✅ ᴀɴɪᴍᴀᴛɪᴏɴ ᴄᴏᴍᴘʟᴇᴛᴇ!"
+  cannot_remove_item: "&c❌ ᴄᴀɴɴᴏᴛ ʀᴇᴍᴏᴠᴇ ɪᴛᴇᴍ ᴅᴜʀɪɴɢ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ!"
+  gui_locked: "&c🔒 ɢᴜɪ ɪѕ ʟᴏᴄᴋᴇᴅ ᴅᴜʀɪɴɢ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ!"
 
 # ┌─────────────────────────────────────────────────────────────────────────────┐
 # │                             ⚙️ AUTOSELL MESSAGES                            │
 # └─────────────────────────────────────────────────────────────────────────────┘
 autosell:
-  enabled: "&a✅ Autosell for &f%item_name% &a has been &eENABLED&a!"
-  disabled: "&c❌ Autosell for &f%item_name% &c has been &eDISABLED&c!"
-  enable_autosell: "&a✅ Autosell has been &eENABLED&a for all priced items!"
-  disable_autosell: "&c❌ Autosell has been &eDISABLED&c for all priced items!"
-  no_items_set: "&cYou haven't set prices for any items yet!"
-  sold: "Autosell: +$%amount%%bonus%"
-  search_prompt: "&aType the item name in chat to search. Type 'clear' to reset."
+  enabled: "&a✅ ᴀᴜᴛᴏѕᴇʟʟ ꜰᴏʀ &f%item_name% &a ʜᴀѕ ʙᴇᴇɴ &eᴇɴᴀʙʟᴇᴅ&a!"
+  disabled: "&c❌ ᴀᴜᴛᴏѕᴇʟʟ ꜰᴏʀ &f%item_name% &c ʜᴀѕ ʙᴇᴇɴ &eᴅɪѕᴀʙʟᴇᴅ&c!"
+  enable_autosell: "&a✅ ᴀᴜᴛᴏѕᴇʟʟ ʜᴀѕ ʙᴇᴇɴ &eᴇɴᴀʙʟᴇᴅ&a ꜰᴏʀ ᴀʟʟ ᴘʀɪᴄᴇᴅ ɪᴛᴇᴍѕ!"
+  disable_autosell: "&c❌ ᴀᴜᴛᴏѕᴇʟʟ ʜᴀѕ ʙᴇᴇɴ &eᴅɪѕᴀʙʟᴇᴅ&c ꜰᴏʀ ᴀʟʟ ᴘʀɪᴄᴇᴅ ɪᴛᴇᴍѕ!"
+  no_items_set: "&cʏᴏᴜ ʜᴀᴠᴇɴ'ᴛ ѕᴇᴛ ᴘʀɪᴄᴇѕ ꜰᴏʀ ᴀɴʏ ɪᴛᴇᴍѕ ʏᴇᴛ!"
+  sold: "ᴀᴜᴛᴏѕᴇʟʟ: +$%amount%%bonus%"
+  search_prompt: "&aᴛʏᴘᴇ ᴛʜᴇ ɪᴛᴇᴍ ɴᴀᴍᴇ ɪɴ ᴄʜᴀᴛ ᴛᴏ ѕᴇᴀʀᴄʜ. ᴛʏᴘᴇ 'ᴄʟᴇᴀʀ' ᴛᴏ ʀᴇѕᴇᴛ."
 
 # Command Messages
 commands:
   # Main command
   sellgui:
     help:
-      - "&6&l=== SellGUI Commands ==="
-      - "&e/sellgui &7- Open the sell GUI"
-      - "&e/sellgui <player> &7- Open GUI for another player"
-      - "&e/sellgui reload &7- Reload the plugin"
-      - "&e/sellgui setprice <price> &7- Set price for held item"
-      - "&e/sellgui evaluate &7- Evaluate inventory prices"
-      - "&e/sellgui autosell &7- Open the autosell settings menu" # New command
-      - "&6&l======================="
-    
-    opened_for_player: "&aOpened SellGUI for %player%"
-    player_not_found: "&cPlayer '%player%' not found!"
-    
+      - "&6&ʟ=== ѕᴇʟʟɢᴜɪ ᴄᴏᴍᴍᴀɴᴅѕ ==="
+      - "&e/ѕᴇʟʟɢᴜɪ &7- ᴏᴘᴇɴ ᴛʜᴇ ѕᴇʟʟ ɢᴜɪ"
+      - "&e/ѕᴇʟʟɢᴜɪ <ᴘʟᴀʏᴇʀ> &7- ᴏᴘᴇɴ ɢᴜɪ ꜰᴏʀ ᴀɴᴏᴛʜᴇʀ ᴘʟᴀʏᴇʀ"
+      - "&e/ѕᴇʟʟɢᴜɪ ʀᴇʟᴏᴀᴅ &7- ʀᴇʟᴏᴀᴅ ᴛʜᴇ ᴘʟᴜɢɪɴ"
+      - "&e/ѕᴇʟʟɢᴜɪ ѕᴇᴛᴘʀɪᴄᴇ <ᴘʀɪᴄᴇ> &7- ѕᴇᴛ ᴘʀɪᴄᴇ ꜰᴏʀ ʜᴇʟᴅ ɪᴛᴇᴍ"
+      - "&e/ѕᴇʟʟɢᴜɪ ᴇᴠᴀʟᴜᴀᴛᴇ &7- ᴇᴠᴀʟᴜᴀᴛᴇ ɪɴᴠᴇɴᴛᴏʀʏ ᴘʀɪᴄᴇѕ"
+      - "&e/ѕᴇʟʟɢᴜɪ ᴀᴜᴛᴏѕᴇʟʟ &7- ᴏᴘᴇɴ ᴛʜᴇ ᴀᴜᴛᴏѕᴇʟʟ ѕᴇᴛᴛɪɴɢѕ ᴍᴇɴᴜ" # New command
+      - "&6&ʟ======================="
+
+    opened_for_player: "&aᴏᴘᴇɴᴇᴅ ѕᴇʟʟɢᴜɪ ꜰᴏʀ %player%"
+    player_not_found: "&cᴘʟᴀʏᴇʀ '%player%' ɴᴏᴛ ꜰᴏᴜɴᴅ!"
+
   # Price setter command
   price_setter:
-    usage: "&cUsage: /sellguiprice <price> or /sellguiprice"
-    no_item: "&cYou must be holding an item to set its price!"
-    invalid_price: "&cInvalid price! Please enter a valid number."
-    negative_price: "&cPrice cannot be negative!"
-    price_set: "&aSuccessfully set price for &f%item% &ato &e$%price%"
-    price_removed: "&aSuccessfully removed price for &f%item%"
-    price_updated: "&aPrice updated for &f%item% &ato &e$%price%"
-    
+    usage: "&cᴜѕᴀɢᴇ: /ѕᴇʟʟɢᴜɪᴘʀɪᴄᴇ <ᴘʀɪᴄᴇ> ᴏʀ /ѕᴇʟʟɢᴜɪᴘʀɪᴄᴇ"
+    no_item: "&cʏᴏᴜ ᴍᴜѕᴛ ʙᴇ ʜᴏʟᴅɪɴɢ ᴀɴ ɪᴛᴇᴍ ᴛᴏ ѕᴇᴛ ɪᴛѕ ᴘʀɪᴄᴇ!"
+    invalid_price: "&cɪɴᴠᴀʟɪᴅ ᴘʀɪᴄᴇ! ᴘʟᴇᴀѕᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ."
+    negative_price: "&cᴘʀɪᴄᴇ ᴄᴀɴɴᴏᴛ ʙᴇ ɴᴇɢᴀᴛɪᴠᴇ!"
+    price_set: "&aѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ ѕᴇᴛ ᴘʀɪᴄᴇ ꜰᴏʀ &f%item% &aᴛᴏ &e$%price%"
+    price_removed: "&aѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ ʀᴇᴍᴏᴠᴇᴅ ᴘʀɪᴄᴇ ꜰᴏʀ &f%item%"
+    price_updated: "&aᴘʀɪᴄᴇ ᴜᴘᴅᴀᴛᴇᴅ ꜰᴏʀ &f%item% &aᴛᴏ &e$%price%"
+
   # Sell all command
   sell_all:
-    usage: "&cUsage: /sellall"
-    no_items: "&cNo items to sell in your inventory!"
-    sold_items: "&aSold %count% items for &e$%amount%"
-    sold_summary: "&7Sold: %items%"
+    usage: "&cᴜѕᴀɢᴇ: /ѕᴇʟʟᴀʟʟ"
+    no_items: "&cɴᴏ ɪᴛᴇᴍѕ ᴛᴏ ѕᴇʟʟ ɪɴ ʏᴏᴜʀ ɪɴᴠᴇɴᴛᴏʀʏ!"
+    sold_items: "&aѕᴏʟᴅ %count% ɪᴛᴇᴍѕ ꜰᴏʀ &e$%amount%"
+    sold_summary: "&7ѕᴏʟᴅ: %items%"
 
 # Price Setting Messages
 price_setting:
   chat_input:
-    start: "&aEnter the price for this item in chat:"
-    prompt: "&7Type a number or 'cancel' to cancel"
-    cancelled: "&cPrice setting cancelled."
-    timeout: "&cPrice setting timed out. Please try again."
-    invalid_format: "&cInvalid price format! Please enter a valid number."
-    success: "&aSuccessfully set price for &f%item% &7(%type%) &ato &e$%price%"
-    removed: "&aSuccessfully removed price for &f%item% &7(%type%)"
-    failed: "&cFailed to set price! Check console for errors."
+    start: "&aᴇɴᴛᴇʀ ᴛʜᴇ ᴘʀɪᴄᴇ ꜰᴏʀ ᴛʜɪѕ ɪᴛᴇᴍ ɪɴ ᴄʜᴀᴛ:"
+    prompt: "&7ᴛʏᴘᴇ ᴀ ɴᴜᴍʙᴇʀ ᴏʀ 'ᴄᴀɴᴄᴇʟ' ᴛᴏ ᴄᴀɴᴄᴇʟ"
+    cancelled: "&cᴘʀɪᴄᴇ ѕᴇᴛᴛɪɴɢ ᴄᴀɴᴄᴇʟʟᴇᴅ."
+    timeout: "&cᴘʀɪᴄᴇ ѕᴇᴛᴛɪɴɢ ᴛɪᴍᴇᴅ ᴏᴜᴛ. ᴘʟᴇᴀѕᴇ ᴛʀʏ ᴀɢᴀɪɴ."
+    invalid_format: "&cɪɴᴠᴀʟɪᴅ ᴘʀɪᴄᴇ ꜰᴏʀᴍᴀᴛ! ᴘʟᴇᴀѕᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ."
+    success: "&aѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ ѕᴇᴛ ᴘʀɪᴄᴇ ꜰᴏʀ &f%item% &7(%type%) &aᴛᴏ &e$%price%"
+    removed: "&aѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ ʀᴇᴍᴏᴠᴇᴅ ᴘʀɪᴄᴇ ꜰᴏʀ &f%item% &7(%type%)"
+    failed: "&cꜰᴀɪʟᴇᴅ ᴛᴏ ѕᴇᴛ ᴘʀɪᴄᴇ! ᴄʜᴇᴄᴋ ᴄᴏɴѕᴏʟᴇ ꜰᴏʀ ᴇʀʀᴏʀѕ."
 
 # Transaction Messages
 transactions:
   sell:
-    success: "&aSuccessfully sold %count% items for &e$%amount%"
+    success: "&aѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ ѕᴏʟᴅ %count% ɪᴛᴇᴍѕ ꜰᴏʀ &e$%amount%"
     individual: "&7- %item% x%count% = &e$%price%"
-    total: "&aTotal earned: &e$%total%"
+    total: "&aᴛᴏᴛᴀʟ ᴇᴀʀɴᴇᴅ: &e$%total%"
 
 # Error Messages
 errors:
   # General errors
   general:
-    unknown_error: "&cAn unknown error occurred! Please contact an administrator."
-    database_error: "&cDatabase error! Please try again later." #sooooooooooonnnnnnnnn.
-    config_error: "&cConfiguration error! Check console for details."
-    
+    unknown_error: "&cᴀɴ ᴜɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀʀᴇᴅ! ᴘʟᴇᴀѕᴇ ᴄᴏɴᴛᴀᴄᴛ ᴀɴ ᴀᴅᴍɪɴɪѕᴛʀᴀᴛᴏʀ."
+    database_error: "&cᴅᴀᴛᴀʙᴀѕᴇ ᴇʀʀᴏʀ! ᴘʟᴇᴀѕᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ." #sooooooooooonnnnnnnnn.
+    config_error: "&cᴄᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ ᴇʀʀᴏʀ! ᴄʜᴇᴄᴋ ᴄᴏɴѕᴏʟᴇ ꜰᴏʀ ᴅᴇᴛᴀɪʟѕ."
+
   # Item errors
   items:
-    invalid_item: "&cInvalid item!"
-    no_price: "&cThis item has no price set!"
-    price_calculation_failed: "&cFailed to calculate item price!"
-    
+    invalid_item: "&cɪɴᴠᴀʟɪᴅ ɪᴛᴇᴍ!"
+    no_price: "&cᴛʜɪѕ ɪᴛᴇᴍ ʜᴀѕ ɴᴏ ᴘʀɪᴄᴇ ѕᴇᴛ!"
+    price_calculation_failed: "&cꜰᴀɪʟᴇᴅ ᴛᴏ ᴄᴀʟᴄᴜʟᴀᴛᴇ ɪᴛᴇᴍ ᴘʀɪᴄᴇ!"
+
   # Permission errors
   permissions:
-    no_access: "&cYou don't have access to this feature!"
-    admin_only: "&cThis command is for administrators only!"
-    
+    no_access: "&cʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ᴀᴄᴄᴇѕѕ ᴛᴏ ᴛʜɪѕ ꜰᴇᴀᴛᴜʀᴇ!"
+    admin_only: "&cᴛʜɪѕ ᴄᴏᴍᴍᴀɴᴅ ɪѕ ꜰᴏʀ ᴀᴅᴍɪɴɪѕᴛʀᴀᴛᴏʀѕ ᴏɴʟʏ!"
+
   # Economy errors
   economy:
-    not_available: "&cEconomy system not available!"
-    transaction_failed: "&cTransaction failed! Please try again."
+    not_available: "&cᴇᴄᴏɴᴏᴍʏ ѕʏѕᴛᴇᴍ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ!"
+    transaction_failed: "&cᴛʀᴀɴѕᴀᴄᴛɪᴏɴ ꜰᴀɪʟᴇᴅ! ᴘʟᴇᴀѕᴇ ᴛʀʏ ᴀɢᴀɪɴ."
 
 # Success Messages
 success:
   # Configuration
   config:
-    reloaded: "&aConfiguration reloaded successfully!"
-    saved: "&aConfiguration saved successfully!"
-    
+    reloaded: "&aᴄᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ ʀᴇʟᴏᴀᴅᴇᴅ ѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ!"
+    saved: "&aᴄᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ ѕᴀᴠᴇᴅ ѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ!"
+
   # Database
   database: #sooooooooooonnnnnnnnn.
-    connected: "&aDatabase connected successfully!" #sooooooooooonnnnnnnnn.
-    updated: "&aDatabase updated successfully!" #sooooooooooonnnnnnnnn.
+    connected: "&aᴅᴀᴛᴀʙᴀѕᴇ ᴄᴏɴɴᴇᴄᴛᴇᴅ ѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ!" #sooooooooooonnnnnnnnn.
+    updated: "&aᴅᴀᴛᴀʙᴀѕᴇ ᴜᴘᴅᴀᴛᴇᴅ ѕᴜᴄᴄᴇѕѕꜰᴜʟʟʏ!" #sooooooooooonnnnnnnnn.
 
 
 # Debug Messages (only shown when debug mode is enabled)
 debug:
   messages:
-    price_calculation: "&7[DEBUG] Calculating price for %item%: $%price%"
-    gui_update: "&7[DEBUG] Updating GUI for %player%"
-    database_query: "&7[DEBUG] Database query: %query%"
-    config_load: "&7[DEBUG] Loading config: %config%"
+    price_calculation: "&7[ᴅᴇʙᴜɢ] ᴄᴀʟᴄᴜʟᴀᴛɪɴɢ ᴘʀɪᴄᴇ ꜰᴏʀ %item%: $%price%"
+    gui_update: "&7[ᴅᴇʙᴜɢ] ᴜᴘᴅᴀᴛɪɴɢ ɢᴜɪ ꜰᴏʀ %player%"
+    database_query: "&7[ᴅᴇʙᴜɢ] ᴅᴀᴛᴀʙᴀѕᴇ ǫᴜᴇʀʏ: %query%"
+    config_load: "&7[ᴅᴇʙᴜɢ] ʟᴏᴀᴅɪɴɢ ᴄᴏɴꜰɪɢ: %config%"
 
 # Placeholders
 placeholders:
@@ -202,14 +202,14 @@ placeholders:
   player: "%player%"
   player_balance: "%balance%"
   player_name: "%player_name%"
-  
+
   # Item placeholders
   item_name: "%item%"
   item_type: "%type%"
   item_count: "%count%"
   item_price: "%price%"
   item_total: "%total%"
-  
+
   # GUI placeholders
   gui_title: "%title%"
   page_current: "%current%"
@@ -217,5 +217,5 @@ placeholders:
 
 # Date/Time Formats
 formats:
-  currency: "$%.2f"
-  number: "%.2f"
+  currency: "$%.2ꜰ"
+  number: "%.2ꜰ"

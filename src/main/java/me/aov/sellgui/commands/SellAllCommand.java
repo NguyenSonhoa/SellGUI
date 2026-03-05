@@ -48,6 +48,12 @@ public class SellAllCommand implements CommandExecutor {
             player.sendMessage(color("&cEconomy system not available!"));
             return true;
         }
+
+        // Clear the price cache to get the latest prices
+        if (main.getPriceCache() != null) {
+            main.getPriceCache().clearCache();
+        }
+
         double total = getTotal(player.getInventory(), player);
         int evaluationRequiredCount = 0;
         for (ItemStack item : player.getInventory().getContents()) {
@@ -157,6 +163,24 @@ public class SellAllCommand implements CommandExecutor {
             return 0.0;
         }
 
+        // Check if the item is a shulker box (covers all colors and regular ones)
+        if (isShulkerBox(itemStack)) {
+            double contentsPrice = 0.0;
+            if (itemStack.getItemMeta() instanceof org.bukkit.inventory.meta.BlockStateMeta) {
+                org.bukkit.inventory.meta.BlockStateMeta bsm = (org.bukkit.inventory.meta.BlockStateMeta) itemStack.getItemMeta();
+                if (bsm.getBlockState() instanceof org.bukkit.block.ShulkerBox) {
+                    org.bukkit.block.ShulkerBox shulker = (org.bukkit.block.ShulkerBox) bsm.getBlockState();
+                    contentsPrice = getTotal(shulker.getInventory(), player);
+                }
+            }
+            // Return base price of the box + contents price
+            return getBasePrice(itemStack, player) + contentsPrice;
+        }
+
+        return getBasePrice(itemStack, player);
+    }
+
+    private double getBasePrice(ItemStack itemStack, Player player) {
         if (main.getRandomPriceManager() != null && !main.getRandomPriceManager().canBeSold(itemStack)) {
             if (main.getConfig().getBoolean("general.debug", false)) {
                 main.getLogger().info("  SellAll debug - RandomPriceManager says " + ItemIdentifier.getItemIdentifier(itemStack) + " cannot be sold.");
@@ -164,39 +188,37 @@ public class SellAllCommand implements CommandExecutor {
             return 0.0;
         }
 
-        double price = 0.0D;
         if(!main.getConfig().getBoolean("sell-all-command-sell-enchanted") && itemStack.getEnchantments().size() > 0){
-            return price;
+            return 0.0;
         }
-        this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus");
-        ArrayList<String> flatBonus = new ArrayList<>(this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus"));
-        this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus");
-        ArrayList<String> multiplierBonus = new ArrayList<>(this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus"));
 
+        double price = 0.0D;
+
+        // --- PRICE LOOKUP HIERARCHY ---
+        // Find the base price from the first available source.
+
+        // 1. PriceManager (if it returns a price, it's considered final as per original logic)
         if (main.getPriceManager() != null) {
             try {
                 price = main.getPriceManager().getItemPriceWithPlayer(itemStack, player);
                 if (main.getConfig().getBoolean("general.debug", false)) {
                     main.getLogger().info("  SellAll debug - PriceManager price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + price);
                 }
-                if (price > 0) {
-                    return price;
-                }
+                return price; // This manager is assumed to handle all bonuses itself.
             } catch (Exception e) {
                 if (main.getConfig().getBoolean("general.debug", false)) {
                     main.getLogger().warning("  SellAll debug - Error getting price from PriceManager for " + ItemIdentifier.getItemIdentifier(itemStack) + ": " + e.getMessage());
                 }
+                return 0.0;
             }
         }
 
+        // 2. NBT Price
         if (main.getNBTPriceManager() != null) {
             try {
                 price = main.getNBTPriceManager().getPriceFromNBT(itemStack);
-                if (main.getConfig().getBoolean("general.debug", false)) {
+                if (price > 0 && main.getConfig().getBoolean("general.debug", false)) {
                     main.getLogger().info("  SellAll debug - NBTPriceManager price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + price);
-                }
-                if (price > 0) {
-                    return price;
                 }
             } catch (Exception e) {
                 if (main.getConfig().getBoolean("general.debug", false)) {
@@ -205,14 +227,12 @@ public class SellAllCommand implements CommandExecutor {
             }
         }
 
-        if (main.getRandomPriceManager() != null) {
+        // 3. Random Price
+        if (price <= 0 && main.getRandomPriceManager() != null) {
             try {
                 price = main.getRandomPriceManager().getRandomPrice(itemStack);
-                if (main.getConfig().getBoolean("general.debug", false)) {
+                if (price > 0 && main.getConfig().getBoolean("general.debug", false)) {
                     main.getLogger().info("  SellAll debug - RandomPriceManager price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + price);
-                }
-                if (price > 0) {
-                    return price;
                 }
             } catch (Exception e) {
                 if (main.getConfig().getBoolean("general.debug", false)) {
@@ -221,88 +241,112 @@ public class SellAllCommand implements CommandExecutor {
             }
         }
 
-        if (this.main.hasEssentials() && main.getConfig().getBoolean("use-essentials-price")) {
+        // 4. Essentials Price
+        if (price <= 0 && this.main.hasEssentials() && main.getConfig().getBoolean("use-essentials-price")) {
             if (main.getEssentialsHolder().getEssentials() != null) {
                 double essentialsPrice = main.getEssentialsHolder().getPrice(itemStack).doubleValue();
-                if (main.getConfig().getBoolean("general.debug", false)) {
-                    main.getLogger().info("  SellAll debug - Essentials price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + essentialsPrice);
-                }
                 if (essentialsPrice > 0) {
-                    return essentialsPrice;
+                    price = essentialsPrice;
+                    if (main.getConfig().getBoolean("general.debug", false)) {
+                        main.getLogger().info("  SellAll debug - Essentials price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + essentialsPrice);
+                    }
                 }
             }
         }
 
-        // --- START CUSTOM ITEM IDENTIFIER PRICE CHECK ---
-        String itemIdentifier = ItemIdentifier.getItemIdentifier(itemStack);
-        if (itemIdentifier != null && !itemIdentifier.startsWith("VANILLA:")) {
-            if (this.main.getItemPricesConfig().contains(itemIdentifier)) {
-                price = this.main.getItemPricesConfig().getDouble(itemIdentifier);
-                if (price > 0) {
-                    if (main.getConfig().getBoolean("general.debug", false)) {
+        // 5. Custom Item Price (item-prices.yml)
+        if (price <= 0) {
+            String itemIdentifier = ItemIdentifier.getItemIdentifier(itemStack);
+            if (itemIdentifier != null && !itemIdentifier.startsWith("VANILLA:")) {
+                if (this.main.getItemPricesConfig().contains(itemIdentifier)) {
+                    price = this.main.getItemPricesConfig().getDouble(itemIdentifier);
+                    if (price > 0 && main.getConfig().getBoolean("general.debug", false)) {
                         main.getLogger().info("  SellAll debug - Price found for custom item " + itemIdentifier + " in item-prices.yml: $" + price);
                     }
-                    return price;
-                }
-            } else {
-                if (main.getConfig().getBoolean("general.debug", false)) {
-                    main.getLogger().info("  SellAll debug - No direct price found for custom item " + itemIdentifier + " in item-prices.yml.");
                 }
             }
         }
-        // --- END CUSTOM ITEM IDENTIFIER PRICE CHECK ---
 
-        if (this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
-            price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
-            if (main.getConfig().getBoolean("general.debug", false)) {
-                main.getLogger().info("  SellAll debug - Price found for vanilla item " + itemStack.getType().name() + " in item-prices.yml: $" + price);
-            }
-        }
-        if (itemStack != null && itemStack.getItemMeta().hasEnchants()) {
-            for (Enchantment enchantment : itemStack.getItemMeta().getEnchants().keySet()) {
-                for (String s : flatBonus) {
-                    String[] temp = s.split(":");
-                    if (temp.length >= 3 && temp[0].equalsIgnoreCase(enchantment.getKey().getKey()) && temp[1]
-                            .equalsIgnoreCase(itemStack.getEnchantmentLevel(enchantment) + "")) {
-                        try {
-                            price += Double.parseDouble(temp[2]);
-                        } catch (NumberFormatException e) {
-                            main.getLogger().warning("Invalid number format for flat enchantment bonus in config: '" + s + "'. Expected format 'ENCHANTMENT:LEVEL:VALUE'. Skipping this bonus.");
-                        }
-                    } else if (temp.length < 3) {
-                        main.getLogger().warning("Malformed flat enchantment bonus entry in config: '" + s + "'. Expected format 'ENCHANTMENT:LEVEL:VALUE'. Skipping this entry.");
-                    }
-                }
-            }
-            for (Enchantment enchantment : itemStack.getItemMeta().getEnchants().keySet()) {
-                for (String s : multiplierBonus) {
-                    String[] temp2 = s.split(":");
-                    if (temp2.length >= 3 && temp2[0].equalsIgnoreCase(enchantment.getKey().getKey()) && temp2[1]
-                            .equalsIgnoreCase(itemStack.getEnchantmentLevel(enchantment) + "")) {
-                        try {
-                            price *= Double.parseDouble(temp2[2]);
-                        } catch (NumberFormatException e) {
-                            main.getLogger().warning("Invalid number format for multiplier enchantment bonus in config: '" + s + "'. Expected format 'ENCHANTMENT:LEVEL:VALUE'. Skipping this multiplier.");
-                        }
-                    } else if (temp2.length < 3) {
-                        main.getLogger().warning("Malformed multiplier enchantment bonus entry in config: '" + s + "'. Expected format 'ENCHANTMENT:LEVEL:VALUE'. Skipping this entry.");
-                    }
+        // 6. Vanilla Item Price (item-prices.yml)
+        if (price <= 0) {
+            if (this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
+                price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
+                if (price > 0 && main.getConfig().getBoolean("general.debug", false)) {
+                    main.getLogger().info("  SellAll debug - Price found for vanilla item " + itemStack.getType().name() + " in item-prices.yml: $" + price);
                 }
             }
         }
-        for(PermissionAttachmentInfo pai : player.getEffectivePermissions()){
-            if(pai.getPermission().startsWith("sellgui.bonus.")){
-                String bonusValueStr = pai.getPermission().replaceAll("sellgui.bonus.", "");
-                if(price != 0){
+
+        // --- BONUS APPLICATION ---
+        // If a base price was found from any source above, apply bonuses.
+        if (price > 0) {
+            // Enchantment Bonuses
+            if (itemStack.getItemMeta().hasEnchants()) {
+                ArrayList<String> flatBonus = new ArrayList<>(this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus"));
+                ArrayList<String> multiplierBonus = new ArrayList<>(this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus"));
+
+                for (Enchantment enchantment : itemStack.getEnchantments().keySet()) {
+                    for (String s : flatBonus) {
+                        String[] temp = s.split(":");
+                        if (temp.length >= 3 && temp[0].equalsIgnoreCase(enchantment.getKey().getKey()) && temp[1].equalsIgnoreCase(String.valueOf(itemStack.getEnchantmentLevel(enchantment)))) {
+                            try {
+                                price += Double.parseDouble(temp[2]);
+                            } catch (NumberFormatException e) {
+                                main.getLogger().warning("Invalid number format for flat enchantment bonus: '" + s + "'");
+                            }
+                        }
+                    }
+                }
+                for (Enchantment enchantment : itemStack.getEnchantments().keySet()) {
+                    for (String s : multiplierBonus) {
+                        String[] temp2 = s.split(":");
+                        if (temp2.length >= 3 && temp2[0].equalsIgnoreCase(enchantment.getKey().getKey()) && temp2[1].equalsIgnoreCase(String.valueOf(itemStack.getEnchantmentLevel(enchantment)))) {
+                            try {
+                                price *= Double.parseDouble(temp2[2]);
+                            } catch (NumberFormatException e) {
+                                main.getLogger().warning("Invalid number format for multiplier enchantment bonus: '" + s + "'");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Permission Bonuses
+            for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
+                if (pai.getPermission().startsWith("sellgui.bonus.")) {
+                    String bonusValueStr = pai.getPermission().replace("sellgui.bonus.", "");
                     try {
                         price += Double.parseDouble(bonusValueStr);
                     } catch (NumberFormatException e) {
-                        main.getLogger().warning("Invalid number format for permission bonus: '" + pai.getPermission() + "'. Expected format 'sellgui.bonus.VALUE'. Skipping this bonus.");
+                        main.getLogger().warning("Invalid number format for permission bonus: '" + pai.getPermission() + "'");
                     }
                 }
             }
         }
+
         return price;
+    }
+
+    private boolean isShulkerBox(ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) return false;
+        Material type = item.getType();
+        return type == Material.SHULKER_BOX ||
+               type == Material.WHITE_SHULKER_BOX ||
+               type == Material.ORANGE_SHULKER_BOX ||
+               type == Material.MAGENTA_SHULKER_BOX ||
+               type == Material.LIGHT_BLUE_SHULKER_BOX ||
+               type == Material.YELLOW_SHULKER_BOX ||
+               type == Material.LIME_SHULKER_BOX ||
+               type == Material.PINK_SHULKER_BOX ||
+               type == Material.GRAY_SHULKER_BOX ||
+               type == Material.LIGHT_GRAY_SHULKER_BOX ||
+               type == Material.CYAN_SHULKER_BOX ||
+               type == Material.PURPLE_SHULKER_BOX ||
+               type == Material.BLUE_SHULKER_BOX ||
+               type == Material.BROWN_SHULKER_BOX ||
+               type == Material.GREEN_SHULKER_BOX ||
+               type == Material.RED_SHULKER_BOX ||
+               type == Material.BLACK_SHULKER_BOX;
     }
 
     public double getTotal(Inventory inventory, Player player) {

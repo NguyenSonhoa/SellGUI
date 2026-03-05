@@ -6,7 +6,7 @@
 # Main Sell GUI
 # ===================================
 sell_gui:
-  title: "&6&lSell GUI"
+  title: "&8/ѕᴇʟʟ > ѕᴇʟʟ ɢᴜɪ"
   size: 54
   positions:
     sell_button: [49]
@@ -17,7 +17,7 @@ sell_gui:
     sell_button:
       material: "EMERALD"
       custom-model-data: 0
-      name: "&a&l💰 Sell Items"
+      name: "&eᴄᴀʟᴄᴜʟᴀᴛɪᴏɴ"
       lore:
         - "&7Click to total"
         - "&7item price in this GUI"
@@ -25,12 +25,12 @@ sell_gui:
     confirm_button:
       material: "GREEN_CONCRETE"
       custom-model-data: 0
-      name: "&a&l✅ Confirm Sale"
+      name: "&aᴄᴏɴꜰɪʀᴍ ѕᴇʟʟ"
       lore:
         - "&7Click to confirm"
         - "&7selling all items"
         - ""
-        - "&6&lTotal: &e$%total%"
+        - "&fTotal: &e$%total%"
       glow: true
     filler:
       material: "GRAY_STAINED_GLASS_PANE"
@@ -40,7 +40,7 @@ sell_gui:
     no_items:
       material: "BARRIER"
       custom-model-data: 0
-      name: "&c&l❌ No Items to Sell"
+      name: "&c&l❌ ɴᴏ ɪᴛᴇᴍѕ ᴛᴏ ѕᴇʟʟ"
       lore:
         - "&7Add items to sell them"
         - "&7for money!"

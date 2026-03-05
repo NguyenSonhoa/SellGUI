@@ -3,23 +3,43 @@ package me.aov.sellgui.managers;
 import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.utils.ItemIdentifier;
 import net.brcdev.shopgui.ShopGuiPlusApi;
+import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class PriceManager {
 
     private final SellGUIMain main;
+    private final Map<ItemStack, Double> customItemPrices = new HashMap<>();
 
     public PriceManager(SellGUIMain main) {
         this.main = main;
+        loadCustomItemPrices();
+    }
+
+    public void loadCustomItemPrices() {
+        customItemPrices.clear();
+        ConfigurationSection customItemsSection = main.getCustomItemsConfig().getConfigurationSection("custom-items");
+        if (customItemsSection != null) {
+            for (String key : customItemsSection.getKeys(false)) {
+                ItemStack item = customItemsSection.getItemStack(key + ".item");
+                double price = customItemsSection.getDouble(key + ".price");
+                if (item != null && price > 0) {
+                    customItemPrices.put(item, price);
+                }
+            }
+        }
     }
 
     private double getShopGUIPlusPrice(ItemStack itemStack, Player player) {
@@ -30,12 +50,12 @@ public class PriceManager {
                 // Fallback to checking price without player (ignores permissions)
                 price = ShopGuiPlusApi.getItemStackPriceSell(itemStack);
             }
-            
+
             // Return price per item
             if (price > 0) {
                 return price / itemStack.getAmount();
             }
-            
+
             return 0.0;
         } catch (Throwable t) {
             if (main.getConfig().getBoolean("general.debug", false)) {
@@ -128,13 +148,22 @@ public class PriceManager {
 
         if (main.getNBTPriceManager() != null) {
             try {
-                double nbtPrice = main.getNBTPriceManager().getPriceFromNBT(itemStack);
+                double nbtPrice = main.getNBTPriceManager().getSellPrice(itemStack);
                 if (nbtPrice > 0) {
                     return nbtPrice;
                 }
             } catch (Exception e) {
 
             }
+        }
+
+        // Check for custom item price first (Priority over Essentials)
+        double customPrice = getCustomItemPrice(itemStack);
+        if (customPrice > 0) {
+            if (main.getConfig().getBoolean("general.debug", false)) {
+                main.getLogger().info("Using custom item price for " + itemStack.getType() + ": $" + customPrice);
+            }
+            return applyRandomVariation(customPrice);
         }
 
         if (main.hasEssentials()) {
@@ -220,7 +249,7 @@ public class PriceManager {
                 return getEssentialsPrice(itemStack);
             case "nbt":
                 if (main.getNBTPriceManager() != null) {
-                    return main.getNBTPriceManager().getPriceFromNBT(itemStack);
+                    return main.getNBTPriceManager().getSellPrice(itemStack);
                 }
                 return 0.0;
             case "shopguiplus":
@@ -312,6 +341,23 @@ public class PriceManager {
     }
 
     private boolean setVanillaPrice(ItemStack itemStack, double price) {
+        // If the item has a display name or lore, treat it as a custom item
+        if (itemStack.hasItemMeta() && (itemStack.getItemMeta().hasDisplayName() || itemStack.getItemMeta().hasLore())) {
+            // 1. Save to NBT (Instance specific)
+            if (main.getNBTPriceManager() != null) {
+                try {
+                    main.getNBTPriceManager().setSellPrice(itemStack, price);
+                } catch (Exception e) {
+                    main.getLogger().warning("Failed to save custom item price to NBT: " + e.getMessage());
+                }
+            }
+
+            // 2. Save to customitems.yml (Global definition for this "type" of custom item)
+            saveCustomItemToFile(itemStack, price);
+            return true;
+        }
+
+        // Otherwise, save it as a normal vanilla item
         try {
             main.getItemPricesConfig().set(itemStack.getType().name(), price);
             main.getItemPricesConfig().save(getItemPricesFile());
@@ -321,6 +367,43 @@ public class PriceManager {
             return false;
         }
     }
+
+    private void saveCustomItemToFile(ItemStack item, double price) {
+        FileConfiguration config = main.getCustomItemsConfig();
+        ConfigurationSection section = config.getConfigurationSection("custom-items");
+        if (section == null) {
+            section = config.createSection("custom-items");
+        }
+
+        String foundKey = null;
+        for (String key : section.getKeys(false)) {
+            ItemStack existingItem = section.getItemStack(key + ".item");
+            if (isSimilarCustomItem(item, existingItem)) {
+                foundKey = key;
+                break;
+            }
+        }
+
+        if (foundKey == null) {
+            foundKey = UUID.randomUUID().toString();
+        }
+
+        // Create a copy of the item to save, amount 1
+        ItemStack itemToSave = item.clone();
+        itemToSave.setAmount(1);
+
+        config.set("custom-items." + foundKey + ".item", itemToSave);
+        config.set("custom-items." + foundKey + ".price", price);
+
+        try {
+            config.save(new File(main.getDataFolder(), "customitems.yml"));
+        } catch (IOException e) {
+            main.getLogger().warning("Failed to save customitems.yml: " + e.getMessage());
+        }
+
+        loadCustomItemPrices();
+    }
+
     private File getMMOItemsPricesFile() {
         return new File(main.getDataFolder(), "mmoitems.yml");
     }
@@ -333,7 +416,101 @@ public class PriceManager {
     }
 
     private double getVanillaPrice(ItemStack itemStack) {
-        return main.getItemPricesConfig().getDouble(itemStack.getType().name(), 0.0);
+        // Check for custom item price first
+        double customPrice = getCustomItemPrice(itemStack);
+        if (customPrice > 0) {
+            return customPrice;
+        }
+
+        // Fallback to default vanilla price
+        String typeMaterial = String.valueOf(itemStack.getType());
+        if (itemStack.getType() == Material.SHULKER_BOX ||
+                itemStack.getType() == Material.WHITE_SHULKER_BOX ||
+                itemStack.getType() == Material.ORANGE_SHULKER_BOX ||
+                itemStack.getType() == Material.MAGENTA_SHULKER_BOX ||
+                itemStack.getType() == Material.LIGHT_BLUE_SHULKER_BOX ||
+                itemStack.getType() == Material.YELLOW_SHULKER_BOX ||
+                itemStack.getType() == Material.LIME_SHULKER_BOX ||
+                itemStack.getType() == Material.PINK_SHULKER_BOX ||
+                itemStack.getType() == Material.GRAY_SHULKER_BOX ||
+                itemStack.getType() == Material.LIGHT_GRAY_SHULKER_BOX ||
+                itemStack.getType() == Material.CYAN_SHULKER_BOX ||
+                itemStack.getType() == Material.PURPLE_SHULKER_BOX ||
+                itemStack.getType() == Material.BLUE_SHULKER_BOX ||
+                itemStack.getType() == Material.BROWN_SHULKER_BOX ||
+                itemStack.getType() == Material.GREEN_SHULKER_BOX ||
+                itemStack.getType() == Material.RED_SHULKER_BOX ||
+                itemStack.getType() == Material.BLACK_SHULKER_BOX) {
+            return main.getItemPricesConfig().getDouble("SHULKER_BOX", 0.0);
+        }
+        return main.getItemPricesConfig().getDouble(typeMaterial, 0.0);
+    }
+
+    private boolean isSimilarCustomItem(ItemStack item1, ItemStack item2) {
+        if (item1 == null || item2 == null) {
+            return false;
+        }
+        if (item1.getType() != item2.getType()) {
+            return false;
+        }
+
+        boolean hasMeta1 = item1.hasItemMeta();
+        boolean hasMeta2 = item2.hasItemMeta();
+
+        if (hasMeta1 != hasMeta2) {
+            return false;
+        }
+
+        if (!hasMeta1) { // If neither has meta and types are same, they are similar
+            return true;
+        }
+
+        // Both have meta, now compare the important parts
+        ItemMeta meta1 = item1.getItemMeta();
+        ItemMeta meta2 = item2.getItemMeta();
+
+        // Compare Display Name
+        boolean hasName1 = meta1.hasDisplayName();
+        boolean hasName2 = meta2.hasDisplayName();
+        if (hasName1 != hasName2) {
+            return false;
+        }
+        if (hasName1 && !meta1.getDisplayName().equals(meta2.getDisplayName())) {
+            return false;
+        }
+
+        // Compare Lore
+        boolean hasLore1 = meta1.hasLore();
+        boolean hasLore2 = meta2.hasLore();
+        if (hasLore1 != hasLore2) {
+            return false;
+        }
+        if (hasLore1 && !meta1.getLore().equals(meta2.getLore())) {
+            return false;
+        }
+
+        // Compare Custom Model Data
+        boolean hasModel1 = meta1.hasCustomModelData();
+        boolean hasModel2 = meta2.hasCustomModelData();
+        if (hasModel1 != hasModel2) {
+            return false;
+        }
+        if (hasModel1 && meta1.getCustomModelData() != meta2.getCustomModelData()) {
+            return false;
+        }
+
+        // If all important parts match, we consider them similar for pricing
+        return true;
+    }
+
+    private double getCustomItemPrice(ItemStack itemStack) {
+        if (customItemPrices == null) return 0.0;
+        for (Map.Entry<ItemStack, Double> entry : customItemPrices.entrySet()) {
+            if (isSimilarCustomItem(itemStack, entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return 0.0;
     }
 
     private boolean setMMOItemPrice(ItemStack itemStack, double price) {

@@ -1,14 +1,19 @@
 package me.aov.sellgui.config;
 
 import me.aov.sellgui.SellGUIMain;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ConfigManager {
 
@@ -16,12 +21,17 @@ public class ConfigManager {
     private final Map<String, FileConfiguration> configs;
     private final Map<String, File> configFiles;
     private Map<String, Double> sellBonusPermissions; // New field for sell bonus permissions
+    private List<String> worthLoreBlacklistGuiTitles; // Cache for blacklisted GUI titles
+
+    // Pattern for hex color codes like &#RRGGBB or &x&R&R&G&G&B&B
+    private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("&#([0-9a-fA-F]{6})|&x(&[0-9a-fA-F]){6}");
 
     public ConfigManager(SellGUIMain plugin) {
         this.plugin = plugin;
         this.configs = new HashMap<>();
         this.configFiles = new HashMap<>();
         this.sellBonusPermissions = new HashMap<>(); // Initialize the map
+        this.worthLoreBlacklistGuiTitles = new ArrayList<>(); // Initialize the blacklist
     }
 
     public void initializeConfigs() {
@@ -39,6 +49,7 @@ public class ConfigManager {
         loadConfig("random-prices");
 
         loadSellBonusPermissions(); // Load sell bonus permissions after config.yml is loaded
+        loadWorthLoreBlacklistGuiTitles(); // Load the blacklist
 
         plugin.getLogger().info("Loaded " + configs.size() + " configuration files");
     }
@@ -78,6 +89,21 @@ public class ConfigManager {
         } else {
             plugin.getLogger().info("No 'economy.sell-bonuses' section found in config.yml.");
         }
+    }
+
+    private void loadWorthLoreBlacklistGuiTitles() {
+        FileConfiguration mainConfig = getMainConfig();
+        if (mainConfig == null) {
+            plugin.getLogger().warning("Main config (config.yml) not loaded, cannot load worth lore blacklist.");
+            return;
+        }
+
+        List<String> rawTitles = mainConfig.getStringList("general.worth-lore-blacklist-gui-titles");
+        worthLoreBlacklistGuiTitles.clear();
+        for (String title : rawTitles) {
+            worthLoreBlacklistGuiTitles.add(stripColorCodes(title));
+        }
+        plugin.getLogger().info("Loaded " + worthLoreBlacklistGuiTitles.size() + " worth lore blacklist GUI titles.");
     }
 
     public FileConfiguration getConfig(String configName) {
@@ -253,6 +279,7 @@ public class ConfigManager {
             reloadConfig(configName);
         }
         loadSellBonusPermissions(); // Reload sell bonus permissions as well
+        loadWorthLoreBlacklistGuiTitles(); // Reload the blacklist
         plugin.getLogger().info("Reloaded all configuration files");
     }
 
@@ -294,5 +321,41 @@ public class ConfigManager {
 
     public Map<String, Double> getSellBonusPermissions() {
         return sellBonusPermissions;
+    }
+
+    public List<String> getWorthLoreBlacklistGuiTitles() {
+        return worthLoreBlacklistGuiTitles;
+    }
+
+    public void reload() {
+        // First, clear all existing configurations and cached data
+        configs.clear();
+        configFiles.clear();
+        sellBonusPermissions.clear();
+        worthLoreBlacklistGuiTitles.clear();
+
+        // Now, re-initialize all configurations from files
+        initializeConfigs();
+    }
+
+    /**
+     * Strips all Minecraft color codes (legacy and hex) from a given string.
+     *
+     * @param text The string to strip color codes from.
+     * @return The string with all color codes removed.
+     */
+    public static String stripColorCodes(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+
+        // Remove legacy color codes (&a, &b, etc.)
+        String strippedText = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', text));
+
+        // Remove hex color codes (&#RRGGBB or &x&R&R&G&G&B&B)
+        Matcher matcher = HEX_COLOR_PATTERN.matcher(strippedText);
+        strippedText = matcher.replaceAll("");
+
+        return strippedText;
     }
 }

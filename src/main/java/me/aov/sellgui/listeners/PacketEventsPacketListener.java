@@ -8,10 +8,13 @@ import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.item.ItemStack;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientClickWindow;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientCloseWindow;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerOpenWindow;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetSlot;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import me.aov.sellgui.SellGUIMain;
+import me.aov.sellgui.config.ConfigManager;
 import me.aov.sellgui.managers.PriceManager;
 import me.aov.sellgui.utils.ColorUtils;
 import org.bukkit.Material;
@@ -28,10 +31,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PacketEventsPacketListener extends PacketListenerAbstract {
 
     private final SellGUIMain main;
+    private final Map<Player, String> openGuiTitles = new ConcurrentHashMap<>();
 
     public PacketEventsPacketListener(SellGUIMain main) {
         super(PacketListenerPriority.HIGH);
@@ -44,6 +50,8 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
             handleWindowItems(event);
         } else if (event.getPacketType() == PacketType.Play.Server.SET_SLOT) {
             handleSetSlot(event);
+        } else if (event.getPacketType() == PacketType.Play.Server.OPEN_WINDOW) {
+            handleOpenWindow(event);
         }
     }
 
@@ -51,7 +59,25 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
     public void onPacketReceive(PacketReceiveEvent event) {
         if (event.getPacketType() == PacketType.Play.Client.CLICK_WINDOW) {
             handleWindowClick(event);
+        } else if (event.getPacketType() == PacketType.Play.Client.CLOSE_WINDOW) {
+            handleCloseWindow(event);
         }
+    }
+
+    private void handleOpenWindow(PacketSendEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) return;
+        WrapperPlayServerOpenWindow wrapper = new WrapperPlayServerOpenWindow(event);
+
+        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer serializer = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText();
+        String plainTitle = serializer.serialize(wrapper.getTitle());
+
+        String cleanTitle = ConfigManager.stripColorCodes(plainTitle);
+        openGuiTitles.put(player, cleanTitle);
+    }
+
+    private void handleCloseWindow(PacketReceiveEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) return;
+        openGuiTitles.remove(player);
     }
 
     private void handleWindowClick(PacketReceiveEvent event) {
@@ -60,23 +86,22 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         WrapperPlayClientClickWindow wrapper = new WrapperPlayClientClickWindow(event);
         int windowId = wrapper.getWindowId();
 
-        if (windowId != 0) return;
+        // We need to update the inventory after a click to ensure worth lore is updated
+        main.getServer().getScheduler().runTaskLater(main, player::updateInventory, 1L);
 
         int stateId = wrapper.getStateId().orElse(0);
 
         int button = wrapper.getButton();
         int slot = wrapper.getSlot();
 
+        // If clicking in hotbar (0-8) while inventory is open (slots 9-44)
         if (button >= 0 && button <= 8 && slot >= 9 && slot <= 44) {
-
             main.getServer().getScheduler().runTaskLater(main, () -> {
-
-                updateItemAtProtocolSlot(player, slot, stateId);
-                int hotbarProtocolSlot = button + 36;
-                updateItemAtProtocolSlot(player, hotbarProtocolSlot, stateId);
+                updateItemAtProtocolSlot(player, slot, stateId); // Update the clicked slot
+                int hotbarProtocolSlot = button + 36; // Calculate hotbar slot
+                updateItemAtProtocolSlot(player, hotbarProtocolSlot, stateId); // Update the hotbar slot
             }, 1L);
         } else {
-
             main.getServer().getScheduler().runTaskLater(main, () -> updateItemAtProtocolSlot(player, slot, stateId), 1L);
         }
     }
@@ -97,10 +122,15 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
     }
 
     private org.bukkit.inventory.ItemStack getItemFromProtocolSlot(Player player, int protocolSlot) {
-
-        if (protocolSlot >= 9 && protocolSlot <= 35) {
+        // Protocol slots for player inventory:
+        // 0-8: Hotbar
+        // 9-35: Main inventory
+        // 36-39: Armor slots
+        // 40: Offhand
+        // For simplicity, we'll focus on main inventory and hotbar for now.
+        if (protocolSlot >= 9 && protocolSlot <= 35) { // Main inventory
             return player.getInventory().getItem(protocolSlot);
-        } else if (protocolSlot >= 36 && protocolSlot <= 44) {
+        } else if (protocolSlot >= 36 && protocolSlot <= 44) { // Hotbar (protocol 36-44 maps to bukkit 0-8)
             return player.getInventory().getItem(protocolSlot - 36);
         }
         return null;
@@ -144,47 +174,67 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
 
         org.bukkit.inventory.ItemStack bukkitItem = SpigotConversionUtil.toBukkitItemStack(item);
 
+        // Don't process special GUI items
         if (isGuiItem(bukkitItem)) {
             return item;
         }
 
-        double price = calculatePrice(bukkitItem, player) * bukkitItem.getAmount();
         ItemMeta meta = bukkitItem.getItemMeta();
+        if (meta == null) {
+            return item;
+        }
 
-        if (meta != null) {
-            List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-            String worthLineTemplate = main.getMessagesConfig().getString("sell.lore_worth", "&7Worth: &a$%price%");
-            final String worthPrefix;
-            if (worthLineTemplate.contains("%price%")) {
-                String[] split = worthLineTemplate.split("%price%");
-                if (split.length > 0) {
-                    worthPrefix = ColorUtils.stripColor(split[0]);
-                } else {
-                    worthPrefix = "";
+        List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        String worthLineTemplate = main.getMessagesConfig().getString("sell.lore_worth", "&7Worth: &a$%price%");
+        final String worthPrefix;
+        if (worthLineTemplate.contains("%price%")) {
+            String[] split = worthLineTemplate.split("%price%");
+            worthPrefix = (split.length > 0) ? ColorUtils.stripColor(split[0]) : "";
+        } else {
+            worthPrefix = "";
+        }
+
+        // Step 1: Always try to remove any existing worth lore
+        boolean removed = lore.removeIf(line -> !worthPrefix.isEmpty() && ColorUtils.stripColor(line).startsWith(worthPrefix));
+        boolean added = false;
+
+        // Step 2: Check if we should add a new worth lore
+        String currentGuiTitle = openGuiTitles.get(player);
+        boolean isBlacklisted = currentGuiTitle != null && main.getConfigManager().getWorthLoreBlacklistGuiTitles().contains(currentGuiTitle);
+
+        if (!isBlacklisted) {
+            if (isShulkerBox(bukkitItem) && bukkitItem.getItemMeta() instanceof BlockStateMeta) {
+                BigDecimal itemPrice = getBaseItemPrice(bukkitItem, player);
+                BigDecimal contentsPrice = getShulkerContentsPrice(bukkitItem, player);
+                BigDecimal totalValue = itemPrice.add(contentsPrice);
+
+                if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal finalTotalValue = applyPermissionBonuses(player, totalValue).multiply(BigDecimal.valueOf(bukkitItem.getAmount()));
+
+                    String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", finalTotalValue));
+                    lore.add(ColorUtils.color(worthLine));
+                    added = true;
                 }
             } else {
-                worthPrefix = "";
-            }
-
-            boolean removed = lore.removeIf(line -> !worthPrefix.isEmpty() && ColorUtils.stripColor(line).startsWith(worthPrefix));
-
-            boolean wasModified = false;
-
-            if (price > 0) {
-                String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", price));
-                lore.add(ColorUtils.color(worthLine));
-                wasModified = true;
-            }
-
-            if (wasModified || removed) {
-                meta.setLore(lore);
-                bukkitItem.setItemMeta(meta);
-                if (modifiedFlag != null) {
-                    modifiedFlag[0] = true;
+                double price = calculatePrice(bukkitItem, player) * bukkitItem.getAmount();
+                if (price > 0) {
+                    String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", price));
+                    lore.add(ColorUtils.color(worthLine));
+                    added = true;
                 }
-                return SpigotConversionUtil.fromBukkitItemStack(bukkitItem);
             }
         }
+
+        // Step 3: If anything changed, update the item
+        if (removed || added) {
+            meta.setLore(lore);
+            bukkitItem.setItemMeta(meta);
+            if (modifiedFlag != null) {
+                modifiedFlag[0] = true;
+            }
+            return SpigotConversionUtil.fromBukkitItemStack(bukkitItem);
+        }
+
         return item;
     }
 
@@ -196,9 +246,30 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         return meta.getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
     }
 
-    private double calculatePrice(org.bukkit.inventory.ItemStack itemStack, Player player) {
+    private boolean isShulkerBox(org.bukkit.inventory.ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) return false;
+        return item.getType() == Material.SHULKER_BOX ||
+                item.getType() == Material.WHITE_SHULKER_BOX ||
+                item.getType() == Material.ORANGE_SHULKER_BOX ||
+                item.getType() == Material.MAGENTA_SHULKER_BOX ||
+                item.getType() == Material.LIGHT_BLUE_SHULKER_BOX ||
+                item.getType() == Material.YELLOW_SHULKER_BOX ||
+                item.getType() == Material.LIME_SHULKER_BOX ||
+                item.getType() == Material.PINK_SHULKER_BOX ||
+                item.getType() == Material.GRAY_SHULKER_BOX ||
+                item.getType() == Material.LIGHT_GRAY_SHULKER_BOX ||
+                item.getType() == Material.CYAN_SHULKER_BOX ||
+                item.getType() == Material.PURPLE_SHULKER_BOX ||
+                item.getType() == Material.BLUE_SHULKER_BOX ||
+                item.getType() == Material.BROWN_SHULKER_BOX ||
+                item.getType() == Material.GREEN_SHULKER_BOX ||
+                item.getType() == Material.RED_SHULKER_BOX ||
+                item.getType() == Material.BLACK_SHULKER_BOX;
+    }
+
+    private BigDecimal getBaseItemPrice(org.bukkit.inventory.ItemStack itemStack, Player player) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
 
         BigDecimal itemPrice = BigDecimal.ZERO;
@@ -228,9 +299,14 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
                 if (essentialsPrice.compareTo(BigDecimal.ZERO) > 0) {
                     itemPrice = essentialsPrice;
                 }
-            } else if (this.main.getItemPricesConfig().contains(itemToPrice.getType().name())) {
-                itemPrice = BigDecimal.valueOf(this.main.getItemPricesConfig().getDouble(itemToPrice.getType().name()));
-            } else if (player != null) {
+            } else {
+                String key = itemToPrice.getType().name();
+                if (isShulkerBox(itemToPrice)) {
+                    key = "SHULKER_BOX";
+                }
+                itemPrice = BigDecimal.valueOf(this.main.getItemPricesConfig().getDouble(key, 0.0));
+            }
+            if (itemPrice.compareTo(BigDecimal.ZERO) == 0 && player != null) {
                 Plugin shopGuiPlus = this.main.getServer().getPluginManager().getPlugin("ShopGuiPlus");
                 if (shopGuiPlus != null && shopGuiPlus.isEnabled()) {
                     try {
@@ -239,26 +315,40 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
                             itemPrice = BigDecimal.valueOf(shopGuiPrice);
                         }
                     } catch (NoClassDefFoundError | Exception e) {
-
+                        // Ignore if ShopGUIPlus API is not available or throws an error
                     }
                 }
             }
         }
 
         if (main.getRandomPriceManager() != null && !main.getRandomPriceManager().canBeSold(itemToPrice)) {
-            return 0.0;
+            return BigDecimal.ZERO;
         }
 
+        return itemPrice;
+    }
+
+    private BigDecimal getShulkerContentsPrice(org.bukkit.inventory.ItemStack itemStack, Player player) {
         BigDecimal contentsPrice = BigDecimal.ZERO;
-        if (itemStack.getType().name().endsWith("_SHULKER_BOX") && itemStack.getItemMeta() instanceof BlockStateMeta meta) {
+        if (isShulkerBox(itemStack) && itemStack.getItemMeta() instanceof BlockStateMeta meta) {
             if (meta.getBlockState() instanceof ShulkerBox shulker) {
                 for (org.bukkit.inventory.ItemStack contained : shulker.getInventory().getContents()) {
                     if (contained != null && !contained.getType().isAir()) {
-                        contentsPrice = contentsPrice.add(BigDecimal.valueOf(calculatePrice(contained, player)).multiply(BigDecimal.valueOf(contained.getAmount())));
+                        contentsPrice = contentsPrice.add(getBaseItemPrice(contained, player).multiply(BigDecimal.valueOf(contained.getAmount())));
                     }
                 }
             }
         }
+        return contentsPrice;
+    }
+
+    private double calculatePrice(org.bukkit.inventory.ItemStack itemStack, Player player) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return 0.0;
+        }
+
+        BigDecimal itemPrice = getBaseItemPrice(itemStack, player);
+        BigDecimal contentsPrice = getShulkerContentsPrice(itemStack, player);
 
         BigDecimal totalPrice = itemPrice.add(contentsPrice);
 
@@ -277,7 +367,7 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
                     String percentStr = pai.getPermission().substring("sellgui.bonus.".length());
                     bonusPercent = bonusPercent.add(new BigDecimal(percentStr));
                 } catch (NumberFormatException e) {
-
+                    // Ignore invalid bonus permissions
                 }
             }
         }
@@ -297,4 +387,3 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         return price;
     }
 }
-
