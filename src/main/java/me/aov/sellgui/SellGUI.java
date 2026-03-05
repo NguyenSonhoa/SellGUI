@@ -1,5 +1,4 @@
 package me.aov.sellgui;
-
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -7,7 +6,6 @@ import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import me.aov.sellgui.utils.ItemIdentifier;
 import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.managers.PriceManager;
@@ -27,10 +25,8 @@ import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.persistence.PersistentDataType;
-
 import javax.annotation.Nullable;
 import me.aov.sellgui.handlers.SoundHandler;
-
 public class SellGUI implements Listener {
     private final SellGUIMain main;
     private final Player player;
@@ -46,7 +42,6 @@ public class SellGUI implements Listener {
     private boolean isConfirmMode = false;
     private boolean sold = false;
     private final ItemNBTManager itemNBTManager;
-
     public SellGUI(SellGUIMain main, Player p, ItemNBTManager itemNBTManager) {
         this.main = main;
         this.player = p;
@@ -57,30 +52,23 @@ public class SellGUI implements Listener {
         p.openInventory(menu);
         startAutoUpdateTask();
     }
-
     private void createMenu() {
         FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
         int size = guiConfig.getInt("sell_gui.size", 54);
         this.menuTitle = guiConfig.getString("sell_gui.title", "&6&l✦ &eSell GUI &6&l✦");
-
         this.sellButtonSlots = guiConfig.getIntegerList("sell_gui.positions.sell_button");
         this.confirmButtonSlots = guiConfig.getIntegerList("sell_gui.positions.confirm_button");
-
         menu = Bukkit.createInventory((InventoryHolder) null, size, color(menuTitle));
-
         this.addFillerFromConfig();
         this.addSellButton();
     }
-
     private boolean isSellItem(ItemStack item) {
         return item(item, sellItem);
     }
-
     private boolean item(ItemStack item, ItemStack sellItem) {
         if (item == null || item.getType() != sellItem.getType()) return false;
         ItemMeta meta1 = item.getItemMeta();
         ItemMeta meta2 = sellItem.getItemMeta();
-
         return meta1.hasDisplayName() == meta2.hasDisplayName() &&
                 (!meta1.hasDisplayName() || meta1.getDisplayName().equals(meta2.getDisplayName())) &&
                 meta1.hasLore() == meta2.hasLore() &&
@@ -88,42 +76,33 @@ public class SellGUI implements Listener {
                 meta1.hasCustomModelData() == meta2.hasCustomModelData() &&
                 (!meta1.hasCustomModelData() || meta1.getCustomModelData() == meta2.getCustomModelData());
     }
-
     private boolean isConfirmItem(ItemStack item) {
         return item(item, confirmItem);
     }
-
     private void addCustomItems() {
         for (String itemPath : this.main.getCustomMenuItemsConfig().getKeys(false)) {
             if (!this.main.getCustomMenuItemsConfig().contains(itemPath + ".slot")) {
                 continue;
             }
-
             if (this.main.getCustomMenuItemsConfig().getBoolean(itemPath + ".disabled")) {
                 menu.setItem(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".slot"), filler);
                 continue;
             }
-
             ItemStack customItem = new ItemStack(Material.valueOf(this.main.getCustomMenuItemsConfig().getString(itemPath + ".material")));
             ItemMeta itemMeta = customItem.getItemMeta();
-
             if (this.main.getCustomMenuItemsConfig().contains(itemPath + ".custom-model-data")) {
                 itemMeta.setCustomModelData(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".custom-model-data"));
             }
-
             if (!this.main.getCustomMenuItemsConfig().getString(itemPath + ".name").isEmpty()) {
                 itemMeta.setDisplayName(color(this.main.getCustomMenuItemsConfig().getString(itemPath + ".name")));
             }
-
             if (this.main.getCustomMenuItemsConfig().getBoolean(itemPath + ".glimmer")) {
                 itemMeta.addEnchant(Enchantment.INFINITY, 1, false);
                 itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             }
-
             if (!this.main.getCustomMenuItemsConfig().getStringList(itemPath + ".lore").isEmpty()) {
                 itemMeta.setLore(color(this.main.getCustomMenuItemsConfig().getStringList(itemPath + ".lore")));
             }
-
             NamespacedKey key = new NamespacedKey(this.main, "custom-menu-item");
             StringBuilder sb = new StringBuilder();
             for (String command : this.main.getCustomMenuItemsConfig().getStringList(itemPath + ".commands")) {
@@ -134,7 +113,6 @@ public class SellGUI implements Listener {
             menu.setItem(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".slot"), customItem);
         }
     }
-
     public void addSellButton() {
         if (sellButtonSlots.isEmpty()) {
             this.player.sendMessage(color("&cError: sell_button slots are not defined in gui.yml."));
@@ -147,7 +125,6 @@ public class SellGUI implements Listener {
         }
         this.makeConfirmItem();
     }
-
     private void startAutoUpdateTask() {
         if (updateTaskId != -1) {
             this.main.getServer().getScheduler().cancelTask(updateTaskId);
@@ -164,15 +141,12 @@ public class SellGUI implements Listener {
             }
         }, 0L, updateInterval).getTaskId();
     }
-
     public void updateSellItemTotal() {
         if (menu == null || isConfirmMode) {
             return;
         }
-
         double currentTotal = getTotal(menu);
         ItemStack buttonToShow = (currentTotal > 0) ? sellItem : noItemsItemStack;
-
         if (currentTotal > 0) {
             ItemMeta meta = buttonToShow.getItemMeta();
             if (meta != null && meta.hasLore()) {
@@ -188,14 +162,12 @@ public class SellGUI implements Listener {
                 buttonToShow.setItemMeta(meta);
             }
         }
-
         for (int slot : sellButtonSlots) {
             if (slot >= 0 && slot < menu.getSize()) {
                 menu.setItem(slot, buttonToShow);
             }
         }
     }
-
     public void updateButtonState() {
         if (menu == null) return;
         double currentTotal = getTotal(menu);
@@ -215,21 +187,16 @@ public class SellGUI implements Listener {
             updateSellItemTotal();
         }
     }
-
     public void cleanup() {
         if (updateTaskId != -1) {
             this.main.getServer().getScheduler().cancelTask(updateTaskId);
             updateTaskId = -1;
         }
     }
-
     private void createItems() {
         FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
-
         NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
         NamespacedKey actionKey = new NamespacedKey(this.main, "guiAction");
-
-        // Sell Item
         Material sellMaterial = Material.getMaterial(guiConfig.getString("sell_gui.items.sell_button.material", "EMERALD"));
         sellItem = new ItemStack(sellMaterial != null ? sellMaterial : Material.EMERALD);
         ItemMeta sellItemMeta = sellItem.getItemMeta();
@@ -247,8 +214,6 @@ public class SellGUI implements Listener {
             sellItemMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, "sell");
             sellItem.setItemMeta(sellItemMeta);
         }
-
-        // Filler Item
         Material fillerMaterial = Material.getMaterial(guiConfig.getString("sell_gui.items.filler.material", "GRAY_STAINED_GLASS_PANE"));
         filler = new ItemStack(fillerMaterial != null ? fillerMaterial : Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta fillerMeta = filler.getItemMeta();
@@ -260,8 +225,6 @@ public class SellGUI implements Listener {
             fillerMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
             filler.setItemMeta(fillerMeta);
         }
-
-        // No Items Item
         Material noItemsMaterial = Material.getMaterial(guiConfig.getString("sell_gui.items.no_items.material", "BARRIER"));
         noItemsItemStack = new ItemStack(noItemsMaterial != null ? noItemsMaterial : Material.BARRIER);
         ItemMeta noItemsMeta = noItemsItemStack.getItemMeta();
@@ -275,7 +238,6 @@ public class SellGUI implements Listener {
             noItemsItemStack.setItemMeta(noItemsMeta);
         }
     }
-
     private void addFillerFromConfig() {
         FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
         List<Integer> fillerSlots = guiConfig.getIntegerList("sell_gui.positions.filler_slots");
@@ -287,13 +249,11 @@ public class SellGUI implements Listener {
             }
         }
     }
-
     public void makeConfirmItem() {
         FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
         Material material = Material.getMaterial(guiConfig.getString("sell_gui.items.confirm_button.material", "GREEN_CONCRETE"));
         this.confirmItem = new ItemStack(material != null ? material : Material.GREEN_CONCRETE);
         ItemMeta itemMeta = this.confirmItem.getItemMeta();
-
         if (itemMeta != null) {
             itemMeta.setDisplayName(color(guiConfig.getString("sell_gui.items.confirm_button.name", "&a&lConfirm Sale")));
             if (guiConfig.getBoolean("sell_gui.items.confirm_button.glow", true)) {
@@ -303,32 +263,24 @@ public class SellGUI implements Listener {
             if (guiConfig.contains("sell_gui.items.confirm_button.custom-model-data")) {
                 itemMeta.setCustomModelData(guiConfig.getInt("sell_gui.items.confirm_button.custom-model-data"));
             }
-
-            // New Lore Logic
             List<String> finalLore = new ArrayList<>();
             HashMap<String, Integer> itemsNeedingEvaluation = new HashMap<>();
             List<String> breakdownLore = generateItemBreakdownLore(itemsNeedingEvaluation);
-
             if (!breakdownLore.isEmpty()) {
                 finalLore.addAll(breakdownLore);
                 finalLore.add(" ");
             }
-
             List<String> loreTemplate = guiConfig.getStringList("sell_gui.items.confirm_button.lore");
             String totalValue = String.format("%.2f", getTotal(this.menu));
-
             for (String templateLine : loreTemplate) {
                 finalLore.add(templateLine.replace("%total%", totalValue));
             }
-
             if (!itemsNeedingEvaluation.isEmpty()) {
                 finalLore.add(" ");
                 finalLore.add(color("&c⚠ Some items need evaluation"));
                 finalLore.add(color("&7Use /sellgui evaluate"));
             }
-
             itemMeta.setLore(color(finalLore));
-
             NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
             NamespacedKey actionKey = new NamespacedKey(this.main, "guiAction");
             itemMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
@@ -336,26 +288,21 @@ public class SellGUI implements Listener {
             this.confirmItem.setItemMeta(itemMeta);
         }
     }
-
     private List<String> generateItemBreakdownLore(HashMap<String, Integer> itemsNeedingEvaluation) {
         List<String> lore = new ArrayList<>();
         FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
         String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
-
         HashMap<String, Integer> itemCounts = new HashMap<>();
         HashMap<String, Double> itemTotals = new HashMap<>();
         HashMap<String, String> itemDisplayNames = new HashMap<>();
-
         for (ItemStack item : this.getMenu().getContents()) {
             if (item != null && !isGuiItem(item) && !isCustomMenuItem(item)) {
                 String itemIdentifierKey = ItemIdentifier.getItemIdentifier(item);
                 String itemDisplayName = ItemIdentifier.getItemDisplayName(item);
                 itemDisplayNames.put(itemIdentifierKey, itemDisplayName);
-
                 boolean needsEvaluation = main.getRandomPriceManager() != null &&
                         main.getRandomPriceManager().requiresEvaluation(item) &&
                         !main.getRandomPriceManager().isEvaluated(item);
-
                 if (needsEvaluation) {
                     itemsNeedingEvaluation.put(itemIdentifierKey, itemsNeedingEvaluation.getOrDefault(itemIdentifierKey, 0) + item.getAmount());
                 } else {
@@ -368,14 +315,12 @@ public class SellGUI implements Listener {
                 }
             }
         }
-
         String format = guiConfig.getString("sell_gui.item_total_format", "&7%amount%x &f%item% &8= &e$%total%");
         for (String itemIdentifierKey : itemCounts.keySet()) {
             double total = itemTotals.get(itemIdentifierKey);
             int amount = itemCounts.get(itemIdentifierKey);
             double averagePrice = (amount > 0) ? total / amount : 0.0;
             String displayedItemName = itemDisplayNames.get(itemIdentifierKey);
-
             String formatted = format
                     .replace("%item%", displayedItemName)
                     .replace("%amount%", String.valueOf(amount))
@@ -383,7 +328,6 @@ public class SellGUI implements Listener {
                     .replace("%total%", String.format("%.2f", total));
             lore.add(formatted);
         }
-
         String evaluationFormat = guiConfig.getString("sell_gui.evaluation_required_format", "&7%amount%x &f%item% &c⚠ Needs Evaluation");
         for (String itemIdentifierKey : itemsNeedingEvaluation.keySet()) {
             String displayedItemName = itemDisplayNames.get(itemIdentifierKey);
@@ -392,10 +336,8 @@ public class SellGUI implements Listener {
                     .replace("%amount%", String.valueOf(itemsNeedingEvaluation.get(itemIdentifierKey)));
             lore.add(formatted);
         }
-
         return lore;
     }
-
     public boolean hasUnevaluatedItems() {
         if (main.getRandomPriceManager() == null) return false;
         for (ItemStack item : getMenu().getContents()) {
@@ -407,11 +349,9 @@ public class SellGUI implements Listener {
         }
         return false;
     }
-
     public void setConfirmMode() {
         updateButtonState();
     }
-
     public void setSellItem() {
         for (int slot : confirmButtonSlots) {
             menu.setItem(slot, null);
@@ -419,17 +359,13 @@ public class SellGUI implements Listener {
         isConfirmMode = false;
         updateSellItemTotal();
     }
-
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return 0.0;
         }
-
         BigDecimal itemPrice = BigDecimal.ZERO;
         ItemStack itemToPrice = itemStack.clone();
         itemToPrice.setAmount(1);
-
-        // Check for pre-calculated price in NBT
         if (itemToPrice.hasItemMeta()) {
             ItemMeta meta = itemToPrice.getItemMeta();
             if (meta != null) {
@@ -439,8 +375,6 @@ public class SellGUI implements Listener {
                 }
             }
         }
-
-        // If no NBT price, calculate it
         if (itemPrice.compareTo(BigDecimal.ZERO) == 0) {
             PriceManager priceManager = new PriceManager(main);
             double price = priceManager.getItemPriceWithPlayer(itemToPrice, player);
@@ -448,13 +382,9 @@ public class SellGUI implements Listener {
                 itemPrice = BigDecimal.valueOf(price);
             }
         }
-
-        // Handle RandomPriceManager
         if (main.getRandomPriceManager() != null && !main.getRandomPriceManager().canBeSold(itemToPrice)) {
             return 0.0;
         }
-
-        // Calculate shulker box contents price
         BigDecimal contentsPrice = BigDecimal.ZERO;
         if (isShulkerBox(itemStack) && itemStack.hasItemMeta() && itemStack.getItemMeta() instanceof BlockStateMeta) {
             BlockStateMeta meta = (BlockStateMeta) itemStack.getItemMeta();
@@ -467,29 +397,20 @@ public class SellGUI implements Listener {
                 }
             }
         }
-
         BigDecimal totalPrice = itemPrice.add(contentsPrice);
-
-        // Apply permission bonuses
         if (totalPrice.compareTo(BigDecimal.ZERO) > 0) {
             totalPrice = applyPermissionBonuses(player, totalPrice);
         }
-
         return totalPrice.doubleValue();
     }
-
-
     private BigDecimal applyPermissionBonuses(Player player, BigDecimal price) {
         if (player == null || price.compareTo(BigDecimal.ZERO) <= 0) return price;
-
         BigDecimal bonusPercent = BigDecimal.ZERO;
-
         for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
             if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
                 if (player.isOp() && pai.getAttachment() == null) {
                     continue; 
                 }
-
                 try {
                     String percentStr = pai.getPermission().substring("sellgui.bonus.".length());
                     bonusPercent = bonusPercent.add(new BigDecimal(percentStr));
@@ -498,15 +419,12 @@ public class SellGUI implements Listener {
                 }
             }
         }
-
         if (bonusPercent.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal multiplier = BigDecimal.ONE.add(bonusPercent.divide(new BigDecimal("100")));
             price = price.multiply(multiplier);
         }
-
         return price;
     }
-
     private boolean isShulkerBox(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return false;
         Material type = item.getType();
@@ -528,29 +446,22 @@ public class SellGUI implements Listener {
                 type == Material.RED_SHULKER_BOX ||
                 type == Material.BLACK_SHULKER_BOX;
     }
-
     public double getTotal(Inventory inventory) {
         BigDecimal total = BigDecimal.ZERO;
         String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
-
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack == null || itemStack.getType().isAir() || isGuiItem(itemStack) || isCustomMenuItem(itemStack)) {
                 continue;
             }
-
             if (main.getRandomPriceManager() != null) {
                 if (!main.getRandomPriceManager().canBeSold(itemStack) ||
                         (main.getRandomPriceManager().hasRandomPrice(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack))) {
                     continue;
                 }
             }
-
             double pricePerItem = getPrice(itemStack, player);
-
             if (pricePerItem > 0) {
                 if (calculationMethod.equals("shopguiplus")) {
-                    // ShopGUIPlus price is often for the whole stack, but our getPrice is for one item.
-                    // Let's assume getPrice is correct per item and multiply by amount unless it's a shulker.
                     if (isShulkerBox(itemStack)) {
                         total = total.add(BigDecimal.valueOf(pricePerItem));
                     } else {
@@ -567,32 +478,26 @@ public class SellGUI implements Listener {
         }
         return total.doubleValue();
     }
-
-
     private boolean isGuiItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
         ItemMeta meta = item.getItemMeta();
         NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
         return meta.getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
     }
-
     private boolean isCustomMenuItem(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
         return item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(this.main, "custom-menu-item"), PersistentDataType.STRING);
     }
-
     public void logSell(ItemStack itemStack) {
         if (itemStack != null) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(this.getMain().getLog(), true))) {
                 Date now = new Date();
                 SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
                 ItemIdentifier.ItemType itemTypeEnum = ItemIdentifier.getItemType(itemStack);
                 String itemType = itemTypeEnum.name();
                 String itemId = ItemIdentifier.getItemIdentifier(itemStack);
                 String displayName = org.bukkit.ChatColor.stripColor(ItemIdentifier.getItemDisplayName(itemStack));
                 double unitPrice = this.getPrice(itemStack, player);
-
                 String calculationMethod = this.getMain().getConfig().getString("prices.calculation-method", "auto").toLowerCase();
                 double totalPrice;
                 if (calculationMethod.equals("shopguiplus")) {
@@ -600,9 +505,7 @@ public class SellGUI implements Listener {
                 } else {
                     totalPrice = unitPrice * itemStack.getAmount();
                 }
-
                 String playerName = this.getPlayer().getName();
-
                 String logEntry = String.format("[SELLGUI] %s|%s|%s|%d|%.2f|%.2f|%s|%s",
                         itemType,
                         itemId,
@@ -613,7 +516,6 @@ public class SellGUI implements Listener {
                         playerName,
                         format.format(now)
                 );
-
                 writer.append(logEntry + " ");
                 writer.flush();
             } catch (IOException e) {
@@ -622,7 +524,6 @@ public class SellGUI implements Listener {
             }
         }
     }
-
     public void sellItems(Inventory inventory) {
         if (hasUnevaluatedItems()) {
             String message = main.getMessagesConfig().getString("sell.evaluation_required", "&cSome items must be evaluated before selling.");
@@ -630,7 +531,6 @@ public class SellGUI implements Listener {
             setSellItem();
             return;
         }
-
         double total = getTotal(inventory);
         if (total <= 0) {
             String message = main.getMessagesConfig().getString("sell.no_items", "&cNothing to sell!");
@@ -638,10 +538,8 @@ public class SellGUI implements Listener {
             setSellItem();
             return;
         }
-
         this.main.getEcon().depositPlayer(this.player, total);
         this.setSold(true);
-
         for (ItemStack item : inventory.getContents()) {
             if (item != null && !isGuiItem(item) && !isCustomMenuItem(item)) {
                 if (getPrice(item, player) > 0 && !hasUnevaluatedItems()) {
@@ -658,44 +556,34 @@ public class SellGUI implements Listener {
         } else {
             setSellItem();
         }
-
         String soldMessage = main.getMessagesConfig().getString("sell.sold_success", "&a✅ Sold items for &e$%total%!");
         player.sendMessage(color(soldMessage.replace("%total%", String.format("%.2f", total))));
         SoundHandler.playConfigSound(player, "sounds.feedback.success");
     }
-
     public ItemStack getConfirmItem() {
         return this.confirmItem;
     }
-
     public Player getPlayer() {
         return this.player;
     }
-
     public ItemStack getSellItem() {
         return sellItem;
     }
-
     public Inventory getMenu() {
         return menu;
     }
-
     public SellGUIMain getMain() {
         return this.main;
     }
-
     public boolean isConfirmMode() {
         return this.isConfirmMode;
     }
-
     public boolean isSold() {
         return this.sold;
     }
-
     public void setSold(boolean sold) {
         this.sold = sold;
     }
-
     public String color(String s) {
         if (s == null) return "";
         if (main.isPlaceholderAPIAvailable()) {
@@ -703,10 +591,8 @@ public class SellGUI implements Listener {
         }
         return ColorUtils.color(s);
     }
-
     public List<String> color(List<String> lore) {
         if (lore == null) return new ArrayList<>();
         return lore.stream().map(this::color).collect(Collectors.toList());
     }
-
 }
