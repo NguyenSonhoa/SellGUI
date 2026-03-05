@@ -1,5 +1,4 @@
 package me.aov.sellgui.utils;
-
 import io.lumine.mythic.lib.api.item.NBTItem;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -9,23 +8,18 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 public class ItemIdentifier {
-
     private static boolean hasMMOItemsPlugin;
     private static boolean hasNexoPlugin;
     private static NamespacedKey NEXO_ID_KEY;
-
     static {
         hasMMOItemsPlugin = Bukkit.getPluginManager().getPlugin("MMOItems") != null;
         hasNexoPlugin = Bukkit.getPluginManager().getPlugin("Nexo") != null;
-
         if (hasNexoPlugin) {
             try {
                 Class<?> nexoItemsClass = Class.forName("com.nexomc.nexo.api.NexoItems");
@@ -36,33 +30,23 @@ public class ItemIdentifier {
             }
         }
     }
-
     public enum ItemType {
         VANILLA, MMOITEMS, NEXO, UNKNOWN
     }
-
-    // =====================================================================
     public static ItemType getItemType(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return ItemType.UNKNOWN;
-
         if (hasMMOItemsPlugin) {
             try {
                 NBTItem nbt = NBTItem.get(item);
                 if (nbt.hasTag("MMOITEMS_ITEM_ID")) return ItemType.MMOITEMS;
             } catch (Exception ignored) {}
         }
-
         if (hasNexoPlugin && isNexoItem(item)) return ItemType.NEXO;
-
         return ItemType.VANILLA;
     }
-
-    // =====================================================================
     public static String getItemIdentifier(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return null;
-
         ItemType type = getItemType(item);
-
         try {
             if (type == ItemType.MMOITEMS && hasMMOItemsPlugin) {
                 NBTItem nbt = NBTItem.get(item);
@@ -78,23 +62,17 @@ public class ItemIdentifier {
                 }
             }
         } catch (Exception ignored) {}
-
         return type == ItemType.VANILLA ? "VANILLA:" + item.getType().name() : null;
     }
-
-    // =====================================================================
     public static String getItemDisplayName(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return "Unknown Item";
-
-        // MMOItems
         if (hasMMOItemsPlugin) {
             try {
                 NBTItem nbt = NBTItem.get(item);
                 if (nbt.hasTag("display.Name")) {
                     String json = nbt.getString("display.Name");
-                    // Chuyển JSON → legacy color (&a, &l,...)
                     return ChatColor.translateAlternateColorCodes('&',
-                            net.md_5.bungee.api.ChatColor.of("#").toString() + // dummy để parse
+                            net.md_5.bungee.api.ChatColor.of("#").toString() + 
                                     net.md_5.bungee.chat.ComponentSerializer.toString(
                                             net.md_5.bungee.chat.ComponentSerializer.parse(json)[0]));
                 }
@@ -103,8 +81,6 @@ public class ItemIdentifier {
                 }
             } catch (Exception ignored) {}
         }
-
-        // Nexo
         if (hasNexoPlugin) {
             try {
                 Class<?> clazz = Class.forName("com.nexomc.nexo.api.NexoItems");
@@ -113,8 +89,6 @@ public class ItemIdentifier {
                 if (name != null && !name.isEmpty()) return name;
             } catch (Exception ignored) {}
         }
-
-        // Vanilla
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             if (meta.hasDisplayName()) return meta.getDisplayName();
@@ -122,20 +96,15 @@ public class ItemIdentifier {
                 if (meta.hasItemName()) return meta.getItemName();
             } catch (Throwable ignored) {}
         }
-
         String name = item.getType().name().toLowerCase().replace("_", " ");
         return name.substring(0, 1).toUpperCase() + name.substring(1);
     }
-
-    // =====================================================================
     public static ItemStack getItemStackFromIdentifier(String identifier) {
         if (identifier == null || identifier.isEmpty()) return null;
-
         ItemType type = getItemTypeFromString(identifier);
         String[] parts = identifier.split(":", 2);
         if (parts.length < 2) return null;
         String id = parts[1].toUpperCase();
-
         return switch (type) {
             case VANILLA -> {
                 try {
@@ -162,14 +131,10 @@ public class ItemIdentifier {
             case NEXO -> {
                 if (!hasNexoPlugin) yield placeholder("Nexo Not Loaded", id);
                 try {
-                    // SỬA LỖI: Nexo dùng itemFromId(String) static method → trả về ItemBuilder
-                    // Sau đó gọi build() để lấy ItemStack
                     Class<?> clazz = Class.forName("com.nexomc.nexo.api.NexoItems");
                     Method itemFromIdMethod = clazz.getMethod("itemFromId", String.class);
-                    Object builder = itemFromIdMethod.invoke(null, id.toLowerCase()); // ID thường lowercase trong Nexo
-
+                    Object builder = itemFromIdMethod.invoke(null, id.toLowerCase()); 
                     if (builder != null) {
-                        // Gọi build() trên ItemBuilder để lấy ItemStack
                         Method buildMethod = builder.getClass().getMethod("build");
                         yield (ItemStack) buildMethod.invoke(builder);
                     } else {
@@ -183,21 +148,16 @@ public class ItemIdentifier {
             default -> null;
         };
     }
-
-    // =====================================================================
     private static boolean isNexoItem(ItemStack item) {
         if (!hasNexoPlugin || item == null || !item.hasItemMeta()) return false;
         PersistentDataContainer pdc = item.getItemMeta().getPersistentDataContainer();
         return pdc.has(NEXO_ID_KEY, PersistentDataType.STRING);
     }
-
     private static String getNexoItemId(ItemStack item) {
         if (!hasNexoPlugin || item == null || !item.hasItemMeta()) return null;
         PersistentDataContainer pdc = item.getItemMeta().getPersistentDataContainer();
         return pdc.get(NEXO_ID_KEY, PersistentDataType.STRING);
     }
-
-    // =====================================================================
     public static ItemType getItemTypeFromString(String id) {
         if (id == null || !id.contains(":")) return ItemType.UNKNOWN;
         try {
@@ -206,7 +166,6 @@ public class ItemIdentifier {
             return ItemType.UNKNOWN;
         }
     }
-
     private static ItemStack placeholder(String title, String subtitle) {
         ItemStack i = new ItemStack(Material.PAPER);
         ItemMeta m = i.getItemMeta();
@@ -217,20 +176,16 @@ public class ItemIdentifier {
         }
         return i;
     }
-
-    // =====================================================================
     public static void debugItemNBT(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) {
             System.out.println("[SellGUI Debug] Item is null or AIR");
             return;
         }
-
         System.out.println("§6=== SellGUI Item Debug ===");
         System.out.println("Material: " + item.getType());
         System.out.println("Identifier: " + getItemIdentifier(item));
         System.out.println("Display Name: " + getItemDisplayName(item));
         System.out.println("Type: " + getItemType(item));
-
         if (hasMMOItemsPlugin) {
             try {
                 NBTItem nbt = NBTItem.get(item);
@@ -238,11 +193,9 @@ public class ItemIdentifier {
                 System.out.println("MMOITEMS_ITEM_ID: " + nbt.getString("MMOITEMS_ITEM_ID"));
             } catch (Exception ignored) {}
         }
-
         if (hasNexoPlugin && isNexoItem(item)) {
             System.out.println("Nexo ID: " + getNexoItemId(item));
         }
-
         System.out.println("§6=== End Debug ===\n");
     }
 }
