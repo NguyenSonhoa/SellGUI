@@ -30,7 +30,8 @@ autosell:
 # └─────────────────────────────────────────────────────────────────────────────┘
 economy:
   use-vault: true                 # Use Vault for economy integration
-  money-format: "$%.2f"           # Money display format
+  money-format: "$%.2f"           # DEPRECATED: Money display format (kept for backwards compatibility)
+  number-format: "%,.2f"          # Number formatting. Use "#,##0.00" or "%,.2f" for commas (e.g. 1,000.00)
   min-transaction: 0.01           # Minimum transaction amount
   max-transaction: 1000000.0      # Maximum transaction amount
   tax-rate: 0.0                   # Tax rate (0.0 = no tax, 0.1 = 10% tax)
@@ -67,7 +68,7 @@ items:
 prices:
   # 🏷️ Pricing Methods
   nbt-pricing: true               # Enable NBT-based pricing
-  calculation-method: "auto"      # auto, config, essentials, nbt, shopguiplus
+  calculation-method: "auto"      # auto, config, essentials, nbt, shopguiplus, restart after change please :)
   #shopguiplus option will NOT HOOK NEXO & MMOITEMS OF SELLGUI, because shopguiplus was support it so sellgui will disable support them.
   default-price: 0.0              # Default price for unconfigured items
   

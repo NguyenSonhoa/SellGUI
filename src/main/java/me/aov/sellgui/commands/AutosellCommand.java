@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public class AutosellCommand implements CommandExecutor {
+public class    AutosellCommand implements CommandExecutor {
 
     private final SellGUIMain main;
 

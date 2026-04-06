@@ -96,7 +96,7 @@ public class PriceSetterChatListener implements Listener {
             if (price == 0) {
                 player.sendMessage(color("&aSuccessfully removed price for &f" + itemName + " &7(" + itemType + ")"));
             } else {
-                player.sendMessage(color("&aSuccessfully set price for &f" + itemName + " &7(" + itemType + ") &ato &e$" + String.format("%.2f", price)));
+                player.sendMessage(color("&aSuccessfully set price for &f" + itemName + " &7(" + itemType + ") &ato &e$" + main.getConfigManager().formatNumber(price)));
             }
 
             playerItems.remove(playerId);

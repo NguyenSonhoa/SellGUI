@@ -160,7 +160,7 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             String itemType = ItemIdentifier.getItemType(itemInHand).name();
             if (price == 0) {
                 player.sendMessage(ColorUtils.color("&aSuccessfully removed price for &f" + itemName + " &7(" + itemType + ")"));} else {
-                player.sendMessage(ColorUtils.color("&aSuccessfully set price for &f" + itemName + " &7(" + itemType + ") &ato &e$" + String.format("%.2f", price)));}} else {
+                player.sendMessage(ColorUtils.color("&aSuccessfully set price for &f" + itemName + " &7(" + itemType + ") &ato &e$" + main.getConfigManager().formatNumber(price)));}} else {
             player.sendMessage(ColorUtils.color("&cFailed to set price! Check console for errors."));}
         return true;
     }
@@ -203,7 +203,7 @@ public class SellCommand implements CommandExecutor, TabCompleter {
 
             main.getConfigManager().saveConfig("random-prices");
 
-            player.sendMessage(ColorUtils.color("&aRandom price range for &e" + ItemIdentifier.getItemDisplayName(item) + " &aset to &e$" + String.format("%.2f", minPrice) + " &ato &e$" + String.format("%.2f", maxPrice)));
+            player.sendMessage(ColorUtils.color("&aRandom price range for &e" + ItemIdentifier.getItemDisplayName(item) + " &aset to &e$" + main.getConfigManager().formatNumber(minPrice) + " &ato &e$" + main.getConfigManager().formatNumber(maxPrice)));
 
             PriceEvaluationGUI gui = main.getGUIManager().getActivePriceEvaluationGUI(player);
             if (gui != null) {

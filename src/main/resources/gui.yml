@@ -17,6 +17,8 @@ sell_gui:
     sell_button:
       material: "EMERALD"
       custom-model-data: 0
+      item-model: minecraft:emerald #work all item
+      hide-tool-tip: false #work all item
       name: "&eᴄᴀʟᴄᴜʟᴀᴛɪᴏɴ"
       lore:
         - "&7Click to total"

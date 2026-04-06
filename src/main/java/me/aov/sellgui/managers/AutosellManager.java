@@ -138,12 +138,12 @@ public class AutosellManager {
                 plugin.getEcon().depositPlayer(player, totalEarned);
 
                 double multiplier = totalEarned / calculateRawTotal(player);
-                String bonusText = multiplier > 1.0001 ? " &7(×&a" + String.format("%.2f", multiplier) + "&7)" : "";
+                String bonusText = multiplier > 1.0001 ? " &7(×&a" + plugin.getConfigManager().formatNumber(multiplier) + "&7)" : "";
 
                 player.sendMessage(ColorUtils.color(
                         plugin.getConfigManager().getMessagesConfig()
                                 .getString("autosell.sold", "Autosell: +$%amount%%bonus%")
-                                .replace("%amount%", String.format(plugin.getConfigManager().getMoneyFormat(), totalEarned))
+                                .replace("%amount%", plugin.getConfigManager().formatNumber(totalEarned))
                                 .replace("%bonus%", bonusText)
                 ));
 

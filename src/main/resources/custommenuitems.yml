@@ -5,6 +5,7 @@ example-item:
   custom-model-data: 123
   slot: 53
   disabled: false
+  item-model: minecraft:stick
   lore:
     - "Example Lore"
   commands:
@@ -15,6 +16,9 @@ example-item:
 #   material: [material name] = https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Material.html
 #   name: "[name]" = Name of the item
 #   glimmer: [boolean] = True or false, gives enchantment shimmer when true
+#   item-model: namespace:skibidi
+#   hide-tool-tip: true or false, make your tuff tooltip invisible
+#   tooltip-style: minecraft:empty
 #   custom-model-data: [number] = Custom Model Data Resource Pack of the item
 #   slot: [number] = Slot of the item https://proxy.spigotmc.org/286cf93278ca679cecf2a40528fd830418b75d4a?url=http%3A%2F%2Fi.imgur.com%2FgK9plGo.png
 #   disabled: [boolean] = if true, the item will be replaced by the fill-item

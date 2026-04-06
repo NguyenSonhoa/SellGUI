@@ -138,7 +138,7 @@ public class PriceSetterGUI implements InventoryHolder {
         lore.add(ColorUtils.color("&7Type: &f" + itemType.name()));
         lore.add(ColorUtils.color("&7Identifier: &f" + (identifier != null ? identifier : "Unknown")));
         lore.add(ColorUtils.color("&7"));
-        lore.add(ColorUtils.color("&7Current Price: &e$" + String.format("%.2f", currentPrice)));
+        lore.add(ColorUtils.color("&7Current Price: &e$" + main.getConfigManager().formatNumber(currentPrice)));
         lore.add(ColorUtils.color("&7"));
         lore.add(ColorUtils.color("&eUse: &f/sellguiprice <price>"));
         lore.add(ColorUtils.color("&eto set a new price"));
@@ -166,7 +166,7 @@ public class PriceSetterGUI implements InventoryHolder {
         boolean success = priceManager.setItemPrice(item, price);
         if (success) {
             String itemName = ItemIdentifier.getItemDisplayName(item);
-            player.sendMessage(ColorUtils.color("&aSuccessfully set price for &f" + itemName + " &ato &e$" + String.format("%.2f", price)));
+            player.sendMessage(ColorUtils.color("&aSuccessfully set price for &f" + itemName + " &ato &e$" + main.getConfigManager().formatNumber(price)));
             updateItemInfo();
             return true;
         } else {

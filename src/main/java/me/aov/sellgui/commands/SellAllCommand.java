@@ -1,4 +1,5 @@
 package me.aov.sellgui.commands;
+
 import me.aov.sellgui.SellGUIMain;
 import org.apache.commons.lang.WordUtils;
 import org.bukkit.ChatColor;
@@ -24,11 +25,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+
 public class SellAllCommand implements CommandExecutor {
     private SellGUIMain main;
+
     public SellAllCommand(SellGUIMain main) {
         this.main = main;
     }
+
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         String NoPerm = main.getMessagesConfig().getString("general.no_permission", "&c❌ You don't have permission to use this command!");
@@ -44,9 +48,12 @@ public class SellAllCommand implements CommandExecutor {
             player.sendMessage(color("&cEconomy system not available!"));
             return true;
         }
+
+        // Clear the price cache to get the latest prices
         if (main.getPriceCache() != null) {
             main.getPriceCache().clearCache();
         }
+
         double total = getTotal(player.getInventory(), player);
         int evaluationRequiredCount = 0;
         for (ItemStack item : player.getInventory().getContents()) {
@@ -66,15 +73,19 @@ public class SellAllCommand implements CommandExecutor {
             evaluationMessage = evaluationMessage.replace("%count%", String.valueOf(evaluationRequiredCount));
             player.sendMessage(color(evaluationMessage));
         }
+
         if (main.getConfig().getBoolean("general.debug", false)) {
             main.getLogger().info("SellAll debug - Player: " + player.getName() + ", Total: $" + total);
             main.getLogger().info("  Items needing evaluation: " + evaluationRequiredCount);
             int itemCount = 0;
             for (ItemStack item : player.getInventory().getContents()) {
                 if (item != null && item.getType() != Material.AIR) {
+                    // --- START DEBUG LOGGING FOR ITEM IDENTIFICATION ---
                     ItemIdentifier.ItemType itemType = ItemIdentifier.getItemType(item);
                     String itemIdentifier = ItemIdentifier.getItemIdentifier(item);
                     main.getLogger().info("  - Item: " + item.getType() + ", Type: " + itemType + ", Identifier: " + itemIdentifier);
+                    // --- END DEBUG LOGGING FOR ITEM IDENTIFICATION ---
+
                     double price = getPrice(item, player);
                     if (price > 0) {
                         itemCount++;
@@ -84,12 +95,15 @@ public class SellAllCommand implements CommandExecutor {
             }
             main.getLogger().info("  Total sellable items: " + itemCount);
         }
+
         if (total <= 0) {
             String NoItemMessage = main.getMessagesConfig().getString("sellall.no-items", "&c❌ No items to sell in your inventory!");
             player.sendMessage(color(NoItemMessage));
             return true;
         }
+
         if (args.length == 1 && args[0].equalsIgnoreCase("confirm")) {
+
             sellItems(player.getInventory(), player);
         } else {
             String sectionConfirm = main.getMessagesConfig().getString("sellall.section-confirm", "&6&l=== SellAll Confirmation === ");
@@ -103,9 +117,10 @@ public class SellAllCommand implements CommandExecutor {
             if (main.getMessagesConfig() != null) {
                 confirmMessage = main.getMessagesConfig().getString("sellall.confirm-message", confirmMessage);
             }
-            confirmMessage = confirmMessage.replace("%total%", String.format("%.2f", total));
+            confirmMessage = confirmMessage.replace("%total%", main.getConfigManager().formatNumber(total));
             player.sendMessage(color(confirmMessage));
             player.sendMessage("");
+
             if (main.getConfig().getBoolean("sellall-show-preview", true)) {
                 player.sendMessage(color(itemToBeSold));
                 player.sendMessage(" ");
@@ -123,7 +138,7 @@ public class SellAllCommand implements CommandExecutor {
                             }
                             String message = format.replace("%item_name%", itemName)
                                     .replace("%item_amount%", String.valueOf(item.getAmount()))
-                                    .replace("%price%", String.format("%.2f", displayPrice));
+                                    .replace("%price%", main.getConfigManager().formatNumber(displayPrice));
                             player.sendMessage(color(message));
                             player.sendMessage("");
                             previewCount++;
@@ -142,10 +157,13 @@ public class SellAllCommand implements CommandExecutor {
         }
         return true;
     }
+
     public double getPrice(ItemStack itemStack, Player player) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return 0.0;
         }
+
+        // Check if the item is a shulker box (covers all colors and regular ones)
         if (isShulkerBox(itemStack)) {
             double contentsPrice = 0.0;
             if (itemStack.getItemMeta() instanceof org.bukkit.inventory.meta.BlockStateMeta) {
@@ -155,10 +173,13 @@ public class SellAllCommand implements CommandExecutor {
                     contentsPrice = getTotal(shulker.getInventory(), player);
                 }
             }
+            // Return base price of the box + contents price
             return getBasePrice(itemStack, player) + contentsPrice;
         }
+
         return getBasePrice(itemStack, player);
     }
+
     private double getBasePrice(ItemStack itemStack, Player player) {
         if (main.getRandomPriceManager() != null && !main.getRandomPriceManager().canBeSold(itemStack)) {
             if (main.getConfig().getBoolean("general.debug", false)) {
@@ -166,17 +187,24 @@ public class SellAllCommand implements CommandExecutor {
             }
             return 0.0;
         }
+
         if(!main.getConfig().getBoolean("sell-all-command-sell-enchanted") && itemStack.getEnchantments().size() > 0){
             return 0.0;
         }
+
         double price = 0.0D;
+
+        // --- PRICE LOOKUP HIERARCHY ---
+        // Find the base price from the first available source.
+
+        // 1. PriceManager (if it returns a price, it's considered final as per original logic)
         if (main.getPriceManager() != null) {
             try {
                 price = main.getPriceManager().getItemPriceWithPlayer(itemStack, player);
                 if (main.getConfig().getBoolean("general.debug", false)) {
                     main.getLogger().info("  SellAll debug - PriceManager price for " + ItemIdentifier.getItemIdentifier(itemStack) + ": $" + price);
                 }
-                return price; 
+                return price; // This manager is assumed to handle all bonuses itself.
             } catch (Exception e) {
                 if (main.getConfig().getBoolean("general.debug", false)) {
                     main.getLogger().warning("  SellAll debug - Error getting price from PriceManager for " + ItemIdentifier.getItemIdentifier(itemStack) + ": " + e.getMessage());
@@ -184,6 +212,8 @@ public class SellAllCommand implements CommandExecutor {
                 return 0.0;
             }
         }
+
+        // 2. NBT Price
         if (main.getNBTPriceManager() != null) {
             try {
                 price = main.getNBTPriceManager().getPriceFromNBT(itemStack);
@@ -196,6 +226,8 @@ public class SellAllCommand implements CommandExecutor {
                 }
             }
         }
+
+        // 3. Random Price
         if (price <= 0 && main.getRandomPriceManager() != null) {
             try {
                 price = main.getRandomPriceManager().getRandomPrice(itemStack);
@@ -208,6 +240,8 @@ public class SellAllCommand implements CommandExecutor {
                 }
             }
         }
+
+        // 4. Essentials Price
         if (price <= 0 && this.main.hasEssentials() && main.getConfig().getBoolean("use-essentials-price")) {
             if (main.getEssentialsHolder().getEssentials() != null) {
                 double essentialsPrice = main.getEssentialsHolder().getPrice(itemStack).doubleValue();
@@ -219,6 +253,8 @@ public class SellAllCommand implements CommandExecutor {
                 }
             }
         }
+
+        // 5. Custom Item Price (item-prices.yml)
         if (price <= 0) {
             String itemIdentifier = ItemIdentifier.getItemIdentifier(itemStack);
             if (itemIdentifier != null && !itemIdentifier.startsWith("VANILLA:")) {
@@ -230,6 +266,8 @@ public class SellAllCommand implements CommandExecutor {
                 }
             }
         }
+
+        // 6. Vanilla Item Price (item-prices.yml)
         if (price <= 0) {
             if (this.main.getItemPricesConfig().contains(itemStack.getType().name())) {
                 price = this.main.getItemPricesConfig().getDouble(itemStack.getType().name());
@@ -238,10 +276,15 @@ public class SellAllCommand implements CommandExecutor {
                 }
             }
         }
+
+        // --- BONUS APPLICATION ---
+        // If a base price was found from any source above, apply bonuses.
         if (price > 0) {
+            // Enchantment Bonuses
             if (itemStack.getItemMeta().hasEnchants()) {
                 ArrayList<String> flatBonus = new ArrayList<>(this.main.getItemPricesConfig().getStringList("flat-enchantment-bonus"));
                 ArrayList<String> multiplierBonus = new ArrayList<>(this.main.getItemPricesConfig().getStringList("multiplier-enchantment-bonus"));
+
                 for (Enchantment enchantment : itemStack.getEnchantments().keySet()) {
                     for (String s : flatBonus) {
                         String[] temp = s.split(":");
@@ -267,6 +310,8 @@ public class SellAllCommand implements CommandExecutor {
                     }
                 }
             }
+
+            // Permission Bonuses
             for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
                 if (pai.getPermission().startsWith("sellgui.bonus.")) {
                     String bonusValueStr = pai.getPermission().replace("sellgui.bonus.", "");
@@ -278,8 +323,10 @@ public class SellAllCommand implements CommandExecutor {
                 }
             }
         }
+
         return price;
     }
+
     private boolean isShulkerBox(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return false;
         Material type = item.getType();
@@ -301,6 +348,7 @@ public class SellAllCommand implements CommandExecutor {
                type == Material.RED_SHULKER_BOX ||
                type == Material.BLACK_SHULKER_BOX;
     }
+
     public double getTotal(Inventory inventory, Player player) {
         double total = 0.0D;
         String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
@@ -318,16 +366,21 @@ public class SellAllCommand implements CommandExecutor {
         }
         return total;
     }
+
     public void sellItems(Inventory inventory, Player player) {
         double total = getTotal(inventory, player);
         int itemsSold = 0;
+
         if (total <= 0) {
             player.sendMessage(color("&cNo items to sell!"));
             return;
         }
+
         this.main.getEcon().depositPlayer((OfflinePlayer) player, total);
+
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack != null && getPrice(itemStack, player) > 0.0D) {
+
                 if (this.main.getConfig().getBoolean("log-transactions")) {
                     logSellAll(itemStack, player);
                 }
@@ -335,25 +388,30 @@ public class SellAllCommand implements CommandExecutor {
                 inventory.remove(itemStack);
             }
         }
+
         String soldMessage = "&a✅ Sold %count% items for &e$%total%!";
         if (this.main.getMessagesConfig() != null) {
             soldMessage = this.main.getMessagesConfig().getString("sellall.sold-message", soldMessage);
         }
-        soldMessage = soldMessage.replace("%total%", String.format("%.2f", total));
+        soldMessage = soldMessage.replace("%total%", main.getConfigManager().formatNumber(total));
         soldMessage = soldMessage.replace("%count%", String.valueOf(itemsSold));
         player.sendMessage(color(soldMessage));
+
         if (main.getServer().getPluginManager().getPlugin("SellGUI") != null) {
             try {
                 me.aov.sellgui.handlers.SoundHandler.playSuccess(player);
             } catch (Exception e) {
+
             }
         }
     }
+
     public void logSellAll(ItemStack itemStack, Player player) {
         if (itemStack != null) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(this.main.getLog(), true))) {
                 Date now = new Date();
                 SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
                 ItemIdentifier.ItemType itemTypeEnum = ItemIdentifier.getItemType(itemStack);
                 String itemType = itemTypeEnum.name();
                 String itemId = ItemIdentifier.getItemIdentifier(itemStack);
@@ -367,7 +425,8 @@ public class SellAllCommand implements CommandExecutor {
                     totalPrice = unitPrice * itemStack.getAmount();
                 }
                 String playerName = player.getName();
-                String logEntry = String.format("[SELLALL] %s|%s|%s|%d|%.2f|%.2f|%s|%s",
+
+                String logEntry = String.format(java.util.Locale.US, "[SELLALL] %s|%s|%s|%d|%.2f|%.2f|%s|%s",
                         itemType,
                         itemId,
                         displayName,
@@ -377,6 +436,7 @@ public class SellAllCommand implements CommandExecutor {
                         playerName,
                         format.format(now)
                 );
+
                 writer.append(logEntry + "");
                 writer.flush();
             } catch (IOException e) {
@@ -385,6 +445,7 @@ public class SellAllCommand implements CommandExecutor {
             }
         }
     }
+
     public static String color(String s) {
         return ChatColor.translateAlternateColorCodes('&', s);
     }

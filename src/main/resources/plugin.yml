@@ -1,5 +1,5 @@
 name: SellGUI
-version: '2.9.5'
+version: '2.9.6.2'
 main: me.aov.sellgui.SellGUIMain
 api-version: '1.20.6'
 description: SellGUI plugin

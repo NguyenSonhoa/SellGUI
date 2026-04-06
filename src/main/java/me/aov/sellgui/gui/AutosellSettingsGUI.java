@@ -4,6 +4,7 @@ import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.listeners.AutosellSearchListener;
 import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.utils.ItemIdentifier;
+import me.aov.sellgui.utils.ItemUtils;
 import net.brcdev.shopgui.ShopGuiPlusApi;
 import net.brcdev.shopgui.shop.Shop;
 import net.brcdev.shopgui.shop.item.ShopItem;
@@ -254,27 +255,18 @@ public class AutosellSettingsGUI implements InventoryHolder, Listener {
             material = Material.STONE;
         }
         ItemStack item = new ItemStack(material);
+        ItemUtils.applyConfig(item, config);
         ItemMeta meta = item.getItemMeta();
-        String name = config.getString("name", defaultName);
-        if (name != null) {
-            meta.setDisplayName(ColorUtils.color(name));
-        }
-        List<String> lore = config.getStringList("lore");
-        if (lore != null) {
-            List<String> coloredLore = new ArrayList<>();
-            for (String line : lore) {
-                coloredLore.add(ColorUtils.color(line));
+        if (meta != null) {
+            if (!meta.hasDisplayName()) {
+                meta.setDisplayName(ColorUtils.color(defaultName));
             }
-            meta.setLore(coloredLore);
+            if (config.getBoolean("glow", false)) {
+                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            }
+            item.setItemMeta(meta);
         }
-        if (config.contains("custom-model-data")) {
-            meta.setCustomModelData(config.getInt("custom-model-data"));
-        }
-        if (config.getBoolean("glow", false)) {
-            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        }
-        item.setItemMeta(meta);
         return item;
     }
 
