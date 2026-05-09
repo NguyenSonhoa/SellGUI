@@ -1,0 +1,65 @@
+price_setter_gui:
+  title: "&6&lPrice Setter"
+  size: 54
+  positions:
+    item_slot: 22
+    save_button: 29
+    delete_button: 31
+    cancel_button: 33
+    chat_input_button: 40
+    info_slots: [13, 14, 15, 16]
+  items:
+    save_button:
+      material: "GREEN_CONCRETE"
+      custom-model-data: 0
+      name: "&a&lSave Price"
+      lore:
+        - "&7Click to save the current price."
+    delete_button:
+      material: "RED_CONCRETE"
+      custom-model-data: 0
+      name: "&c&lDelete Price"
+      lore:
+        - "&7Click to remove the price."
+    cancel_button:
+      material: "BARRIER"
+      custom-model-data: 0
+      name: "&c&lCancel"
+      lore:
+        - "&7Click to close without saving."
+    chat_input_button:
+      material: "WRITABLE_BOOK"
+      custom-model-data: 0
+      name: "&e&lChat Input"
+      lore:
+        - "&7Click to set price via chat."
+    item_placeholder:
+      material: "LIGHT_GRAY_STAINED_GLASS_PANE"
+      custom-model-data: 0
+      name: "&7Place Item Here"
+      lore:
+        - "&7Place an item in this slot."
+    info_current_price:
+      material: "GOLD_INGOT"
+      custom-model-data: 0
+      name: "&6Current Price"
+      lore:
+        - "&7Price: &e$%price%"
+    info_item_type:
+      material: "NAME_TAG"
+      custom-model-data: 0
+      name: "&bItem Information"
+      lore:
+        - "&7Type: &f%type%"
+        - "&7ID: &f%id%"
+    filler:
+      material: "GRAY_STAINED_GLASS_PANE"
+      custom-model-data: 0
+      name: " "
+      lore: []
+  messages:
+    place_item: "&7Place an item here to set its price."
+    current_price: "&6Current Price: &e$%price%"
+    no_price: "&7No price set"
+    save_success: "&aPrice saved successfully."
+    delete_success: "&aPrice removed successfully."
