@@ -4,7 +4,6 @@ import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.managers.NBTPriceManager;
 import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.utils.ItemIdentifier;
-import me.aov.sellgui.utils.ItemUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -127,7 +126,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
         this.evaluationMode = EvaluationMode.FIXED;
         this.minPrice = price;
         this.maxPrice = price;
-        player.sendMessage(ColorUtils.color(getMessage("fixed_price_set", "&a✅ Fixed price set to &e$%price%").replace("%price%", main.getConfigManager().formatNumber(price))));
+        player.sendMessage(ColorUtils.color(getMessage("fixed_price_set", "&a✅ Fixed price set to &e$%price%").replace("%price%", String.format("%.2f", price))));
         updateButtons();
     }
 
@@ -140,8 +139,8 @@ public class PriceEvaluationGUI implements InventoryHolder {
         this.minPrice = min;
         this.maxPrice = max;
         player.sendMessage(ColorUtils.color(getMessage("random_range_set", "&a✅ Random price range set to &e$%min% - $%max%")
-                .replace("%min%", main.getConfigManager().formatNumber(min))
-                .replace("%max%", main.getConfigManager().formatNumber(max))));
+                .replace("%min%", String.format("%.2f", min))
+                .replace("%max%", String.format("%.2f", max))));
         updateButtons();
     }
 
@@ -251,14 +250,14 @@ public class PriceEvaluationGUI implements InventoryHolder {
         ItemMeta meta = animItem.getItemMeta();
         if (meta != null) {
             String name = meta.hasDisplayName() ? meta.getDisplayName() : "";
-            name = name.replace("%current%", main.getConfigManager().formatNumber(price));
+            name = name.replace("%current%", String.format("%.2f", price));
             meta.setDisplayName(name);
 
             if (meta.hasLore()) {
 
                 List<String> lore = meta.getLore().stream()
                         .map(line -> replacePricePlaceholders(line))
-                        .map(line -> line.replace("%current%", main.getConfigManager().formatNumber(price)))
+                        .map(line -> line.replace("%current%", String.format("%.2f", price)))
                         .collect(Collectors.toList());
                 meta.setLore(lore);
             }
@@ -282,7 +281,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
         }
 
-        player.sendMessage(ColorUtils.color(getMessage("evaluation_complete_chat", "&a✅ Price evaluation complete! Final price: &e$%price%").replace("%price%", main.getConfigManager().formatNumber(finalPrice))));
+        player.sendMessage(ColorUtils.color(getMessage("evaluation_complete_chat", "&a✅ Price evaluation complete! Final price: &e$%price%").replace("%price%", String.format("%.2f", finalPrice))));
 
         String evaluatedItemDisplayName = ItemIdentifier.getItemDisplayName(originalItem);
         showTemporaryResult(evaluatedItemDisplayName);
@@ -298,7 +297,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
             ItemStack pricedItem = addEvaluationInfo(item.clone(), minPrice);
             inventory.setItem(ITEM_SLOT, pricedItem);
 
-            player.sendMessage(ColorUtils.color(getMessage("evaluation_complete", "&a✅ Price set: &e$%price%").replace("%price%", main.getConfigManager().formatNumber(minPrice))));
+            player.sendMessage(ColorUtils.color(getMessage("evaluation_complete", "&a✅ Price set: &e$%price%").replace("%price%", String.format("%.2f", minPrice))));
             player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
 
             String evaluatedItemDisplayName = ItemIdentifier.getItemDisplayName(item);
@@ -360,38 +359,40 @@ public class PriceEvaluationGUI implements InventoryHolder {
         }
 
         Material material = Material.getMaterial(guiConfig.getString(path + ".material", defaultMaterial.name()).toUpperCase());
-        if (material == null) material = defaultMaterial;
-        ItemStack item = new ItemStack(material);
-        ItemUtils.applyConfig(item, guiConfig.getConfigurationSection(path));
-        
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String name = meta.hasDisplayName() ? meta.getDisplayName() : defaultName;
-            List<String> lore = meta.hasLore() ? meta.getLore() : defaultLore;
+        String name = guiConfig.getString(path + ".name", defaultName);
+        List<String> lore = guiConfig.getStringList(path + ".lore");
+        if (lore.isEmpty()) {
+            lore = defaultLore;
+        }
+        int customModelData = guiConfig.getInt(path + ".custom-model-data", -1);
+        String nbtId = guiConfig.getString(path + ".nbt-id");
 
-            // Apply general price placeholders
-            name = replacePricePlaceholders(name);
-            lore = lore.stream().map(this::replacePricePlaceholders).collect(Collectors.toList());
+        // Apply general price placeholders
+        name = replacePricePlaceholders(name);
+        lore = lore.stream().map(this::replacePricePlaceholders).collect(Collectors.toList());
 
-            meta.setDisplayName(ColorUtils.color(main.setPlaceholders(player, name)));
-            meta.setLore(lore.stream().map(l -> ColorUtils.color(main.setPlaceholders(player, l))).collect(Collectors.toList()));
+        // If it's the animation item, remove %current% temporarily before passing to createItem
+        // as %current% is handled specifically in updateAnimationDisplay
+        // REMOVED THE BLOCK THAT WAS CAUSING THE ISSUE
 
-            String nbtId = guiConfig.getString(path + ".nbt-id");
-            if (nbtId != null && !nbtId.isEmpty()) {
+        ItemStack item = createItem(material, name, lore, customModelData);
+
+        if (nbtId != null && !nbtId.isEmpty()) {
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) {
                 NamespacedKey key = new NamespacedKey(main, "sellgui-nbt-id");
                 meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, nbtId);
+                item.setItemMeta(meta);
             }
-            item.setItemMeta(meta);
         }
-        
         return item;
     }
 
     private String replacePricePlaceholders(String text) {
         if (text == null) return "";
-        return text.replace("%min%", main.getConfigManager().formatNumber(minPrice))
-                .replace("%max%", main.getConfigManager().formatNumber(maxPrice))
-                .replace("%price%", main.getConfigManager().formatNumber(minPrice))
+        return text.replace("%min%", String.format("%.2f", minPrice))
+                .replace("%max%", String.format("%.2f", maxPrice))
+                .replace("%price%", String.format("%.2f", minPrice))
                 .replace("%jackpot_chance%", String.format("%.1f", main.getConfigManager().getGUIConfig().getDouble("price_evaluation_gui.random_calculation.jackpot_chance", 20.0)));
     }
 
@@ -455,7 +456,7 @@ public class PriceEvaluationGUI implements InventoryHolder {
             meta.getPersistentDataContainer().set(worthKey, PersistentDataType.DOUBLE, price);
 
             String evaluationLoreFormat = main.getConfigManager().getGUIConfig().getString("price_evaluation_gui.evaluation_lore_format", "&a✅ Evaluated: &f$%price%");
-            String evaluationLore = evaluationLoreFormat.replace("%price%", main.getConfigManager().formatNumber(price));
+            String evaluationLore = evaluationLoreFormat.replace("%price%", String.format("%.2f", price));
 
             List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
             String evaluationLorePrefix = ChatColor.stripColor(main.getConfigManager().getGUIConfig().getString("price_evaluation_gui.evaluation_lore_format", "&a✅ Evaluated: &f$%price%")).replace("%price%", "").trim();

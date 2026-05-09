@@ -13,7 +13,7 @@ public class GUIManager {
 
     private final SellGUIMain plugin;
     private final Map<UUID, PriceEvaluationGUI> activeEvaluationGUIs = new HashMap<>();
-    private final Map<UUID, AutosellSettingsGUI> activeAutosellGUIs = new HashMap<>();
+    private final Map<UUID, AutosellSettingsGUI> activeAutosellGUIs = new HashMap<>(); // New map for autosell GUIs
 
     public GUIManager(SellGUIMain plugin) {
         this.plugin = plugin;
@@ -42,6 +42,7 @@ public class GUIManager {
         return null;
     }
 
+    // New method to open the autosell settings GUI
     public void openAutosellSettingsGUI(Player player) {
         if (activeAutosellGUIs.containsKey(player.getUniqueId())) {
             player.closeInventory();
@@ -66,8 +67,7 @@ public class GUIManager {
 
     public void removePlayer(Player player) {
         activeEvaluationGUIs.remove(player.getUniqueId());
-        activeAutosellGUIs.remove(player.getUniqueId());
-
+        activeAutosellGUIs.remove(player.getUniqueId()); // Remove from autosell GUIs as well
     }
 
     public void reload() {
@@ -80,6 +80,7 @@ public class GUIManager {
         }
         activeEvaluationGUIs.clear();
 
+        // Reload for autosell GUIs
         for (UUID playerUUID : Set.copyOf(activeAutosellGUIs.keySet())) {
             Player player = plugin.getServer().getPlayer(playerUUID);
             if (player != null && player.getOpenInventory().getTopInventory().getHolder() instanceof AutosellSettingsGUI) {
@@ -89,4 +90,3 @@ public class GUIManager {
         activeAutosellGUIs.clear();
     }
 }
-

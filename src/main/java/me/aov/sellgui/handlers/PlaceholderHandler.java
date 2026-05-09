@@ -121,7 +121,7 @@ public class PlaceholderHandler {
             case "player_balance":
                 try {
                     if (plugin != null && plugin.getEconomy() != null) {
-                        return plugin.getConfigManager().formatNumber(plugin.getEconomy().getBalance(player));
+                        return String.format("%.2f", plugin.getEconomy().getBalance(player));
                     }
                 } catch (Exception e) {
 
