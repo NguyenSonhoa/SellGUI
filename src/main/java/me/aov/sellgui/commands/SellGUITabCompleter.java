@@ -1,6 +1,7 @@
 package me.aov.sellgui.commands;
 
 import me.aov.sellgui.SellGUIMain;
+import me.aov.sellgui.gui.SellMenuConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class SellGUITabCompleter implements TabCompleter {
+    private final SellGUIMain plugin;
 
     private static final List<String> MAIN_COMMANDS = Arrays.asList(
             "reload", "setprice", "setrange", "evaluate", "placeholder", "help", "version", "debug"
@@ -39,6 +41,10 @@ public class SellGUITabCompleter implements TabCompleter {
     private static final List<String> DEBUG_COMMANDS = Arrays.asList(
             "info", "config", "economy", "placeholders", "sounds"
     );
+
+    public SellGUITabCompleter(SellGUIMain plugin) {
+        this.plugin = plugin;
+    }
 
     @Nullable
     @Override
@@ -82,6 +88,13 @@ public class SellGUITabCompleter implements TabCompleter {
         if (sender.hasPermission("sellgui.evaluate")) {
             possibleArgs.add("evaluate");
         }
+        if (sender.hasPermission("sellgui.autosell")) {
+            possibleArgs.add("autosell");
+        }
+        if (sender instanceof Player && sender.hasPermission("sellgui.use")) {
+            possibleArgs.addAll(SellMenuConfig.getMenuIds(plugin));
+        }
+        possibleArgs.add("help");
 
         if (sender.hasPermission("sellgui.others")) {
             Bukkit.getOnlinePlayers().forEach(player -> possibleArgs.add(player.getName()));
@@ -120,6 +133,12 @@ public class SellGUITabCompleter implements TabCompleter {
             case "debug":
                 if (sender.hasPermission("sellgui.admin")) {
                     StringUtil.copyPartialMatches(input, DEBUG_COMMANDS, completions);
+                }
+                break;
+
+            default:
+                if (sender.hasPermission("sellgui.others") && Bukkit.getPlayer(firstArg) != null) {
+                    StringUtil.copyPartialMatches(input, SellMenuConfig.getMenuIds(plugin), completions);
                 }
                 break;
         }

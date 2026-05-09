@@ -1,5 +1,6 @@
 package me.aov.sellgui.commands;
 import me.aov.sellgui.SellGUIMain;
+import me.aov.sellgui.gui.SellMenuConfig;
 import org.apache.commons.lang.WordUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -115,12 +116,8 @@ public class SellAllCommand implements CommandExecutor {
                         if (previewCount < 5) {
                             String format = main.getMessagesConfig().getString("sellall.sell-all-format", "&8- &f%item_name% &7x%item_amount% &8= &e$%price%");
                             String itemName = ItemIdentifier.getItemDisplayName(item);
-                            String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
                             double itemPrice = getPrice(item, player);
-                            double displayPrice = itemPrice;
-                            if (!calculationMethod.equalsIgnoreCase("shopguiplus")) {
-                                displayPrice *= item.getAmount();
-                            }
+                            double displayPrice = itemPrice * item.getAmount();
                             String message = format.replace("%item_name%", itemName)
                                     .replace("%item_amount%", String.valueOf(item.getAmount()))
                                     .replace("%price%", String.format("%.2f", displayPrice));
@@ -160,6 +157,12 @@ public class SellAllCommand implements CommandExecutor {
         return getBasePrice(itemStack, player);
     }
     private double getBasePrice(ItemStack itemStack, Player player) {
+        if (SellMenuConfig.isExclusiveToAnyMenu(main, itemStack)) {
+            if (main.getConfig().getBoolean("general.debug", false)) {
+                main.getLogger().info("  SellAll debug - " + ItemIdentifier.getItemIdentifier(itemStack) + " is locked to a sell menu.");
+            }
+            return 0.0;
+        }
         if (main.getRandomPriceManager() != null && !main.getRandomPriceManager().canBeSold(itemStack)) {
             if (main.getConfig().getBoolean("general.debug", false)) {
                 main.getLogger().info("  SellAll debug - RandomPriceManager says " + ItemIdentifier.getItemIdentifier(itemStack) + " cannot be sold.");
@@ -303,16 +306,11 @@ public class SellAllCommand implements CommandExecutor {
     }
     public double getTotal(Inventory inventory, Player player) {
         double total = 0.0D;
-        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
         for (ItemStack itemStack : inventory.getContents()) {
             if (itemStack != null && itemStack.getType() != Material.AIR) {
                 double itemPrice = getPrice(itemStack, player);
                 if (itemPrice > 0) {
-                    if (calculationMethod.equalsIgnoreCase("shopguiplus")) {
-                        total += itemPrice;
-                    } else {
-                        total += itemPrice * itemStack.getAmount();
-                    }
+                    total += itemPrice * itemStack.getAmount();
                 }
             }
         }
@@ -359,13 +357,7 @@ public class SellAllCommand implements CommandExecutor {
                 String itemId = ItemIdentifier.getItemIdentifier(itemStack);
                 String displayName = ChatColor.stripColor(ItemIdentifier.getItemDisplayName(itemStack));
                 double unitPrice = this.getPrice(itemStack, player);
-                String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
-                double totalPrice;
-                if (calculationMethod.equalsIgnoreCase("shopguiplus")) {
-                    totalPrice = unitPrice;
-                } else {
-                    totalPrice = unitPrice * itemStack.getAmount();
-                }
+                double totalPrice = unitPrice * itemStack.getAmount();
                 String playerName = player.getName();
                 String logEntry = String.format("[SELLALL] %s|%s|%s|%d|%.2f|%.2f|%s|%s",
                         itemType,

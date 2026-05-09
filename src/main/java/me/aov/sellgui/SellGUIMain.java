@@ -180,7 +180,7 @@ public class SellGUIMain extends JavaPlugin {
          this.priceSetterCommand = new PriceSetterCommand(this);
          if (this.getCommand("sellgui") != null) {
             this.getCommand("sellgui").setExecutor(this.sellCommand);
-            this.getCommand("sellgui").setTabCompleter(new SellGUITabCompleter());
+            this.getCommand("sellgui").setTabCompleter(new SellGUITabCompleter(this));
          } else {
             this.getLogger().severe("Command 'sellgui' not found in plugin.yml!");
          }
@@ -281,8 +281,8 @@ public class SellGUIMain extends JavaPlugin {
          currentVersion = String.valueOf(this.getConfig().getInt("config-version"));
       }
 
-      String expectedVersion = "4";
-      if (currentVersion == null || !currentVersion.equals(expectedVersion) && !currentVersion.equals("4.0") && !currentVersion.startsWith("4")) {
+      String expectedVersion = "5";
+      if (currentVersion == null || !currentVersion.equals(expectedVersion) && !currentVersion.equals("5.0") && !currentVersion.startsWith("5")) {
          this.getLogger().warning("Config version mismatch! Expected: " + expectedVersion + ", found: " + (currentVersion == null ? "Not set" : currentVersion));
          File oldConfig = new File(this.getDataFolder(), "config_old_" + System.currentTimeMillis() + ".yml");
          File currentConfigFile = new File(this.getDataFolder(), "config.yml");

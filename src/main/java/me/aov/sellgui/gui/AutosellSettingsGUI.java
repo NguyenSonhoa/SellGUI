@@ -60,7 +60,7 @@ public class AutosellSettingsGUI implements InventoryHolder, Listener {
                         if (shopItems != null) {
                             for (ShopItem shopItem : shopItems) {
                                 ItemStack item = shopItem.getItem();
-                                if (item != null) {
+                                if (item != null && !SellMenuConfig.isExclusiveToAnyMenu(plugin, item)) {
                                     String identifier = ItemIdentifier.getItemIdentifier(item);
                                     if (identifier != null && !pricedItemIdentifiers.contains(identifier)) {
                                         pricedItemIdentifiers.add(identifier);
@@ -75,7 +75,13 @@ public class AutosellSettingsGUI implements InventoryHolder, Listener {
             }
         } else {
             Map<String, Double> allPricedItems = plugin.getPriceManager().getAllPricedItems();
-            pricedItemIdentifiers.addAll(allPricedItems.keySet());
+            for (String identifier : allPricedItems.keySet()) {
+                ItemStack item = ItemIdentifier.getItemStackFromIdentifier(identifier);
+                if (item == null || SellMenuConfig.isExclusiveToAnyMenu(plugin, item)) {
+                    continue;
+                }
+                pricedItemIdentifiers.add(identifier);
+            }
         }
 
         String title = ColorUtils.color(plugin.getConfigManager().getAutosellGuiTitle());
