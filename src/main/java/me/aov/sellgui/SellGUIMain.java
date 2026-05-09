@@ -20,6 +20,7 @@ import me.aov.sellgui.handlers.PlaceholderHandler;
 import me.aov.sellgui.handlers.SellGUIPlaceholderExpansion;
 import me.aov.sellgui.listeners.AutosellSearchListener;
 import me.aov.sellgui.listeners.InventoryListeners;
+import me.aov.sellgui.listeners.ItemStackNormalizeListener;
 import me.aov.sellgui.listeners.PlayerLeaveListener;
 import me.aov.sellgui.listeners.PriceEvaluationListener;
 import me.aov.sellgui.listeners.PriceSetterChatListener;
@@ -35,6 +36,7 @@ import me.aov.sellgui.managers.MythicLibNBTManager;
 import me.aov.sellgui.managers.PersistentDataNBTManager;
 import me.aov.sellgui.managers.AutosellManager; // Import AutosellManager
 import me.aov.sellgui.listeners.AutosellPlayerListener; // Import AutosellPlayerListener
+import me.aov.sellgui.utils.ItemStackNormalizer;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -210,6 +212,7 @@ public class SellGUIMain extends JavaPlugin {
          this.getServer().getPluginManager().registerEvents(new PriceSetterChatListener(this), this);
          this.getServer().getPluginManager().registerEvents(new PlayerLeaveListener(this), this);
          this.getServer().getPluginManager().registerEvents(new AutosellSearchListener(this), this);
+         this.getServer().getPluginManager().registerEvents(new ItemStackNormalizeListener(this), this);
          this.priceManager = new PriceManager(this);
 
          if (this.hasMMOItems) {
@@ -223,7 +226,8 @@ public class SellGUIMain extends JavaPlugin {
          this.asyncCalculator = new AsyncPriceCalculator(this);
          this.priceEvaluationListener = new PriceEvaluationListener(this);
          this.getServer().getPluginManager().registerEvents(this.priceEvaluationListener, this);
-         this.autosellManager = new AutosellManager(this, this.priceManager);         this.getServer().getPluginManager().registerEvents(new AutosellPlayerListener(this.autosellManager), this); // Register AutosellPlayerListener
+         this.autosellManager = new AutosellManager(this, this.priceManager);
+         this.getServer().getPluginManager().registerEvents(new AutosellPlayerListener(this.autosellManager), this); // Register AutosellPlayerListener
          
          if (this.getConfig().getBoolean("general.add-worth-lore", false)) {
              if (Bukkit.getPluginManager().getPlugin("PacketEvents") != null) {
@@ -271,6 +275,8 @@ public class SellGUIMain extends JavaPlugin {
             }
 
          }, 100L, 80L);
+         Bukkit.getScheduler().runTaskLater(this, () -> Bukkit.getOnlinePlayers()
+                 .forEach(player -> ItemStackNormalizer.normalizePlayerInventory(this, player)), 1L);
          this.getLogger().info("SellGUI has been enabled!");
       }
    }
@@ -302,6 +308,11 @@ public class SellGUIMain extends JavaPlugin {
    }
 
    public void onDisable() {
+      if (this.getConfig().getBoolean("stacking.enabled", true)
+              && this.getConfig().getBoolean("stacking.normalize-on-plugin-disable", true)) {
+         Bukkit.getOnlinePlayers().forEach(player -> ItemStackNormalizer.normalizePlayerInventory(this, player));
+      }
+
       if (this.priceCache != null) {
          this.priceCache.shutdown();
       }
@@ -602,16 +613,6 @@ public class SellGUIMain extends JavaPlugin {
          this.randomPricesConfig.load(this.randomPricesFile);
       } catch (IOException | InvalidConfigurationException e) {
          e.printStackTrace();
-      }
-      this.guiFile = new File(this.getDataFolder(), "gui.yml");
-      if (!this.guiFile.exists()) {
-         this.guiFile.getParentFile().mkdirs();
-         this.saveResource("gui.yml", false);
-      }
-      this.guiFile = new File(this.getDataFolder(), "gui.yml");
-      if (!this.guiFile.exists()) {
-         this.guiFile.getParentFile().mkdirs();
-         this.saveResource("gui.yml", false);
       }
       this.soundsFile = new File(this.getDataFolder(), "sounds.yml");
       if (!this.soundsFile.exists()) {

@@ -32,7 +32,7 @@ public class ConfigManager {
         }
         loadConfig("config");
         loadConfig("sounds");
-        loadConfig("gui");
+        loadGuiConfigs();
         loadConfig("messages");
         loadConfig("itemprices");
         loadConfig("mmoitems");
@@ -42,6 +42,79 @@ public class ConfigManager {
         loadWorthLoreBlacklistGuiTitles(); 
         plugin.getLogger().info("Loaded " + configs.size() + " configuration files");
     }
+
+    private void loadGuiConfigs() {
+        File guiFolder = new File(plugin.getDataFolder(), "gui");
+        if (!guiFolder.exists() && !guiFolder.mkdirs()) {
+            plugin.getLogger().severe("Could not create gui config folder: " + guiFolder.getPath());
+        }
+
+        saveDefaultGuiResource("gui/sell_menus/default.yml");
+        saveDefaultGuiResource("gui/sell_menus/fishing.yml");
+        saveDefaultGuiResource("gui/price_setter.yml");
+        saveDefaultGuiResource("gui/price_evaluation.yml");
+        saveDefaultGuiResource("gui/autosell_settings.yml");
+
+        YamlConfiguration mergedGuiConfig = new YamlConfiguration();
+        List<File> guiFiles = new ArrayList<>();
+        collectYamlFiles(guiFolder, guiFiles);
+        guiFiles.sort((left, right) -> left.getPath().compareToIgnoreCase(right.getPath()));
+
+        for (File file : guiFiles) {
+            FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+            mergeSections(mergedGuiConfig, config);
+            plugin.getLogger().info("Loaded GUI config: " + guiFolder.toPath().relativize(file.toPath()).toString().replace("\\", "/"));
+        }
+
+        if (guiFiles.isEmpty()) {
+            File legacyGuiFile = new File(plugin.getDataFolder(), "gui.yml");
+            if (legacyGuiFile.exists()) {
+                mergedGuiConfig = YamlConfiguration.loadConfiguration(legacyGuiFile);
+                plugin.getLogger().warning("Loaded legacy gui.yml because gui/ folder has no YAML files.");
+            }
+        }
+
+        configs.put("gui", mergedGuiConfig);
+        plugin.getLogger().info("Loaded " + guiFiles.size() + " GUI configuration file(s)");
+    }
+
+    private void saveDefaultGuiResource(String resourcePath) {
+        File target = new File(plugin.getDataFolder(), resourcePath);
+        if (!target.exists()) {
+            target.getParentFile().mkdirs();
+            plugin.saveResource(resourcePath, false);
+        }
+    }
+
+    private void collectYamlFiles(File folder, List<File> files) {
+        File[] children = folder.listFiles();
+        if (children == null) {
+            return;
+        }
+
+        for (File child : children) {
+            if (child.isDirectory()) {
+                collectYamlFiles(child, files);
+            } else if (child.isFile() && (child.getName().endsWith(".yml") || child.getName().endsWith(".yaml"))) {
+                files.add(child);
+            }
+        }
+    }
+
+    private void mergeSections(ConfigurationSection target, ConfigurationSection source) {
+        for (String key : source.getKeys(false)) {
+            if (source.isConfigurationSection(key)) {
+                ConfigurationSection targetSection = target.getConfigurationSection(key);
+                if (targetSection == null) {
+                    targetSection = target.createSection(key);
+                }
+                mergeSections(targetSection, source.getConfigurationSection(key));
+            } else {
+                target.set(key, source.get(key));
+            }
+        }
+    }
+
     private void loadConfig(String configName) {
         File configFile = new File(plugin.getDataFolder(), configName + ".yml");
         if (!configFile.exists()) {
@@ -194,6 +267,11 @@ public class ConfigManager {
         return getMessagesConfig().getStringList("autosell.button.global_toggle.disabled.lore");
     }
     public void saveConfig(String configName) {
+        if ("gui".equalsIgnoreCase(configName)) {
+            plugin.getLogger().warning("GUI config is split across the gui/ folder. Save the individual YAML files instead.");
+            return;
+        }
+
         FileConfiguration config = configs.get(configName);
         File configFile = configFiles.get(configName);
         if (config != null && configFile != null) {
@@ -210,6 +288,11 @@ public class ConfigManager {
         }
     }
     public void reloadConfig(String configName) {
+        if ("gui".equalsIgnoreCase(configName)) {
+            loadGuiConfigs();
+            return;
+        }
+
         File configFile = configFiles.get(configName);
         if (configFile != null && configFile.exists()) {
             FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
@@ -219,8 +302,12 @@ public class ConfigManager {
     }
     public void reloadAllConfigs() {
         for (String configName : configs.keySet()) {
+            if ("gui".equalsIgnoreCase(configName)) {
+                continue;
+            }
             reloadConfig(configName);
         }
+        loadGuiConfigs();
         loadSellBonusPermissions(); 
         loadWorthLoreBlacklistGuiTitles(); 
         plugin.getLogger().info("Reloaded all configuration files");

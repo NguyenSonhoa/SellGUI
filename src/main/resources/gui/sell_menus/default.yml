@@ -1,0 +1,49 @@
+# Default sell menu.
+sell_menus:
+  default:
+    name: "Default"
+    permission: "sellgui.menu.default"
+    title: "&8/sellgui > Sell"
+    size: 54
+    item-filter:
+      allowed-items: []
+      denied-items: []
+      exclusive: false
+    positions:
+      sell_button: [49]
+      confirm_button: [49]
+      filler_slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 44, 45, 46, 47, 48, 50, 51, 52, 53]
+      item_slots: [10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43]
+    items:
+      sell_button:
+        material: "EMERALD"
+        custom-model-data: 0
+        name: "&a&lCalculate Sale"
+        lore:
+          - "&7Add sellable items above."
+          - "&7Click to review the total."
+          - "&eTotal Value: &a$0.00"
+        glow: true
+      confirm_button:
+        material: "GREEN_CONCRETE"
+        custom-model-data: 0
+        name: "&a&lConfirm Sale"
+        lore:
+          - "&7Click to confirm selling"
+          - "&7all valid items in this menu."
+          - ""
+          - "&fTotal: &e$%total%"
+        glow: true
+      filler:
+        material: "GRAY_STAINED_GLASS_PANE"
+        custom-model-data: 0
+        name: " "
+        lore: []
+      no_items:
+        material: "BARRIER"
+        custom-model-data: 0
+        name: "&c&lNo Items To Sell"
+        lore:
+          - "&7Add priced items to this menu."
+    item_total_format: "&7%amount%x &f%item% &8= &e$%total%"
+    evaluation_required_format: "&7%amount%x &f%item% &cNeeds Evaluation"

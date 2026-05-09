@@ -1,0 +1,83 @@
+price_evaluation_gui:
+  title: "&6&lPrice Evaluation"
+  size: 27
+  positions:
+    item_slot: 13
+    evaluate_button: 22
+    cancel_button: 18
+    instruction_slot: 4
+    animation_slot: 10
+    result_slot: 10
+    filler: [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 20, 21, 23, 24, 25, 26]
+  animation:
+    enabled: true
+    duration: 20
+    update_interval: 5
+  evaluation_lore_format: "&aEvaluated: &f$%price%"
+  random_calculation:
+    jackpot_chance: 20.0
+    distribution: "weighted"
+    weighted:
+      low_range_weight: 30
+      mid_range_weight: 50
+      high_range_weight: 20
+    bell_curve:
+      center_bias: 0.6
+      spread: 0.3
+  open_animation:
+    enabled: true
+    type: "FADE_IN"
+    duration: 10
+  item_update:
+    enabled: true
+    type: "GLOW"
+    duration: 20
+  confirm_animation:
+    enabled: true
+    type: "FIREWORK"
+  items:
+    result:
+      material: "LIME_STAINED_GLASS_PANE"
+      name: "&a&lEvaluation Complete"
+      lore:
+        - ""
+      custom-model-data: 0
+    instruction:
+      material: "BOOK"
+      custom-model-data: 0
+      name: "&e&lHow to Use"
+      lore:
+        - "&71. Place an item in the center slot."
+        - "&72. Choose a pricing mode."
+        - "&73. Click evaluate."
+    animation:
+      material: "GOLD_NUGGET"
+      custom-model-data: 0
+      name: "&e&lEvaluating... &f$%current%"
+      lore:
+        - ""
+        - "&7Min: &e%min%"
+        - "&7Max: &e%max%"
+    cancel_button:
+      nbt-id: "cancel_button"
+      material: "BARRIER"
+      custom-model-data: 0
+      name: "&c&lCancel"
+      lore:
+        - "&7Click to close this menu."
+    evaluate_button:
+      nbt-id: "evaluate_button"
+      material: "NETHER_STAR"
+      custom-model-data: 0
+      name: "&6&lEvaluate Price"
+      lore:
+        - "&7Click to begin evaluation."
+    filler:
+      material: "GRAY_STAINED_GLASS_PANE"
+      custom-model-data: 0
+      name: " "
+      lore: []
+  lore:
+    show_individual_prices: true
+    show_stack_totals: true
+    show_item_source: true

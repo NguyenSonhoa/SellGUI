@@ -1,5 +1,5 @@
 # SellGUI v3 core configuration.
-# GUI layout and menu filters are configured in gui.yml.
+# GUI layout and menu filters are configured in the gui/ folder.
 
 general:
   config-version: "5"
@@ -58,6 +58,14 @@ prices:
 
 autosell:
   show-item-summary: true
+
+stacking:
+  enabled: true
+  normalize-on-join: true
+  normalize-on-quit: true
+  normalize-on-plugin-disable: true
+  normalize-smelt-results: true
+  normalize-after-furnace-extract: true
 
 performance:
   cache-prices: true
