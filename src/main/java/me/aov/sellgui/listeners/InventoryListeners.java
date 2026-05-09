@@ -63,12 +63,7 @@ public class InventoryListeners implements Listener {
             }
         }
 
-        // Update price after drag
-        Bukkit.getScheduler().runTaskLater(main, () -> {
-            if (SellCommand.getSellGUI(player) != null) {
-                sellGUI.updateSellItemTotal();
-            }
-        }, 1L);
+        scheduleMenuRefresh(player, sellGUI);
     }
 
     @EventHandler
@@ -131,9 +126,11 @@ public class InventoryListeners implements Listener {
                         return;
                     }
                     SoundHandler.playConfigSound(player, "sounds.ui.confirm");
+                    sellGUI.returnInvalidItems();
                     sellGUI.sellItems(sellGUI.getMenu());
                     break;
                 case "sell":
+                    sellGUI.returnInvalidItems();
                     if (sellGUI.getTotal(sellGUI.getMenu()) <= 0) {
                         SoundHandler.playConfigSound(player, "sounds.feedback.fail");
                         return;
@@ -146,13 +143,18 @@ public class InventoryListeners implements Listener {
             e.setCancelled(true);
             handleCustomMenuItemClick(player, currentItem);
         } else {
-            // For any other click (moving items), schedule an update to the button total.
-            Bukkit.getScheduler().runTaskLater(main, () -> {
-                if (SellCommand.getSellGUI(player) != null) {
-                    sellGUI.updateSellItemTotal();
-                }
-            }, 1L);
+            scheduleMenuRefresh(player, sellGUI);
         }
+    }
+
+    private void scheduleMenuRefresh(Player player, SellGUI sellGUI) {
+        Bukkit.getScheduler().runTaskLater(main, () -> {
+            SellGUI active = SellCommand.getSellGUI(player);
+            if (active != null && active == sellGUI) {
+                active.returnInvalidItems();
+                active.updateSellItemTotal();
+            }
+        }, 1L);
     }
 
     private boolean isGUIControlItem(ItemStack item) {

@@ -1,6 +1,7 @@
 package me.aov.sellgui.managers;
 
 import me.aov.sellgui.SellGUIMain;
+import me.aov.sellgui.gui.SellMenuConfig;
 import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.utils.ItemIdentifier;
 import org.bukkit.Bukkit;
@@ -110,6 +111,7 @@ public class AutosellManager {
             for (int i = 0; i < player.getInventory().getSize(); i++) {
                 ItemStack item = player.getInventory().getItem(i);
                 if (item == null || item.getType().isAir()) continue;
+                if (SellMenuConfig.isExclusiveToAnyMenu(plugin, item)) continue;
 
                 String identifier = ItemIdentifier.getItemIdentifier(item);
                 if (identifier == null) continue;
@@ -165,6 +167,7 @@ public class AutosellManager {
         String calcMethod = plugin.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
         for (ItemStack item : player.getInventory().getContents()) {
             if (item == null || item.getType().isAir()) continue;
+            if (SellMenuConfig.isExclusiveToAnyMenu(plugin, item)) continue;
             String id = ItemIdentifier.getItemIdentifier(item);
             if (id == null) continue;
             

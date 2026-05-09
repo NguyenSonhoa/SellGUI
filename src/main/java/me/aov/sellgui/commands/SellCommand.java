@@ -3,6 +3,7 @@ package me.aov.sellgui.commands;
 import me.aov.sellgui.SellGUI;
 import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.gui.PriceEvaluationGUI;
+import me.aov.sellgui.gui.SellMenuConfig;
 import me.aov.sellgui.managers.PriceManager;
 import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.utils.ItemIdentifier;
@@ -35,13 +36,9 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         if (args.length == 0) {
             if (sender instanceof Player) {
                 Player player = (Player) sender;
-                if (player.hasPermission("sellgui.use")) {
-                    sellGUIS.add(new SellGUI(this.main, player, this.main.getItemNBTManager()));
-                } else {
-                    player.sendMessage(ColorUtils.color("&cYou do not have permission to use this command."));
-                }
+                openSellMenu(sender, player, SellMenuConfig.DEFAULT_MENU_ID);
             } else {
-                sender.sendMessage(ColorUtils.color("&cUsage: /sellgui <player>"));
+                sender.sendMessage(ColorUtils.color("&cUsage: /sellgui <player> [menu]"));
             }
             return true;
         }
@@ -114,13 +111,17 @@ public class SellCommand implements CommandExecutor, TabCompleter {
                 return handleHelpCommand(sender);
 
             default:
-                // This handles /sellgui <player>
+                if (args.length == 1 && sender instanceof Player && SellMenuConfig.menuExists(main, args[0])) {
+                    openSellMenu(sender, (Player) sender, args[0]);
+                    return true;
+                }
+
+                // This handles /sellgui <player> and /sellgui <player> <menu>
                 if (args.length == 1) {
                     if (sender.hasPermission("sellgui.others") || !(sender instanceof Player)) {
                         Player target = main.getServer().getPlayer(args[0]);
                         if (target != null) {
-                            sellGUIS.add(new SellGUI(this.main, target, this.main.getItemNBTManager()));
-                            sender.sendMessage(ColorUtils.color("&aSuccessfully opened SellGUI for " + target.getName() + "."));
+                            openSellMenu(sender, target, SellMenuConfig.DEFAULT_MENU_ID);
                         } else {
                             sender.sendMessage(ColorUtils.color("&cPlayer '" + args[0] + "' not found or is not online."));
                         }
@@ -129,10 +130,65 @@ public class SellCommand implements CommandExecutor, TabCompleter {
                     }
                     return true;
                 }
+
+                if (args.length == 2) {
+                    if (!sender.hasPermission("sellgui.others") && sender instanceof Player) {
+                        sender.sendMessage(ColorUtils.color("&cYou do not have permission to open SellGUI for other players."));
+                        return true;
+                    }
+
+                    Player target = main.getServer().getPlayer(args[0]);
+                    if (target == null) {
+                        sender.sendMessage(ColorUtils.color("&cPlayer '" + args[0] + "' not found or is not online."));
+                        return true;
+                    }
+
+                    openSellMenu(sender, target, args[1]);
+                    return true;
+                }
                 break; // break to show invalid usage message
         }
 
         sender.sendMessage(ColorUtils.color("&cInvalid command usage. Try: /" + label + " help"));
+        return true;
+    }
+
+    private boolean openSellMenu(CommandSender sender, Player target, String requestedMenuId) {
+        SellMenuConfig menuConfig = SellMenuConfig.load(main, requestedMenuId);
+        if (menuConfig == null) {
+            sender.sendMessage(ColorUtils.color("&cUnknown sell menu: &f" + requestedMenuId));
+            sender.sendMessage(ColorUtils.color("&7Available menus: &f" + String.join(", ", SellMenuConfig.getMenuIds(main))));
+            return true;
+        }
+
+        boolean openingSelf = sender instanceof Player && ((Player) sender).getUniqueId().equals(target.getUniqueId());
+        if (openingSelf) {
+            if (!target.hasPermission("sellgui.use")) {
+                target.sendMessage(ColorUtils.color("&cYou do not have permission to use this command."));
+                return true;
+            }
+
+            String permission = menuConfig.getPermission();
+            if (permission != null && !permission.isBlank() && !target.hasPermission(permission)) {
+                target.sendMessage(ColorUtils.color("&cYou do not have permission to open this sell menu."));
+                return true;
+            }
+        } else if (sender instanceof Player && !sender.hasPermission("sellgui.others")) {
+            sender.sendMessage(ColorUtils.color("&cYou do not have permission to open SellGUI for other players."));
+            return true;
+        }
+
+        SellGUI existing = getSellGUI(target);
+        if (existing != null) {
+            target.closeInventory();
+            existing.cleanup();
+            sellGUIS.remove(existing);
+        }
+
+        sellGUIS.add(new SellGUI(main, target, main.getItemNBTManager(), menuConfig.getId()));
+        if (!openingSelf) {
+            sender.sendMessage(ColorUtils.color("&aOpened SellGUI menu &f" + menuConfig.getId() + " &afor " + target.getName() + "."));
+        }
         return true;
     }
 
@@ -219,7 +275,9 @@ public class SellCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ColorUtils.color("&6&l=== SellGUI Help ===="));
         sender.sendMessage("");
         sender.sendMessage(ColorUtils.color("&e/sellgui &7- Open the sell GUI"));
+        sender.sendMessage(ColorUtils.color("&e/sellgui <menu> &7- Open a configured sell menu"));
         sender.sendMessage(ColorUtils.color("&e/sellgui help &7- Show this help message"));
+        sender.sendMessage(ColorUtils.color("&7Menus: &f" + String.join(", ", SellMenuConfig.getMenuIds(main))));
 
         if (sender.hasPermission("sellgui.evaluate")) {
             sender.sendMessage(ColorUtils.color("&e/sellgui evaluate &7- Open the Price Evaluation GUI."));
@@ -259,6 +317,9 @@ public class SellCommand implements CommandExecutor, TabCompleter {
             }
             if (sender.hasPermission("sellgui.autosell")) {
                 completions.add("autosell");
+            }
+            if (sender instanceof Player && sender.hasPermission("sellgui.use")) {
+                completions.addAll(SellMenuConfig.getMenuIds(main));
             }
             completions.add("help");
 

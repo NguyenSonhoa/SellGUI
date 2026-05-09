@@ -1,19 +1,17 @@
 package me.aov.sellgui;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.stream.Collectors;
-import me.aov.sellgui.utils.ItemIdentifier;
+
 import me.aov.sellgui.commands.SellCommand;
+import me.aov.sellgui.gui.SellMenuConfig;
+import me.aov.sellgui.handlers.SoundHandler;
+import me.aov.sellgui.managers.ItemNBTManager;
 import me.aov.sellgui.managers.PriceManager;
 import me.aov.sellgui.utils.ColorUtils;
-import me.aov.sellgui.managers.ItemNBTManager;
-import org.bukkit.*;
+import me.aov.sellgui.utils.ItemIdentifier;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.ShulkerBox;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
@@ -25,135 +23,266 @@ import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.persistence.PersistentDataType;
+
 import javax.annotation.Nullable;
-import me.aov.sellgui.handlers.SoundHandler;
-public class SellGUI implements Listener {
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class SellGUI implements Listener, InventoryHolder {
     private final SellGUIMain main;
     private final Player player;
+    private final SellMenuConfig menuConfig;
+
     private ItemStack sellItem;
     private ItemStack filler;
-    private String menuTitle;
-    private Inventory menu;
     private ItemStack confirmItem;
     private ItemStack noItemsItemStack;
-    private List<Integer> sellButtonSlots;
-    private List<Integer> confirmButtonSlots;
+    private String menuTitle;
+    private Inventory menu;
+    private List<Integer> sellButtonSlots = new ArrayList<>();
+    private List<Integer> confirmButtonSlots = new ArrayList<>();
+    private List<Integer> itemSlots = new ArrayList<>();
     private int updateTaskId = -1;
     private boolean isConfirmMode = false;
     private boolean sold = false;
-    private final ItemNBTManager itemNBTManager;
-    public SellGUI(SellGUIMain main, Player p, ItemNBTManager itemNBTManager) {
+
+    public SellGUI(SellGUIMain main, Player player, ItemNBTManager itemNBTManager) {
+        this(main, player, itemNBTManager, SellMenuConfig.DEFAULT_MENU_ID);
+    }
+
+    public SellGUI(SellGUIMain main, Player player, ItemNBTManager itemNBTManager, String menuId) {
         this.main = main;
-        this.player = p;
-        this.itemNBTManager = itemNBTManager;
-        this.createItems();
-        this.createMenu();
-        this.addCustomItems();
-        p.openInventory(menu);
+        this.player = player;
+        this.menuConfig = SellMenuConfig.load(main, menuId);
+        if (this.menuConfig == null) {
+            throw new IllegalArgumentException("Unknown sell menu: " + menuId);
+        }
+
+        createItems();
+        createMenu();
+        addCustomItems();
+        player.openInventory(menu);
         startAutoUpdateTask();
     }
+
     private void createMenu() {
-        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
-        int size = guiConfig.getInt("sell_gui.size", 54);
-        this.menuTitle = guiConfig.getString("sell_gui.title", "&6&l✦ &eSell GUI &6&l✦");
-        this.sellButtonSlots = guiConfig.getIntegerList("sell_gui.positions.sell_button");
-        this.confirmButtonSlots = guiConfig.getIntegerList("sell_gui.positions.confirm_button");
-        menu = Bukkit.createInventory((InventoryHolder) null, size, color(menuTitle));
-        this.addFillerFromConfig();
-        this.addSellButton();
-    }
-    private boolean isSellItem(ItemStack item) {
-        return item(item, sellItem);
-    }
-    private boolean item(ItemStack item, ItemStack sellItem) {
-        if (item == null || item.getType() != sellItem.getType()) return false;
-        ItemMeta meta1 = item.getItemMeta();
-        ItemMeta meta2 = sellItem.getItemMeta();
-        return meta1.hasDisplayName() == meta2.hasDisplayName() &&
-                (!meta1.hasDisplayName() || meta1.getDisplayName().equals(meta2.getDisplayName())) &&
-                meta1.hasLore() == meta2.hasLore() &&
-                (!meta1.hasLore() || meta1.getLore().equals(meta2.getLore())) &&
-                meta1.hasCustomModelData() == meta2.hasCustomModelData() &&
-                (!meta1.hasCustomModelData() || meta1.getCustomModelData() == meta2.getCustomModelData());
-    }
-    private boolean isConfirmItem(ItemStack item) {
-        return item(item, confirmItem);
-    }
-    private void addCustomItems() {
-        for (String itemPath : this.main.getCustomMenuItemsConfig().getKeys(false)) {
-            if (!this.main.getCustomMenuItemsConfig().contains(itemPath + ".slot")) {
-                continue;
-            }
-            if (this.main.getCustomMenuItemsConfig().getBoolean(itemPath + ".disabled")) {
-                menu.setItem(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".slot"), filler);
-                continue;
-            }
-            ItemStack customItem = new ItemStack(Material.valueOf(this.main.getCustomMenuItemsConfig().getString(itemPath + ".material")));
-            ItemMeta itemMeta = customItem.getItemMeta();
-            if (this.main.getCustomMenuItemsConfig().contains(itemPath + ".custom-model-data")) {
-                itemMeta.setCustomModelData(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".custom-model-data"));
-            }
-            if (!this.main.getCustomMenuItemsConfig().getString(itemPath + ".name").isEmpty()) {
-                itemMeta.setDisplayName(color(this.main.getCustomMenuItemsConfig().getString(itemPath + ".name")));
-            }
-            if (this.main.getCustomMenuItemsConfig().getBoolean(itemPath + ".glimmer")) {
-                itemMeta.addEnchant(Enchantment.INFINITY, 1, false);
-                itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            }
-            if (!this.main.getCustomMenuItemsConfig().getStringList(itemPath + ".lore").isEmpty()) {
-                itemMeta.setLore(color(this.main.getCustomMenuItemsConfig().getStringList(itemPath + ".lore")));
-            }
-            NamespacedKey key = new NamespacedKey(this.main, "custom-menu-item");
-            StringBuilder sb = new StringBuilder();
-            for (String command : this.main.getCustomMenuItemsConfig().getStringList(itemPath + ".commands")) {
-                sb.append(command.replaceAll("%player%", this.player.getName())).append(";");
-            }
-            itemMeta.getPersistentDataContainer().set(key, PersistentDataType.STRING, sb.toString());
-            customItem.setItemMeta(itemMeta);
-            menu.setItem(this.main.getCustomMenuItemsConfig().getInt(itemPath + ".slot"), customItem);
-        }
-    }
-    public void addSellButton() {
+        int size = normalizeInventorySize(menuConfig.getInt("size", 54));
+        this.menuTitle = menuConfig.getString("title", "&6&lSell GUI");
+        this.sellButtonSlots = menuConfig.getIntegerList("positions.sell_button");
+        this.confirmButtonSlots = menuConfig.getIntegerList("positions.confirm_button");
+        this.itemSlots = menuConfig.getIntegerList("positions.item_slots");
+
         if (sellButtonSlots.isEmpty()) {
-            this.player.sendMessage(color("&cError: sell_button slots are not defined in gui.yml."));
-            return;
+            sellButtonSlots.add(Math.min(49, size - 1));
         }
+        if (confirmButtonSlots.isEmpty()) {
+            confirmButtonSlots.addAll(sellButtonSlots);
+        }
+
+        this.menu = Bukkit.createInventory(this, size, color(menuTitle));
+        addFillerFromConfig();
+        addSellButton();
+    }
+
+    private int normalizeInventorySize(int size) {
+        if (size < 9) {
+            return 9;
+        }
+        if (size > 54) {
+            return 54;
+        }
+        return ((size + 8) / 9) * 9;
+    }
+
+    private void createItems() {
+        NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
+        NamespacedKey actionKey = new NamespacedKey(main, "guiAction");
+        NamespacedKey menuKey = new NamespacedKey(main, "sellgui-menu");
+
+        sellItem = createGuiItem(
+                "items.sell_button",
+                Material.EMERALD,
+                "&a&lSell Items",
+                menuConfig.getStringList("items.sell_button.lore")
+        );
+        ItemMeta sellItemMeta = sellItem.getItemMeta();
+        if (sellItemMeta != null) {
+            if (menuConfig.getBoolean("items.sell_button.glow", true)) {
+                sellItemMeta.addEnchant(Enchantment.INFINITY, 1, false);
+                sellItemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            }
+            sellItemMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
+            sellItemMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, "sell");
+            sellItemMeta.getPersistentDataContainer().set(menuKey, PersistentDataType.STRING, menuConfig.getId());
+            sellItem.setItemMeta(sellItemMeta);
+        }
+
+        filler = createGuiItem(
+                "items.filler",
+                Material.GRAY_STAINED_GLASS_PANE,
+                " ",
+                menuConfig.getStringList("items.filler.lore")
+        );
+        ItemMeta fillerMeta = filler.getItemMeta();
+        if (fillerMeta != null) {
+            fillerMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
+            fillerMeta.getPersistentDataContainer().set(menuKey, PersistentDataType.STRING, menuConfig.getId());
+            filler.setItemMeta(fillerMeta);
+        }
+
+        noItemsItemStack = createGuiItem(
+                "items.no_items",
+                Material.BARRIER,
+                "&cNo items to sell!",
+                menuConfig.getStringList("items.no_items.lore")
+        );
+        ItemMeta noItemsMeta = noItemsItemStack.getItemMeta();
+        if (noItemsMeta != null) {
+            noItemsMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
+            noItemsMeta.getPersistentDataContainer().set(menuKey, PersistentDataType.STRING, menuConfig.getId());
+            noItemsItemStack.setItemMeta(noItemsMeta);
+        }
+    }
+
+    private ItemStack createGuiItem(String path, Material fallbackMaterial, String fallbackName, List<String> fallbackLore) {
+        Material material = Material.matchMaterial(menuConfig.getString(path + ".material", fallbackMaterial.name()));
+        ItemStack item = new ItemStack(material != null ? material : fallbackMaterial);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(color(menuConfig.getString(path + ".name", fallbackName)));
+            List<String> lore = menuConfig.getStringList(path + ".lore");
+            if (lore.isEmpty()) {
+                lore = fallbackLore;
+            }
+            meta.setLore(color(lore));
+            if (menuConfig.contains(path + ".custom-model-data")) {
+                int customModelData = menuConfig.getInt(path + ".custom-model-data", 0);
+                if (customModelData > 0) {
+                    meta.setCustomModelData(customModelData);
+                }
+            }
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private void addFillerFromConfig() {
+        for (int slot : menuConfig.getIntegerList("positions.filler_slots")) {
+            if (isValidSlot(slot)) {
+                menu.setItem(slot, filler);
+            }
+        }
+    }
+
+    public void addSellButton() {
         for (int slot : sellButtonSlots) {
-            if (slot >= 0 && slot < menu.getSize()) {
+            if (isValidSlot(slot)) {
                 menu.setItem(slot, sellItem);
             }
         }
-        this.makeConfirmItem();
+        makeConfirmItem();
     }
+
+    private void addCustomItems() {
+        if (main.getCustomMenuItemsConfig() == null) {
+            return;
+        }
+
+        for (String itemPath : main.getCustomMenuItemsConfig().getKeys(false)) {
+            if (!main.getCustomMenuItemsConfig().contains(itemPath + ".slot")) {
+                continue;
+            }
+
+            List<String> menus = main.getCustomMenuItemsConfig().getStringList(itemPath + ".menus");
+            if (!menus.isEmpty() && menus.stream().noneMatch(menu -> SellMenuConfig.normalizeMenuId(menu).equals(menuConfig.getId()))) {
+                continue;
+            }
+
+            int slot = main.getCustomMenuItemsConfig().getInt(itemPath + ".slot");
+            if (!isValidSlot(slot)) {
+                continue;
+            }
+
+            if (main.getCustomMenuItemsConfig().getBoolean(itemPath + ".disabled")) {
+                menu.setItem(slot, filler);
+                continue;
+            }
+
+            Material material = Material.matchMaterial(main.getCustomMenuItemsConfig().getString(itemPath + ".material", "STONE"));
+            ItemStack customItem = new ItemStack(material != null ? material : Material.STONE);
+            ItemMeta itemMeta = customItem.getItemMeta();
+            if (itemMeta == null) {
+                continue;
+            }
+
+            if (main.getCustomMenuItemsConfig().contains(itemPath + ".custom-model-data")) {
+                int customModelData = main.getCustomMenuItemsConfig().getInt(itemPath + ".custom-model-data");
+                if (customModelData > 0) {
+                    itemMeta.setCustomModelData(customModelData);
+                }
+            }
+            String name = main.getCustomMenuItemsConfig().getString(itemPath + ".name", "");
+            if (!name.isEmpty()) {
+                itemMeta.setDisplayName(color(name));
+            }
+            if (main.getCustomMenuItemsConfig().getBoolean(itemPath + ".glimmer")) {
+                itemMeta.addEnchant(Enchantment.INFINITY, 1, false);
+                itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            }
+            List<String> lore = main.getCustomMenuItemsConfig().getStringList(itemPath + ".lore");
+            if (!lore.isEmpty()) {
+                itemMeta.setLore(color(lore));
+            }
+
+            NamespacedKey key = new NamespacedKey(main, "custom-menu-item");
+            String commands = main.getCustomMenuItemsConfig().getStringList(itemPath + ".commands").stream()
+                    .map(command -> command.replace("%player%", player.getName()))
+                    .collect(Collectors.joining(";"));
+            itemMeta.getPersistentDataContainer().set(key, PersistentDataType.STRING, commands);
+            customItem.setItemMeta(itemMeta);
+            menu.setItem(slot, customItem);
+        }
+    }
+
     private void startAutoUpdateTask() {
         if (updateTaskId != -1) {
-            this.main.getServer().getScheduler().cancelTask(updateTaskId);
+            main.getServer().getScheduler().cancelTask(updateTaskId);
         }
-        long updateInterval = this.main.getConfig().getLong("performance.gui-update-interval", 20);
-        updateTaskId = this.main.getServer().getScheduler().runTaskTimer(this.main, () -> {
+
+        long updateInterval = main.getConfig().getLong("performance.gui-update-interval", 20);
+        updateTaskId = main.getServer().getScheduler().runTaskTimer(main, () -> {
             if (menu != null && player != null && player.isOnline() && !isConfirmMode) {
+                returnInvalidItems();
                 updateSellItemTotal();
             } else if (!player.isOnline() || menu == null) {
-                if (updateTaskId != -1) {
-                    this.main.getServer().getScheduler().cancelTask(updateTaskId);
-                    updateTaskId = -1;
-                }
+                cleanup();
             }
         }, 0L, updateInterval).getTaskId();
     }
+
     public void updateSellItemTotal() {
         if (menu == null || isConfirmMode) {
             return;
         }
+
         double currentTotal = getTotal(menu);
-        ItemStack buttonToShow = (currentTotal > 0) ? sellItem : noItemsItemStack;
+        ItemStack buttonToShow = currentTotal > 0 ? sellItem.clone() : noItemsItemStack.clone();
         if (currentTotal > 0) {
             ItemMeta meta = buttonToShow.getItemMeta();
             if (meta != null && meta.hasLore()) {
                 List<String> lore = new ArrayList<>(meta.getLore());
                 for (int i = 0; i < lore.size(); i++) {
-                    String line = lore.get(i);
-                    if (ChatColor.stripColor(line).contains("Total Value:")) {
+                    String line = ChatColor.stripColor(lore.get(i));
+                    if (line != null && line.toLowerCase().contains("total")) {
                         lore.set(i, color("&eTotal Value: &a$" + String.format("%.2f", currentTotal)));
                         break;
                     }
@@ -162,23 +291,31 @@ public class SellGUI implements Listener {
                 buttonToShow.setItemMeta(meta);
             }
         }
+
         for (int slot : sellButtonSlots) {
-            if (slot >= 0 && slot < menu.getSize()) {
+            if (isValidSlot(slot)) {
                 menu.setItem(slot, buttonToShow);
             }
         }
     }
+
     public void updateButtonState() {
-        if (menu == null) return;
+        if (menu == null) {
+            return;
+        }
+
+        returnInvalidItems();
         double currentTotal = getTotal(menu);
         if (currentTotal > 0) {
             for (int slot : sellButtonSlots) {
-                menu.setItem(slot, null);
+                if (isValidSlot(slot)) {
+                    menu.setItem(slot, null);
+                }
             }
             makeConfirmItem();
             for (int slot : confirmButtonSlots) {
-                if (slot >= 0 && slot < menu.getSize()) {
-                    menu.setItem(slot, this.confirmItem);
+                if (isValidSlot(slot)) {
+                    menu.setItem(slot, confirmItem);
                 }
             }
             isConfirmMode = true;
@@ -187,350 +324,263 @@ public class SellGUI implements Listener {
             updateSellItemTotal();
         }
     }
+
     public void cleanup() {
         if (updateTaskId != -1) {
-            this.main.getServer().getScheduler().cancelTask(updateTaskId);
+            main.getServer().getScheduler().cancelTask(updateTaskId);
             updateTaskId = -1;
         }
     }
-    private void createItems() {
-        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
-        NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
-        NamespacedKey actionKey = new NamespacedKey(this.main, "guiAction");
-        Material sellMaterial = Material.getMaterial(guiConfig.getString("sell_gui.items.sell_button.material", "EMERALD"));
-        sellItem = new ItemStack(sellMaterial != null ? sellMaterial : Material.EMERALD);
-        ItemMeta sellItemMeta = sellItem.getItemMeta();
-        if (sellItemMeta != null) {
-            sellItemMeta.setDisplayName(color(guiConfig.getString("sell_gui.items.sell_button.name", "&a&lSell Items")));
-            sellItemMeta.setLore(color(guiConfig.getStringList("sell_gui.items.sell_button.lore")));
-            if (guiConfig.getBoolean("sell_gui.items.sell_button.glow", true)) {
-                sellItemMeta.addEnchant(Enchantment.INFINITY, 1, false);
-                sellItemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            }
-            if (guiConfig.contains("sell_gui.items.sell_button.custom-model-data")) {
-                sellItemMeta.setCustomModelData(guiConfig.getInt("sell_gui.items.sell_button.custom-model-data"));
-            }
-            sellItemMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
-            sellItemMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, "sell");
-            sellItem.setItemMeta(sellItemMeta);
-        }
-        Material fillerMaterial = Material.getMaterial(guiConfig.getString("sell_gui.items.filler.material", "GRAY_STAINED_GLASS_PANE"));
-        filler = new ItemStack(fillerMaterial != null ? fillerMaterial : Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta fillerMeta = filler.getItemMeta();
-        if (fillerMeta != null) {
-            fillerMeta.setDisplayName(color(guiConfig.getString("sell_gui.items.filler.name", " ")));
-            if (guiConfig.contains("sell_gui.items.filler.custom-model-data")) {
-                fillerMeta.setCustomModelData(guiConfig.getInt("sell_gui.items.filler.custom-model-data"));
-            }
-            fillerMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
-            filler.setItemMeta(fillerMeta);
-        }
-        Material noItemsMaterial = Material.getMaterial(guiConfig.getString("sell_gui.items.no_items.material", "BARRIER"));
-        noItemsItemStack = new ItemStack(noItemsMaterial != null ? noItemsMaterial : Material.BARRIER);
-        ItemMeta noItemsMeta = noItemsItemStack.getItemMeta();
-        if (noItemsMeta != null) {
-            noItemsMeta.setDisplayName(color(guiConfig.getString("sell_gui.items.no_items.name", "&cNo items to sell!")));
-            noItemsMeta.setLore(color(guiConfig.getStringList("sell_gui.items.no_items.lore")));
-            if (guiConfig.contains("sell_gui.items.no_items.custom-model-data")) {
-                noItemsMeta.setCustomModelData(guiConfig.getInt("sell_gui.items.no_items.custom-model-data"));
-            }
-            noItemsMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
-            noItemsItemStack.setItemMeta(noItemsMeta);
-        }
-    }
-    private void addFillerFromConfig() {
-        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
-        List<Integer> fillerSlots = guiConfig.getIntegerList("sell_gui.positions.filler_slots");
-        if (!fillerSlots.isEmpty()) {
-            for (int slot : fillerSlots) {
-                if (slot >= 0 && slot < menu.getSize()) {
-                    menu.setItem(slot, filler);
-                }
-            }
-        }
-    }
+
     public void makeConfirmItem() {
-        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
-        Material material = Material.getMaterial(guiConfig.getString("sell_gui.items.confirm_button.material", "GREEN_CONCRETE"));
-        this.confirmItem = new ItemStack(material != null ? material : Material.GREEN_CONCRETE);
-        ItemMeta itemMeta = this.confirmItem.getItemMeta();
-        if (itemMeta != null) {
-            itemMeta.setDisplayName(color(guiConfig.getString("sell_gui.items.confirm_button.name", "&a&lConfirm Sale")));
-            if (guiConfig.getBoolean("sell_gui.items.confirm_button.glow", true)) {
-                itemMeta.addEnchant(Enchantment.POWER, 1, false);
-                itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            }
-            if (guiConfig.contains("sell_gui.items.confirm_button.custom-model-data")) {
-                itemMeta.setCustomModelData(guiConfig.getInt("sell_gui.items.confirm_button.custom-model-data"));
-            }
-            List<String> finalLore = new ArrayList<>();
-            HashMap<String, Integer> itemsNeedingEvaluation = new HashMap<>();
-            List<String> breakdownLore = generateItemBreakdownLore(itemsNeedingEvaluation);
-            if (!breakdownLore.isEmpty()) {
-                finalLore.addAll(breakdownLore);
-                finalLore.add(" ");
-            }
-            List<String> loreTemplate = guiConfig.getStringList("sell_gui.items.confirm_button.lore");
-            String totalValue = String.format("%.2f", getTotal(this.menu));
-            for (String templateLine : loreTemplate) {
-                finalLore.add(templateLine.replace("%total%", totalValue));
-            }
-            if (!itemsNeedingEvaluation.isEmpty()) {
-                finalLore.add(" ");
-                finalLore.add(color("&c⚠ Some items need evaluation"));
-                finalLore.add(color("&7Use /sellgui evaluate"));
-            }
-            itemMeta.setLore(color(finalLore));
-            NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
-            NamespacedKey actionKey = new NamespacedKey(this.main, "guiAction");
-            itemMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
-            itemMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, "confirm");
-            this.confirmItem.setItemMeta(itemMeta);
+        Material material = Material.matchMaterial(menuConfig.getString("items.confirm_button.material", "GREEN_CONCRETE"));
+        confirmItem = new ItemStack(material != null ? material : Material.GREEN_CONCRETE);
+        ItemMeta itemMeta = confirmItem.getItemMeta();
+        if (itemMeta == null) {
+            return;
         }
+
+        itemMeta.setDisplayName(color(menuConfig.getString("items.confirm_button.name", "&a&lConfirm Sale")));
+        if (menuConfig.getBoolean("items.confirm_button.glow", true)) {
+            itemMeta.addEnchant(Enchantment.POWER, 1, false);
+            itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
+        if (menuConfig.contains("items.confirm_button.custom-model-data")) {
+            int customModelData = menuConfig.getInt("items.confirm_button.custom-model-data", 0);
+            if (customModelData > 0) {
+                itemMeta.setCustomModelData(customModelData);
+            }
+        }
+
+        List<String> finalLore = new ArrayList<>();
+        HashMap<String, Integer> itemsNeedingEvaluation = new HashMap<>();
+        List<String> breakdownLore = generateItemBreakdownLore(itemsNeedingEvaluation);
+        if (!breakdownLore.isEmpty()) {
+            finalLore.addAll(breakdownLore);
+            finalLore.add(" ");
+        }
+
+        String totalValue = String.format("%.2f", getTotal(menu));
+        for (String templateLine : menuConfig.getStringList("items.confirm_button.lore")) {
+            finalLore.add(templateLine.replace("%total%", totalValue).replace("%menu%", menuConfig.getDisplayName()));
+        }
+
+        if (!itemsNeedingEvaluation.isEmpty()) {
+            finalLore.add(" ");
+            finalLore.add("&cSome items need evaluation");
+            finalLore.add("&7Use /sellgui evaluate");
+        }
+
+        itemMeta.setLore(color(finalLore));
+        NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
+        NamespacedKey actionKey = new NamespacedKey(main, "guiAction");
+        NamespacedKey menuKey = new NamespacedKey(main, "sellgui-menu");
+        itemMeta.getPersistentDataContainer().set(guiKey, PersistentDataType.BYTE, (byte) 1);
+        itemMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, "confirm");
+        itemMeta.getPersistentDataContainer().set(menuKey, PersistentDataType.STRING, menuConfig.getId());
+        confirmItem.setItemMeta(itemMeta);
     }
+
     private List<String> generateItemBreakdownLore(HashMap<String, Integer> itemsNeedingEvaluation) {
         List<String> lore = new ArrayList<>();
-        FileConfiguration guiConfig = this.main.getConfigManager().getGUIConfig();
-        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
-        HashMap<String, Integer> itemCounts = new HashMap<>();
-        HashMap<String, Double> itemTotals = new HashMap<>();
-        HashMap<String, String> itemDisplayNames = new HashMap<>();
-        for (ItemStack item : this.getMenu().getContents()) {
-            if (item != null && !isGuiItem(item) && !isCustomMenuItem(item)) {
-                String itemIdentifierKey = ItemIdentifier.getItemIdentifier(item);
-                String itemDisplayName = ItemIdentifier.getItemDisplayName(item);
-                itemDisplayNames.put(itemIdentifierKey, itemDisplayName);
-                boolean needsEvaluation = main.getRandomPriceManager() != null &&
-                        main.getRandomPriceManager().requiresEvaluation(item) &&
-                        !main.getRandomPriceManager().isEvaluated(item);
-                if (needsEvaluation) {
-                    itemsNeedingEvaluation.put(itemIdentifierKey, itemsNeedingEvaluation.getOrDefault(itemIdentifierKey, 0) + item.getAmount());
-                } else {
-                    double price = getPrice(item, player);
-                    if (price > 0) {
-                        itemCounts.put(itemIdentifierKey, itemCounts.getOrDefault(itemIdentifierKey, 0) + item.getAmount());
-                        double totalItemPrice = calculationMethod.equals("shopguiplus") ? price : price * item.getAmount();
-                        itemTotals.put(itemIdentifierKey, itemTotals.getOrDefault(itemIdentifierKey, 0.0) + totalItemPrice);
-                    }
-                }
+        Map<String, Integer> itemCounts = new HashMap<>();
+        Map<String, Double> itemTotals = new HashMap<>();
+        Map<String, String> itemDisplayNames = new HashMap<>();
+
+        for (int slot = 0; slot < menu.getSize(); slot++) {
+            ItemStack item = menu.getItem(slot);
+            if (!isSellableMenuItem(slot, item)) {
+                continue;
             }
+
+            String itemIdentifierKey = ItemIdentifier.getItemIdentifier(item);
+            String itemDisplayName = ItemIdentifier.getItemDisplayName(item);
+            itemDisplayNames.put(itemIdentifierKey, itemDisplayName);
+
+            boolean needsEvaluation = main.getRandomPriceManager() != null
+                    && main.getRandomPriceManager().requiresEvaluation(item)
+                    && !main.getRandomPriceManager().isEvaluated(item);
+            if (needsEvaluation) {
+                itemsNeedingEvaluation.put(itemIdentifierKey, itemsNeedingEvaluation.getOrDefault(itemIdentifierKey, 0) + item.getAmount());
+                continue;
+            }
+
+            double price = getPrice(item, player);
+            if (price <= 0) {
+                continue;
+            }
+
+            itemCounts.put(itemIdentifierKey, itemCounts.getOrDefault(itemIdentifierKey, 0) + item.getAmount());
+            double totalItemPrice = isShulkerBox(item) ? price : price * item.getAmount();
+            itemTotals.put(itemIdentifierKey, itemTotals.getOrDefault(itemIdentifierKey, 0.0) + totalItemPrice);
         }
-        String format = guiConfig.getString("sell_gui.item_total_format", "&7%amount%x &f%item% &8= &e$%total%");
+
+        String format = menuConfig.getString("item_total_format", "&7%amount%x &f%item% &8= &e$%total%");
         for (String itemIdentifierKey : itemCounts.keySet()) {
             double total = itemTotals.get(itemIdentifierKey);
             int amount = itemCounts.get(itemIdentifierKey);
-            double averagePrice = (amount > 0) ? total / amount : 0.0;
+            double averagePrice = amount > 0 ? total / amount : 0.0;
             String displayedItemName = itemDisplayNames.get(itemIdentifierKey);
-            String formatted = format
+            lore.add(format
                     .replace("%item%", displayedItemName)
                     .replace("%amount%", String.valueOf(amount))
                     .replace("%price%", String.format("%.2f", averagePrice))
-                    .replace("%total%", String.format("%.2f", total));
-            lore.add(formatted);
+                    .replace("%total%", String.format("%.2f", total))
+                    .replace("%menu%", menuConfig.getDisplayName()));
         }
-        String evaluationFormat = guiConfig.getString("sell_gui.evaluation_required_format", "&7%amount%x &f%item% &c⚠ Needs Evaluation");
+
+        String evaluationFormat = menuConfig.getString("evaluation_required_format", "&7%amount%x &f%item% &cNeeds Evaluation");
         for (String itemIdentifierKey : itemsNeedingEvaluation.keySet()) {
             String displayedItemName = itemDisplayNames.get(itemIdentifierKey);
-            String formatted = evaluationFormat
+            lore.add(evaluationFormat
                     .replace("%item%", displayedItemName)
-                    .replace("%amount%", String.valueOf(itemsNeedingEvaluation.get(itemIdentifierKey)));
-            lore.add(formatted);
+                    .replace("%amount%", String.valueOf(itemsNeedingEvaluation.get(itemIdentifierKey)))
+                    .replace("%menu%", menuConfig.getDisplayName()));
         }
+
         return lore;
     }
+
     public boolean hasUnevaluatedItems() {
-        if (main.getRandomPriceManager() == null) return false;
-        for (ItemStack item : getMenu().getContents()) {
-            if (item != null && !isGuiItem(item) && !isCustomMenuItem(item)) {
-                if (main.getRandomPriceManager().requiresEvaluation(item) && !main.getRandomPriceManager().isEvaluated(item)) {
-                    return true;
-                }
+        if (main.getRandomPriceManager() == null) {
+            return false;
+        }
+
+        for (int slot = 0; slot < menu.getSize(); slot++) {
+            ItemStack item = menu.getItem(slot);
+            if (isSellableMenuItem(slot, item)
+                    && main.getRandomPriceManager().requiresEvaluation(item)
+                    && !main.getRandomPriceManager().isEvaluated(item)) {
+                return true;
             }
         }
         return false;
     }
+
     public void setConfirmMode() {
         updateButtonState();
     }
+
     public void setSellItem() {
         for (int slot : confirmButtonSlots) {
-            menu.setItem(slot, null);
+            if (isValidSlot(slot)) {
+                menu.setItem(slot, null);
+            }
         }
         isConfirmMode = false;
         updateSellItemTotal();
     }
+
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
+        if (itemStack == null || itemStack.getType() == Material.AIR || !canAcceptItem(itemStack)) {
             return 0.0;
         }
+
         BigDecimal itemPrice = BigDecimal.ZERO;
         ItemStack itemToPrice = itemStack.clone();
         itemToPrice.setAmount(1);
-        if (itemToPrice.hasItemMeta()) {
-            ItemMeta meta = itemToPrice.getItemMeta();
-            if (meta != null) {
-                NamespacedKey key = new NamespacedKey(main, "current_price");
-                if (meta.getPersistentDataContainer().has(key, PersistentDataType.DOUBLE)) {
-                    itemPrice = BigDecimal.valueOf(meta.getPersistentDataContainer().get(key, PersistentDataType.DOUBLE));
-                }
+
+        ItemMeta meta = itemToPrice.getItemMeta();
+        if (meta != null) {
+            NamespacedKey key = new NamespacedKey(main, "current_price");
+            if (meta.getPersistentDataContainer().has(key, PersistentDataType.DOUBLE)) {
+                itemPrice = BigDecimal.valueOf(meta.getPersistentDataContainer().get(key, PersistentDataType.DOUBLE));
             }
         }
+
         if (itemPrice.compareTo(BigDecimal.ZERO) == 0) {
-            PriceManager priceManager = new PriceManager(main);
+            PriceManager priceManager = main.getPriceManager() != null ? main.getPriceManager() : new PriceManager(main);
             double price = priceManager.getItemPriceWithPlayer(itemToPrice, player);
             if (price > 0) {
                 itemPrice = BigDecimal.valueOf(price);
             }
         }
+
         if (main.getRandomPriceManager() != null && !main.getRandomPriceManager().canBeSold(itemToPrice)) {
             return 0.0;
         }
+
         BigDecimal contentsPrice = BigDecimal.ZERO;
-        if (isShulkerBox(itemStack) && itemStack.hasItemMeta() && itemStack.getItemMeta() instanceof BlockStateMeta) {
-            BlockStateMeta meta = (BlockStateMeta) itemStack.getItemMeta();
-            if (meta.getBlockState() instanceof ShulkerBox) {
-                ShulkerBox shulker = (ShulkerBox) meta.getBlockState();
-                for (ItemStack contained : shulker.getInventory().getContents()) {
-                    if (contained != null && !contained.getType().isAir()) {
-                        contentsPrice = contentsPrice.add(BigDecimal.valueOf(getPrice(contained, player)).multiply(BigDecimal.valueOf(contained.getAmount())));
-                    }
+        if (isShulkerBox(itemStack) && itemStack.getItemMeta() instanceof BlockStateMeta blockStateMeta && blockStateMeta.getBlockState() instanceof ShulkerBox shulker) {
+            for (ItemStack contained : shulker.getInventory().getContents()) {
+                if (contained != null && !contained.getType().isAir()) {
+                    contentsPrice = contentsPrice.add(BigDecimal.valueOf(getPrice(contained, player)).multiply(BigDecimal.valueOf(contained.getAmount())));
                 }
             }
         }
+
         BigDecimal totalPrice = itemPrice.add(contentsPrice);
         if (totalPrice.compareTo(BigDecimal.ZERO) > 0) {
             totalPrice = applyPermissionBonuses(player, totalPrice);
         }
         return totalPrice.doubleValue();
     }
+
     private BigDecimal applyPermissionBonuses(Player player, BigDecimal price) {
-        if (player == null || price.compareTo(BigDecimal.ZERO) <= 0) return price;
+        if (player == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+            return price;
+        }
+
         BigDecimal bonusPercent = BigDecimal.ZERO;
         for (PermissionAttachmentInfo pai : player.getEffectivePermissions()) {
-            if (pai.getPermission().startsWith("sellgui.bonus.") && pai.getValue()) {
-                if (player.isOp() && pai.getAttachment() == null) {
-                    continue; 
-                }
-                try {
-                    String percentStr = pai.getPermission().substring("sellgui.bonus.".length());
-                    bonusPercent = bonusPercent.add(new BigDecimal(percentStr));
-                } catch (NumberFormatException e) {
-                    main.getLogger().warning("Invalid sell bonus permission format: " + pai.getPermission());
-                }
+            if (!pai.getPermission().startsWith("sellgui.bonus.") || !pai.getValue()) {
+                continue;
+            }
+            if (player.isOp() && pai.getAttachment() == null) {
+                continue;
+            }
+            try {
+                String percentStr = pai.getPermission().substring("sellgui.bonus.".length());
+                bonusPercent = bonusPercent.add(new BigDecimal(percentStr));
+            } catch (NumberFormatException e) {
+                main.getLogger().warning("Invalid sell bonus permission format: " + pai.getPermission());
             }
         }
+
         if (bonusPercent.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal multiplier = BigDecimal.ONE.add(bonusPercent.divide(new BigDecimal("100")));
-            price = price.multiply(multiplier);
+            return price.multiply(multiplier);
         }
         return price;
     }
-    private boolean isShulkerBox(ItemStack item) {
-        if (item == null || item.getType() == Material.AIR) return false;
-        Material type = item.getType();
-        return type == Material.SHULKER_BOX ||
-                type == Material.WHITE_SHULKER_BOX ||
-                type == Material.ORANGE_SHULKER_BOX ||
-                type == Material.MAGENTA_SHULKER_BOX ||
-                type == Material.LIGHT_BLUE_SHULKER_BOX ||
-                type == Material.YELLOW_SHULKER_BOX ||
-                type == Material.LIME_SHULKER_BOX ||
-                type == Material.PINK_SHULKER_BOX ||
-                type == Material.GRAY_SHULKER_BOX ||
-                type == Material.LIGHT_GRAY_SHULKER_BOX ||
-                type == Material.CYAN_SHULKER_BOX ||
-                type == Material.PURPLE_SHULKER_BOX ||
-                type == Material.BLUE_SHULKER_BOX ||
-                type == Material.BROWN_SHULKER_BOX ||
-                type == Material.GREEN_SHULKER_BOX ||
-                type == Material.RED_SHULKER_BOX ||
-                type == Material.BLACK_SHULKER_BOX;
-    }
+
     public double getTotal(Inventory inventory) {
         BigDecimal total = BigDecimal.ZERO;
-        String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto").toLowerCase();
-        for (ItemStack itemStack : inventory.getContents()) {
-            if (itemStack == null || itemStack.getType().isAir() || isGuiItem(itemStack) || isCustomMenuItem(itemStack)) {
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack itemStack = inventory.getItem(slot);
+            if (!isSellableMenuItem(slot, itemStack)) {
                 continue;
             }
-            if (main.getRandomPriceManager() != null) {
-                if (!main.getRandomPriceManager().canBeSold(itemStack) ||
-                        (main.getRandomPriceManager().hasRandomPrice(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack))) {
-                    continue;
-                }
+            if (main.getRandomPriceManager() != null
+                    && (!main.getRandomPriceManager().canBeSold(itemStack)
+                    || (main.getRandomPriceManager().hasRandomPrice(itemStack) && !main.getRandomPriceManager().isEvaluated(itemStack)))) {
+                continue;
             }
+
             double pricePerItem = getPrice(itemStack, player);
-            if (pricePerItem > 0) {
-                if (calculationMethod.equals("shopguiplus")) {
-                    if (isShulkerBox(itemStack)) {
-                        total = total.add(BigDecimal.valueOf(pricePerItem));
-                    } else {
-                        total = total.add(BigDecimal.valueOf(pricePerItem).multiply(BigDecimal.valueOf(itemStack.getAmount())));
-                    }
-                } else {
-                     if (isShulkerBox(itemStack)) {
-                        total = total.add(BigDecimal.valueOf(pricePerItem));
-                    } else {
-                        total = total.add(BigDecimal.valueOf(pricePerItem).multiply(BigDecimal.valueOf(itemStack.getAmount())));
-                    }
-                }
+            if (pricePerItem <= 0) {
+                continue;
+            }
+
+            if (isShulkerBox(itemStack)) {
+                total = total.add(BigDecimal.valueOf(pricePerItem));
+            } else {
+                total = total.add(BigDecimal.valueOf(pricePerItem).multiply(BigDecimal.valueOf(itemStack.getAmount())));
             }
         }
+
         return total.doubleValue();
     }
-    private boolean isGuiItem(ItemStack item) {
-        if (item == null || !item.hasItemMeta()) return false;
-        ItemMeta meta = item.getItemMeta();
-        NamespacedKey guiKey = new NamespacedKey(this.main, "sellgui");
-        return meta.getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
-    }
-    private boolean isCustomMenuItem(ItemStack item) {
-        if (item == null || !item.hasItemMeta()) return false;
-        return item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(this.main, "custom-menu-item"), PersistentDataType.STRING);
-    }
-    public void logSell(ItemStack itemStack) {
-        if (itemStack != null) {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(this.getMain().getLog(), true))) {
-                Date now = new Date();
-                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                ItemIdentifier.ItemType itemTypeEnum = ItemIdentifier.getItemType(itemStack);
-                String itemType = itemTypeEnum.name();
-                String itemId = ItemIdentifier.getItemIdentifier(itemStack);
-                String displayName = org.bukkit.ChatColor.stripColor(ItemIdentifier.getItemDisplayName(itemStack));
-                double unitPrice = this.getPrice(itemStack, player);
-                String calculationMethod = this.getMain().getConfig().getString("prices.calculation-method", "auto").toLowerCase();
-                double totalPrice;
-                if (calculationMethod.equals("shopguiplus")) {
-                    totalPrice = unitPrice;
-                } else {
-                    totalPrice = unitPrice * itemStack.getAmount();
-                }
-                String playerName = this.getPlayer().getName();
-                String logEntry = String.format("[SELLGUI] %s|%s|%s|%d|%.2f|%.2f|%s|%s",
-                        itemType,
-                        itemId,
-                        displayName,
-                        itemStack.getAmount(),
-                        unitPrice,
-                        totalPrice,
-                        playerName,
-                        format.format(now)
-                );
-                writer.append(logEntry + " ");
-                writer.flush();
-            } catch (IOException e) {
-                this.getMain().getLogger().severe("Failed to write to sell log: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-    }
+
     public void sellItems(Inventory inventory) {
+        returnInvalidItems();
         if (hasUnevaluatedItems()) {
             String message = main.getMessagesConfig().getString("sell.evaluation_required", "&cSome items must be evaluated before selling.");
             player.sendMessage(color(message));
             setSellItem();
             return;
         }
+
         double total = getTotal(inventory);
         if (total <= 0) {
             String message = main.getMessagesConfig().getString("sell.no_items", "&cNothing to sell!");
@@ -538,61 +588,209 @@ public class SellGUI implements Listener {
             setSellItem();
             return;
         }
-        this.main.getEcon().depositPlayer(this.player, total);
-        this.setSold(true);
-        for (ItemStack item : inventory.getContents()) {
-            if (item != null && !isGuiItem(item) && !isCustomMenuItem(item)) {
-                if (getPrice(item, player) > 0 && !hasUnevaluatedItems()) {
-                    if (this.main.getConfig().getBoolean("logging.enabled")) {
-                        logSell(item);
-                    }
-                    inventory.remove(item);
-                }
+
+        main.getEcon().depositPlayer(player, total);
+        sold = true;
+
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack item = inventory.getItem(slot);
+            if (!isSellableMenuItem(slot, item) || getPrice(item, player) <= 0) {
+                continue;
             }
+
+            if (main.getConfig().getBoolean("logging.enabled")) {
+                logSell(item);
+            }
+            inventory.setItem(slot, null);
         }
-        if (this.main.getConfig().getBoolean("general.close-after-sell")) {
-            this.player.closeInventory();
+
+        if (main.getConfig().getBoolean("general.close-after-sell")) {
+            player.closeInventory();
             SellCommand.getSellGUIs().remove(this);
         } else {
             setSellItem();
         }
-        String soldMessage = main.getMessagesConfig().getString("sell.sold_success", "&a✅ Sold items for &e$%total%!");
-        player.sendMessage(color(soldMessage.replace("%total%", String.format("%.2f", total))));
+
+        String soldMessage = main.getMessagesConfig().getString("sell.sold_success", "&aSold items for &e$%total%!");
+        player.sendMessage(color(soldMessage
+                .replace("%total%", String.format("%.2f", total))
+                .replace("%menu%", menuConfig.getDisplayName())));
         SoundHandler.playConfigSound(player, "sounds.feedback.success");
     }
+
+    public void returnInvalidItems() {
+        if (menu == null) {
+            return;
+        }
+
+        int returned = 0;
+        for (int slot = 0; slot < menu.getSize(); slot++) {
+            ItemStack item = menu.getItem(slot);
+            if (item == null || item.getType() == Material.AIR || isGuiItem(item) || isCustomMenuItem(item)) {
+                continue;
+            }
+            if (isItemSlot(slot) && canAcceptItem(item)) {
+                continue;
+            }
+
+            menu.setItem(slot, null);
+            returned += item.getAmount();
+            giveOrDrop(item);
+        }
+
+        if (returned > 0) {
+            String message = main.getMessagesConfig().getString(
+                    "sell.item_not_allowed_in_menu",
+                    "&cSome items cannot be sold in %menu% and were returned."
+            );
+            player.sendMessage(color(message
+                    .replace("%count%", String.valueOf(returned))
+                    .replace("%menu%", menuConfig.getDisplayName())));
+        }
+    }
+
+    private void giveOrDrop(ItemStack item) {
+        Map<Integer, ItemStack> notAdded = player.getInventory().addItem(item);
+        for (ItemStack leftover : notAdded.values()) {
+            player.getWorld().dropItem(player.getLocation(), leftover);
+        }
+    }
+
+    public boolean canAcceptItem(ItemStack item) {
+        return menuConfig.allowsItem(item);
+    }
+
+    private boolean isSellableMenuItem(int slot, ItemStack item) {
+        return item != null
+                && item.getType() != Material.AIR
+                && isItemSlot(slot)
+                && !isGuiItem(item)
+                && !isCustomMenuItem(item)
+                && canAcceptItem(item);
+    }
+
+    private boolean isItemSlot(int slot) {
+        return itemSlots.isEmpty() || itemSlots.contains(slot);
+    }
+
+    private boolean isValidSlot(int slot) {
+        return menu != null && slot >= 0 && slot < menu.getSize();
+    }
+
+    private boolean isGuiItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) {
+            return false;
+        }
+        NamespacedKey guiKey = new NamespacedKey(main, "sellgui");
+        return item.getItemMeta().getPersistentDataContainer().has(guiKey, PersistentDataType.BYTE);
+    }
+
+    private boolean isCustomMenuItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) {
+            return false;
+        }
+        return item.getItemMeta().getPersistentDataContainer().has(new NamespacedKey(main, "custom-menu-item"), PersistentDataType.STRING);
+    }
+
+    private boolean isShulkerBox(ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) {
+            return false;
+        }
+        return item.getType().name().endsWith("SHULKER_BOX");
+    }
+
+    public void logSell(ItemStack itemStack) {
+        if (itemStack == null) {
+            return;
+        }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(getMain().getLog(), true))) {
+            Date now = new Date();
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            ItemIdentifier.ItemType itemTypeEnum = ItemIdentifier.getItemType(itemStack);
+            String itemType = itemTypeEnum.name();
+            String itemId = ItemIdentifier.getItemIdentifier(itemStack);
+            String displayName = ChatColor.stripColor(ItemIdentifier.getItemDisplayName(itemStack));
+            double unitPrice = getPrice(itemStack, player);
+            double totalPrice = isShulkerBox(itemStack) ? unitPrice : unitPrice * itemStack.getAmount();
+            String playerName = getPlayer().getName();
+            String logEntry = String.format("[SELLGUI:%s] %s|%s|%s|%d|%.2f|%.2f|%s|%s",
+                    menuConfig.getId(),
+                    itemType,
+                    itemId,
+                    displayName,
+                    itemStack.getAmount(),
+                    unitPrice,
+                    totalPrice,
+                    playerName,
+                    format.format(now)
+            );
+            writer.append(logEntry).append(System.lineSeparator());
+            writer.flush();
+        } catch (IOException e) {
+            getMain().getLogger().severe("Failed to write to sell log: " + e.getMessage());
+        }
+    }
+
     public ItemStack getConfirmItem() {
-        return this.confirmItem;
+        return confirmItem;
     }
+
     public Player getPlayer() {
-        return this.player;
+        return player;
     }
+
     public ItemStack getSellItem() {
         return sellItem;
     }
+
     public Inventory getMenu() {
         return menu;
     }
+
+    @Override
+    public Inventory getInventory() {
+        return menu;
+    }
+
     public SellGUIMain getMain() {
-        return this.main;
+        return main;
     }
+
+    public String getMenuId() {
+        return menuConfig.getId();
+    }
+
+    public SellMenuConfig getMenuConfig() {
+        return menuConfig;
+    }
+
     public boolean isConfirmMode() {
-        return this.isConfirmMode;
+        return isConfirmMode;
     }
+
     public boolean isSold() {
-        return this.sold;
+        return sold;
     }
+
     public void setSold(boolean sold) {
         this.sold = sold;
     }
-    public String color(String s) {
-        if (s == null) return "";
-        if (main.isPlaceholderAPIAvailable()) {
-            s = main.setPlaceholders(player, s);
+
+    public String color(String value) {
+        if (value == null) {
+            return "";
         }
-        return ColorUtils.color(s);
+        if (main.isPlaceholderAPIAvailable()) {
+            value = main.setPlaceholders(player, value);
+        }
+        return ColorUtils.color(value);
     }
+
     public List<String> color(List<String> lore) {
-        if (lore == null) return new ArrayList<>();
+        if (lore == null) {
+            return new ArrayList<>();
+        }
         return lore.stream().map(this::color).collect(Collectors.toList());
     }
 }

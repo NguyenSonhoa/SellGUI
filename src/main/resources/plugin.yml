@@ -1,5 +1,5 @@
 name: SellGUI
-version: '2.9.5'
+version: '3.0.0'
 main: me.aov.sellgui.SellGUIMain
 api-version: '1.20.6'
 description: SellGUI plugin
@@ -27,7 +27,7 @@ commands:
     usage: /autosell
   sellgui:
     description: SellGUI
-    usage: /sellgui [reload|setprice|evaluate|setrange|autosell|<playername>]
+    usage: /sellgui [menu|reload|setprice|evaluate|setrange|autosell|<playername> [menu]]
     aliases: [sg, sell]
   sellguiprice:
     description: Price Setter GUI Command
@@ -47,6 +47,7 @@ permissions:
       sellgui.evaluate: true
       sellgui.sellall: true
       sellgui.autosell: true # Added autosell permission
+      sellgui.menu.*: true
   sellgui.use:
     description: Allows player to use basic SellGUI features
     default: true
@@ -73,6 +74,18 @@ permissions:
     default: op
   sellgui.autosell: # New permission for autosell menu
     description: Allows player to open the autosell settings menu
+    default: true
+  sellgui.menu.*:
+    description: Allows access to all configured SellGUI sell menus
+    default: true
+    children:
+      sellgui.menu.default: true
+      sellgui.menu.fishing: true
+  sellgui.menu.default:
+    description: Allows access to the default sell menu
+    default: true
+  sellgui.menu.fishing:
+    description: Allows access to the example fishing sell menu
     default: true
   sellgui.bonus.*:
     description: Permission-based bonus system

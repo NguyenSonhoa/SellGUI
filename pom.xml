@@ -6,7 +6,7 @@
 
     <groupId>me.aov.sellgui</groupId>
     <artifactId>SellGUI</artifactId>
-    <version>2.9.5</version>
+    <version>3.0.0</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
