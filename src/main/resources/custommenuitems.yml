@@ -4,11 +4,28 @@ example-item:
   glimmer: true
   custom-model-data: 123
   slot: 53
+  menus:
+    - "default"
+    - "fishing"
   disabled: false
   lore:
     - "Example Lore"
   commands:
     - "say %player% clicked this item!"
+
+fishing-info:
+  material: "COD"
+  name: "&bFishing Sell Info"
+  glimmer: false
+  custom-model-data: 0
+  slot: 35
+  menus:
+    - "fishing"
+  disabled: false
+  lore:
+    - "&7This button only appears"
+    - "&7in the fishing sell menu."
+  commands: []
 
 #
 # [label]: = can be anything, not used in-game
@@ -17,6 +34,9 @@ example-item:
 #   glimmer: [boolean] = True or false, gives enchantment shimmer when true
 #   custom-model-data: [number] = Custom Model Data Resource Pack of the item
 #   slot: [number] = Slot of the item https://proxy.spigotmc.org/286cf93278ca679cecf2a40528fd830418b75d4a?url=http%3A%2F%2Fi.imgur.com%2FgK9plGo.png
+#   menus: = Optional sell menu IDs where this item should appear. If omitted or empty, the item appears in every sell menu.
+#     - "default"
+#     - "fishing"
 #   disabled: [boolean] = if true, the item will be replaced by the fill-item
 #   lore: = lore list of the item, can be empty. For no lore do "lore: " with no trailing lines of strings
 #     - "[Line]"
