@@ -126,6 +126,18 @@ sellgui.menu.fishing
 
 When adding a new menu, give it its own permission in the menu file, for example `sellgui.menu.mining`, then grant that permission to the ranks that should use it.
 
+## PlaceholderAPI
+
+When PlaceholderAPI is installed, SellGUI registers the `sellgui` identifier and processes PlaceholderAPI placeholders in supported GUI text.
+
+### SellGUI PlaceholderAPI Placeholders
+
+| Placeholder | Description |
+| --- | --- |
+| `%sellgui_pricehand%` | Price of the item in the player's main hand |
+| `%sellgui_pricehandfull%` | Item name and price of the item in hand |
+
+
 ## v3 Configuration Layout
 
 After the first server start, SellGUI creates files under `plugins/SellGUI/`.
