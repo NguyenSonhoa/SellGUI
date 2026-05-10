@@ -1,6 +1,6 @@
 # SellGUI v3
 
-![SellGUI logo](https://github.com/user-attachments/assets/8500df19-aed9-48f3-a7b2-edafbe0c0a99)
+<img width="800" height="200" alt="2028end" src="https://github.com/user-attachments/assets/14beab6b-c27b-4777-96fc-c91bbe6e82ae" />
 
 SellGUI is a Minecraft selling plugin with a configurable GUI, `/sellall`, autosell, price setting tools, price evaluation, and support for custom item plugins. Version 3 focuses on cleaner configuration, multiple sell menus, menu-specific item rules, and safer item stacking behavior.
 
