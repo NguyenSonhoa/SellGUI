@@ -6,6 +6,9 @@ SellGUI is a Minecraft selling plugin with a configurable GUI, `/sellall`, autos
 
 Current branch: `v3.0`
 
+[WIKI](https://nguyensonhoa.github.io/SellGUIWiki/#home)
+
+
 Plugin version: `3.0.1`
 
 ## What's New In v3
