@@ -1,13 +1,12 @@
 # SellGUI v3
 
-<img width="800" height="200" alt="2028end" src="https://github.com/user-attachments/assets/650ee8a1-22bc-4090-9c0a-9feb32c75a2d" />
-
+![SellGUI logo](https://github.com/user-attachments/assets/8500df19-aed9-48f3-a7b2-edafbe0c0a99)
 
 SellGUI is a Minecraft selling plugin with a configurable GUI, `/sellall`, autosell, price setting tools, price evaluation, and support for custom item plugins. Version 3 focuses on cleaner configuration, multiple sell menus, menu-specific item rules, and safer item stacking behavior.
 
 Current branch: `v3.0`
 
-Plugin version: `3.0.0`
+Plugin version: `3.0.1`
 
 ## What's New In v3
 
@@ -69,7 +68,7 @@ mvn -q -DskipTests package
 Jar output:
 
 ```text
-target/SellGUI-3.0.0.jar
+target/SellGUI-3.0.1.jar
 ```
 
 `libs/shopgui-api-3.1.0.jar` is committed so Maven can build immediately after cloning.
@@ -125,18 +124,6 @@ sellgui.menu.fishing
 ```
 
 When adding a new menu, give it its own permission in the menu file, for example `sellgui.menu.mining`, then grant that permission to the ranks that should use it.
-
-## PlaceholderAPI
-
-When PlaceholderAPI is installed, SellGUI registers the `sellgui` identifier and processes PlaceholderAPI placeholders in supported GUI text.
-
-### SellGUI PlaceholderAPI Placeholders
-
-| Placeholder | Description |
-| --- | --- |
-| `%sellgui_pricehand%` | Price of the item in the player's main hand |
-| `%sellgui_pricehandfull%` | Item name and price of the item in hand |
-
 
 ## v3 Configuration Layout
 
@@ -423,12 +410,46 @@ It does not intentionally remove custom NBT or metadata from other plugins, so c
 
 ## PlaceholderAPI
 
-When PlaceholderAPI is installed, SellGUI registers the `sellgui` identifier.
+When PlaceholderAPI is installed, SellGUI registers the `sellgui` identifier and processes PlaceholderAPI placeholders in supported GUI text.
+
+### SellGUI PlaceholderAPI Placeholders
 
 | Placeholder | Description |
 | --- | --- |
 | `%sellgui_pricehand%` | Price of the item in the player's main hand |
 | `%sellgui_pricehandfull%` | Item name and price of the item in hand |
+
+### Built-In Placeholders
+
+These placeholders can be used in SellGUI text/config values. If PlaceholderAPI is installed, SellGUI lets PlaceholderAPI process placeholders first. If PlaceholderAPI is missing or fails, SellGUI falls back to these built-in placeholders.
+
+| Placeholder | Description |
+| --- | --- |
+| `%player%` | Player name |
+| `%player_name%` | Player name |
+| `%player_displayname%` | Player display name |
+| `%player_uuid%` | Player UUID |
+| `%player_world%` | Player world name |
+| `%player_x%` | Player block X position |
+| `%player_y%` | Player block Y position |
+| `%player_z%` | Player block Z position |
+| `%player_health%` | Current player health |
+| `%player_max_health%` | Max player health |
+| `%player_food%` | Player food level |
+| `%player_level%` | Player XP level |
+| `%player_exp%` | Player XP progress percent |
+| `%vault_eco_balance%` | Player Vault economy balance |
+| `%player_balance%` | Player Vault economy balance |
+| `%server_name%` | Server name |
+| `%server_version%` | Full server version |
+| `%server_bukkit_version%` | Bukkit version |
+| `%server_online%` | Online player count |
+| `%server_max_players%` | Max player count |
+| `%sellgui_version%` | SellGUI plugin version |
+| `%sellgui_author%` | SellGUI plugin authors |
+| `%time%` | Current server local time |
+| `%date%` | Current server local date |
+| `%timestamp%` | Current server local date and time |
 
 ## Worth Lore Through PacketEvents
 

@@ -280,11 +280,16 @@ public class SellGUI implements Listener, InventoryHolder {
             ItemMeta meta = buttonToShow.getItemMeta();
             if (meta != null && meta.hasLore()) {
                 List<String> lore = new ArrayList<>(meta.getLore());
+                boolean updatedTotalLine = false;
                 for (int i = 0; i < lore.size(); i++) {
-                    String line = ChatColor.stripColor(lore.get(i));
-                    if (line != null && line.toLowerCase().contains("total")) {
-                        lore.set(i, color("&eTotal Value: &a$" + String.format("%.2f", currentTotal)));
-                        break;
+                    String rawLine = lore.get(i);
+                    if (isSellButtonTotalLine(rawLine)) {
+                        if (!updatedTotalLine) {
+                            lore.set(i, formatSellButtonTotalLine(rawLine, currentTotal));
+                            updatedTotalLine = true;
+                        } else {
+                            lore.remove(i--);
+                        }
                     }
                 }
                 meta.setLore(color(lore));
@@ -297,6 +302,29 @@ public class SellGUI implements Listener, InventoryHolder {
                 menu.setItem(slot, buttonToShow);
             }
         }
+    }
+
+    private boolean isSellButtonTotalLine(String loreLine) {
+        if (loreLine == null) {
+            return false;
+        }
+
+        if (loreLine.contains("%total%")) {
+            return true;
+        }
+
+        String plainLine = ChatColor.stripColor(loreLine);
+        return plainLine != null && plainLine.trim().toLowerCase().startsWith("total");
+    }
+
+    private String formatSellButtonTotalLine(String loreLine, double total) {
+        String totalValue = String.format("%.2f", total);
+        if (loreLine != null && loreLine.contains("%total%")) {
+            return loreLine
+                    .replace("%total%", totalValue)
+                    .replace("%menu%", menuConfig.getDisplayName());
+        }
+        return "&eTotal Value: &a$" + totalValue;
     }
 
     public void updateButtonState() {

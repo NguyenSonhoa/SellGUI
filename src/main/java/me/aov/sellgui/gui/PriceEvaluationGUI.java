@@ -453,7 +453,9 @@ public class PriceEvaluationGUI implements InventoryHolder {
             if (meta == null) return item;
 
             NamespacedKey worthKey = new NamespacedKey(main, "current_price");
+            NamespacedKey evaluatedKey = new NamespacedKey(main, "evaluated");
             meta.getPersistentDataContainer().set(worthKey, PersistentDataType.DOUBLE, price);
+            meta.getPersistentDataContainer().set(evaluatedKey, PersistentDataType.BYTE, (byte) 1);
 
             String evaluationLoreFormat = main.getConfigManager().getGUIConfig().getString("price_evaluation_gui.evaluation_lore_format", "&a✅ Evaluated: &f$%price%");
             String evaluationLore = evaluationLoreFormat.replace("%price%", String.format("%.2f", price));

@@ -8,6 +8,15 @@ general:
   close-after-sell: false
   allow-player-evaluation-stack: false
   add-worth-lore: false
+  worth-lore-whitelist-gui: false
+  # If worth-lore-whitelist-gui is true, worth lore only shows in GUI titles listed here.
+  worth-lore-whitelist-gui-titles:
+    - "Shulker Box"
+    - "Large Chest"
+    - "<#FFFFFF>ABC"
+    - "&#FFFFFFABC2"
+    - "Chest"
+    - "Inventory"
   worth-lore-blacklist-gui-titles:
     - "ah"
     - "Auction House"

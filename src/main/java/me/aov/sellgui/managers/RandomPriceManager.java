@@ -268,6 +268,19 @@ public class RandomPriceManager {
 
         if (item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer() != null) {
             try {
+                org.bukkit.NamespacedKey currentPriceKey = new org.bukkit.NamespacedKey(plugin, "current_price");
+                Double currentPrice = item.getItemMeta().getPersistentDataContainer().get(currentPriceKey,
+                        org.bukkit.persistence.PersistentDataType.DOUBLE);
+                if (currentPrice != null && currentPrice > 0) {
+                    return true;
+                }
+            } catch (Exception e) {
+
+            }
+        }
+
+        if (item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer() != null) {
+            try {
                 org.bukkit.NamespacedKey evaluatedKey = new org.bukkit.NamespacedKey(plugin, "evaluated");
                 if (item.getItemMeta().getPersistentDataContainer().has(evaluatedKey,
                         org.bukkit.persistence.PersistentDataType.BYTE)) {
