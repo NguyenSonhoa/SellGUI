@@ -152,9 +152,7 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         }
         boolean removed = lore.removeIf(line -> !worthPrefix.isEmpty() && ColorUtils.stripColor(line).startsWith(worthPrefix));
         boolean added = false;
-        String currentGuiTitle = openGuiTitles.get(player);
-        boolean isBlacklisted = currentGuiTitle != null && main.getConfigManager().getWorthLoreBlacklistGuiTitles().contains(currentGuiTitle);
-        if (!isBlacklisted) {
+        if (shouldShowWorthLore(player)) {
             if (isShulkerBox(bukkitItem) && bukkitItem.getItemMeta() instanceof BlockStateMeta) {
                 BigDecimal itemPrice = getBaseItemPrice(bukkitItem, player);
                 BigDecimal contentsPrice = getShulkerContentsPrice(bukkitItem, player);
@@ -183,6 +181,13 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
             return SpigotConversionUtil.fromBukkitItemStack(bukkitItem);
         }
         return item;
+    }
+    private boolean shouldShowWorthLore(Player player) {
+        String currentGuiTitle = openGuiTitles.getOrDefault(player, "Inventory");
+        if (main.getConfigManager().isWorthLoreWhitelistGuiEnabled()) {
+            return main.getConfigManager().getWorthLoreWhitelistGuiTitles().contains(currentGuiTitle);
+        }
+        return !main.getConfigManager().getWorthLoreBlacklistGuiTitles().contains(currentGuiTitle);
     }
     private boolean isGuiItem(org.bukkit.inventory.ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;

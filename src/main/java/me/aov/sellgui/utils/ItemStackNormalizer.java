@@ -10,15 +10,21 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class ItemStackNormalizer {
 
+    private static final String CURRENT_PRICE_KEY = "current_price";
+    private static final String EVALUATED_KEY = "evaluated";
+    private static final String WORTH_KEY = "worth";
+    private static final Pattern PRICE_PATTERN = Pattern.compile("-?\\d+(?:\\.\\d+)?");
     private static final List<String> TRANSIENT_PLUGIN_KEYS = List.of(
-            "current_price",
-            "evaluated"
+            EVALUATED_KEY
     );
 
     private ItemStackNormalizer() {
@@ -67,8 +73,11 @@ public final class ItemStackNormalizer {
             return false;
         }
 
-        boolean changed = removeTransientKeys(plugin, meta);
-        changed |= removeEvaluationLore(plugin, meta);
+        boolean evaluatedItem = isEvaluatedItem(plugin, meta);
+        boolean changed = evaluatedItem ? ensureEvaluatedKeys(plugin, meta) : removeTransientKeys(plugin, meta);
+        if (!evaluatedItem) {
+            changed |= removeEvaluationLore(plugin, meta);
+        }
 
         if (changed) {
             applyMeta(item, meta);
@@ -91,6 +100,64 @@ public final class ItemStackNormalizer {
             } catch (IllegalArgumentException ignored) {
                 // Ignore invalid legacy key names on newer servers.
             }
+        }
+
+        return changed;
+    }
+
+    private static boolean isEvaluatedItem(SellGUIMain plugin, ItemMeta meta) {
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+
+        try {
+            NamespacedKey currentPriceKey = new NamespacedKey(plugin, CURRENT_PRICE_KEY);
+            Double currentPrice = container.get(currentPriceKey, PersistentDataType.DOUBLE);
+            if (currentPrice != null && currentPrice > 0) {
+                return true;
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        try {
+            if (container.has(new NamespacedKey(plugin, EVALUATED_KEY), PersistentDataType.BYTE)) {
+                return true;
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        try {
+            Double worth = container.get(new NamespacedKey(plugin, WORTH_KEY), PersistentDataType.DOUBLE);
+            if (worth != null && worth > 0) {
+                return true;
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        return getEvaluationLorePrice(plugin, meta) != null;
+    }
+
+    private static boolean ensureEvaluatedKeys(SellGUIMain plugin, ItemMeta meta) {
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        boolean changed = false;
+
+        try {
+            NamespacedKey evaluatedKey = new NamespacedKey(plugin, EVALUATED_KEY);
+            if (!container.has(evaluatedKey, PersistentDataType.BYTE)) {
+                container.set(evaluatedKey, PersistentDataType.BYTE, (byte) 1);
+                changed = true;
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        try {
+            NamespacedKey currentPriceKey = new NamespacedKey(plugin, CURRENT_PRICE_KEY);
+            if (!container.has(currentPriceKey, PersistentDataType.DOUBLE)) {
+                Double lorePrice = getEvaluationLorePrice(plugin, meta);
+                if (lorePrice != null && lorePrice > 0) {
+                    container.set(currentPriceKey, PersistentDataType.DOUBLE, lorePrice);
+                    changed = true;
+                }
+            }
+        } catch (IllegalArgumentException ignored) {
         }
 
         return changed;
@@ -125,6 +192,35 @@ public final class ItemStackNormalizer {
         }
 
         return changed;
+    }
+
+    private static Double getEvaluationLorePrice(SellGUIMain plugin, ItemMeta meta) {
+        if (!meta.hasLore()) {
+            return null;
+        }
+
+        List<String> lore = meta.getLore();
+        if (lore == null || lore.isEmpty()) {
+            return null;
+        }
+
+        String evaluationPrefix = getEvaluationLorePrefix(plugin);
+        for (String line : lore) {
+            if (!isEvaluationLoreLine(line, evaluationPrefix)) {
+                continue;
+            }
+
+            Matcher matcher = PRICE_PATTERN.matcher(stripColor(line));
+            if (matcher.find()) {
+                try {
+                    return Double.parseDouble(matcher.group());
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            return 0.0;
+        }
+
+        return null;
     }
 
     private static String getEvaluationLorePrefix(SellGUIMain plugin) {

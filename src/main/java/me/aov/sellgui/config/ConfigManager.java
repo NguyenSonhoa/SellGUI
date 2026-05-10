@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 public class ConfigManager {
     private final SellGUIMain plugin;
@@ -18,13 +17,18 @@ public class ConfigManager {
     private final Map<String, File> configFiles;
     private Map<String, Double> sellBonusPermissions; 
     private List<String> worthLoreBlacklistGuiTitles; 
+    private List<String> worthLoreWhitelistGuiTitles;
+    private boolean worthLoreWhitelistGui;
     private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("&#([0-9a-fA-F]{6})|&x(&[0-9a-fA-F]){6}");
+    private static final Pattern SECTION_HEX_COLOR_PATTERN = Pattern.compile("\u00A7#([0-9a-fA-F]{6})|\u00A7x(\u00A7[0-9a-fA-F]){6}");
+    private static final Pattern MINI_MESSAGE_HEX_COLOR_PATTERN = Pattern.compile("<#([0-9a-fA-F]{6})>");
     public ConfigManager(SellGUIMain plugin) {
         this.plugin = plugin;
         this.configs = new HashMap<>();
         this.configFiles = new HashMap<>();
         this.sellBonusPermissions = new HashMap<>(); 
         this.worthLoreBlacklistGuiTitles = new ArrayList<>(); 
+        this.worthLoreWhitelistGuiTitles = new ArrayList<>();
     }
     public void initializeConfigs() {
         if (!plugin.getDataFolder().exists()) {
@@ -40,6 +44,7 @@ public class ConfigManager {
         loadConfig("random-prices");
         loadSellBonusPermissions(); 
         loadWorthLoreBlacklistGuiTitles(); 
+        loadWorthLoreWhitelistGuiTitles();
         plugin.getLogger().info("Loaded " + configs.size() + " configuration files");
     }
 
@@ -158,6 +163,23 @@ public class ConfigManager {
             worthLoreBlacklistGuiTitles.add(stripColorCodes(title));
         }
         plugin.getLogger().info("Loaded " + worthLoreBlacklistGuiTitles.size() + " worth lore blacklist GUI titles.");
+    }
+    private void loadWorthLoreWhitelistGuiTitles() {
+        FileConfiguration mainConfig = getMainConfig();
+        if (mainConfig == null) {
+            plugin.getLogger().warning("Main config (config.yml) not loaded, cannot load worth lore whitelist.");
+            return;
+        }
+        worthLoreWhitelistGui = mainConfig.getBoolean("general.worth-lore-whitelist-gui", false);
+        List<String> rawTitles = mainConfig.getStringList("general.worth-lore-whitelist-gui-titles");
+        worthLoreWhitelistGuiTitles.clear();
+        for (String title : rawTitles) {
+            String normalizedTitle = stripColorCodes(title);
+            if (normalizedTitle != null && !normalizedTitle.isEmpty()) {
+                worthLoreWhitelistGuiTitles.add(normalizedTitle);
+            }
+        }
+        plugin.getLogger().info("Loaded " + worthLoreWhitelistGuiTitles.size() + " worth lore whitelist GUI titles.");
     }
     public FileConfiguration getConfig(String configName) {
         return configs.get(configName);
@@ -310,6 +332,7 @@ public class ConfigManager {
         loadGuiConfigs();
         loadSellBonusPermissions(); 
         loadWorthLoreBlacklistGuiTitles(); 
+        loadWorthLoreWhitelistGuiTitles();
         plugin.getLogger().info("Reloaded all configuration files");
     }
     public String getString(String configName, String path, String fallback) {
@@ -349,20 +372,30 @@ public class ConfigManager {
     public List<String> getWorthLoreBlacklistGuiTitles() {
         return worthLoreBlacklistGuiTitles;
     }
+    public boolean isWorthLoreWhitelistGuiEnabled() {
+        return worthLoreWhitelistGui;
+    }
+    public List<String> getWorthLoreWhitelistGuiTitles() {
+        return worthLoreWhitelistGuiTitles;
+    }
     public void reload() {
         configs.clear();
         configFiles.clear();
         sellBonusPermissions.clear();
         worthLoreBlacklistGuiTitles.clear();
+        worthLoreWhitelistGuiTitles.clear();
+        worthLoreWhitelistGui = false;
         initializeConfigs();
     }
     public static String stripColorCodes(String text) {
         if (text == null || text.isEmpty()) {
             return text;
         }
-        String strippedText = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', text));
-        Matcher matcher = HEX_COLOR_PATTERN.matcher(strippedText);
-        strippedText = matcher.replaceAll("");
+        String strippedText = MINI_MESSAGE_HEX_COLOR_PATTERN.matcher(text).replaceAll("");
+        strippedText = HEX_COLOR_PATTERN.matcher(strippedText).replaceAll("");
+        strippedText = ChatColor.translateAlternateColorCodes('&', strippedText);
+        strippedText = SECTION_HEX_COLOR_PATTERN.matcher(strippedText).replaceAll("");
+        strippedText = ChatColor.stripColor(strippedText);
         return strippedText;
     }
 }
