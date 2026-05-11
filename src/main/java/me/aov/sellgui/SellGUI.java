@@ -7,11 +7,13 @@ import me.aov.sellgui.managers.ItemNBTManager;
 import me.aov.sellgui.managers.PriceManager;
 import me.aov.sellgui.utils.ColorUtils;
 import me.aov.sellgui.utils.ItemIdentifier;
+import me.aov.sellgui.utils.ItemUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.ShulkerBox;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
@@ -223,6 +225,7 @@ public class SellGUI implements Listener, InventoryHolder {
             if (itemMeta == null) {
                 continue;
             }
+            ConfigurationSection itemConfig = main.getCustomMenuItemsConfig().getConfigurationSection(itemPath);
 
             if (main.getCustomMenuItemsConfig().contains(itemPath + ".custom-model-data")) {
                 int customModelData = main.getCustomMenuItemsConfig().getInt(itemPath + ".custom-model-data");
@@ -242,6 +245,7 @@ public class SellGUI implements Listener, InventoryHolder {
             if (!lore.isEmpty()) {
                 itemMeta.setLore(color(lore));
             }
+            ItemUtils.applyModernComponents(itemMeta, itemConfig);
 
             NamespacedKey key = new NamespacedKey(main, "custom-menu-item");
             String commands = main.getCustomMenuItemsConfig().getStringList(itemPath + ".commands").stream()

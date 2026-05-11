@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.0.2 - 2026-05-11
+
+### Added
+- Added `item-model`, `hide-tool-tip`, and `tooltip-style` support for `custommenuitems.yml` entries.
+- Added example comments for modern item component fields in `custommenuitems.yml`.
+
+### Changed
+- Updated plugin and Maven version to `3.0.2`.
+
+### Verified
+- `git diff --check`
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.0.2.jar`
+
 ## 3.0.1 - 2026-05-10
 
 ### Added

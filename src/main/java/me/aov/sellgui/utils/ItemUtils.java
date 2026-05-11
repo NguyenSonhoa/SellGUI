@@ -32,6 +32,14 @@ public class ItemUtils {
             meta.setCustomModelData(config.getInt("custom-model-data"));
         }
 
+        applyModernComponents(meta, config);
+
+        item.setItemMeta(meta);
+    }
+
+    public static void applyModernComponents(ItemMeta meta, ConfigurationSection config) {
+        if (meta == null || config == null) return;
+
         if (config.contains("item-model")) {
             String model = config.getString("item-model");
             NamespacedKey key = parseKey(model);
@@ -51,8 +59,6 @@ public class ItemUtils {
                 invokeMethod(meta, "setTooltipStyle", new Class<?>[]{NamespacedKey.class}, new Object[]{key});
             }
         }
-
-        item.setItemMeta(meta);
     }
 
     private static NamespacedKey parseKey(String s) {
