@@ -68,6 +68,10 @@ public final class ItemStackNormalizer {
             return false;
         }
 
+        if (ItemIdentifier.getItemType(item) == ItemIdentifier.ItemType.NEXO) {
+            return false;
+        }
+
         ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return false;
