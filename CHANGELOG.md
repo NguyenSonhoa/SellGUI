@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.0.3 - 2026-05-13
+
+### Changed
+- Updated plugin and Maven version to `3.0.3`.
+- Worth lore packet handling now updates only the packet lore component instead of rebuilding Bukkit item meta.
+
+### Fixed
+- Fixed Nexo custom attribute displays resetting to default/vanilla formatting when worth lore was shown.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.0.3.jar`
+
 ## 3.0.2 - 2026-05-11
 
 ### Added
