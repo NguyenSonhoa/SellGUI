@@ -8,7 +8,7 @@ Current branch: `v3.0`
 
 [WIKI](https://nguyensonhoa.github.io/SellGUIWiki/#home)
 
-Plugin version: `3.0.2`
+Plugin version: `3.0.3`
 
 ## What's New In v3
 
@@ -71,7 +71,7 @@ mvn -q -DskipTests package
 Jar output:
 
 ```text
-target/SellGUI-3.0.2.jar
+target/SellGUI-3.0.3.jar
 ```
 
 `libs/shopgui-api-3.1.0.jar` is committed so Maven can build immediately after cloning.

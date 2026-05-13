@@ -4,6 +4,8 @@ import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.protocol.component.ComponentTypes;
+import com.github.retrooper.packetevents.protocol.component.builtin.item.ItemLore;
 import com.github.retrooper.packetevents.protocol.item.ItemStack;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientClickWindow;
@@ -16,6 +18,8 @@ import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.config.ConfigManager;
 import me.aov.sellgui.managers.PriceManager;
 import me.aov.sellgui.utils.ColorUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.ShulkerBox;
@@ -32,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 public class PacketEventsPacketListener extends PacketListenerAbstract {
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
     private final SellGUIMain main;
     private final Map<Player, String> openGuiTitles = new ConcurrentHashMap<>();
     public PacketEventsPacketListener(SellGUIMain main) {
@@ -137,11 +142,10 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         if (isGuiItem(bukkitItem)) {
             return item;
         }
-        ItemMeta meta = bukkitItem.getItemMeta();
-        if (meta == null) {
-            return item;
-        }
-        List<String> lore = meta.hasLore() && meta.getLore() != null ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        List<Component> lore = item.getComponent(ComponentTypes.LORE)
+                .map(ItemLore::getLines)
+                .map(ArrayList::new)
+                .orElseGet(ArrayList::new);
         String worthLineTemplate = main.getMessagesConfig().getString("sell.lore_worth", "&7Worth: &a$%price%");
         final String worthPrefix;
         if (worthLineTemplate.contains("%price%")) {
@@ -150,7 +154,8 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         } else {
             worthPrefix = "";
         }
-        boolean removed = lore.removeIf(line -> !worthPrefix.isEmpty() && ColorUtils.stripColor(line).startsWith(worthPrefix));
+        boolean removed = lore.removeIf(line -> !worthPrefix.isEmpty()
+                && ColorUtils.stripColor(LEGACY_SERIALIZER.serialize(line)).startsWith(worthPrefix));
         boolean added = false;
         if (shouldShowWorthLore(player)) {
             if (isShulkerBox(bukkitItem) && bukkitItem.getItemMeta() instanceof BlockStateMeta) {
@@ -160,25 +165,29 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
                 if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
                     BigDecimal finalTotalValue = applyPermissionBonuses(player, totalValue).multiply(BigDecimal.valueOf(bukkitItem.getAmount()));
                     String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", finalTotalValue));
-                    lore.add(ColorUtils.color(worthLine));
+                    lore.add(LEGACY_SERIALIZER.deserialize(ColorUtils.color(worthLine)));
                     added = true;
                 }
             } else {
                 double price = calculatePrice(bukkitItem, player) * bukkitItem.getAmount();
                 if (price > 0) {
                     String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", price));
-                    lore.add(ColorUtils.color(worthLine));
+                    lore.add(LEGACY_SERIALIZER.deserialize(ColorUtils.color(worthLine)));
                     added = true;
                 }
             }
         }
         if (removed || added) {
-            meta.setLore(lore);
-            bukkitItem.setItemMeta(meta);
+            ItemStack updatedItem = item.copy();
+            if (lore.isEmpty()) {
+                updatedItem.unsetComponent(ComponentTypes.LORE);
+            } else {
+                updatedItem.setComponent(ComponentTypes.LORE, new ItemLore(lore));
+            }
             if (modifiedFlag != null) {
                 modifiedFlag[0] = true;
             }
-            return SpigotConversionUtil.fromBukkitItemStack(bukkitItem);
+            return updatedItem;
         }
         return item;
     }
