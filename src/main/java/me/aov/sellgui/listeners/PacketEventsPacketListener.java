@@ -18,6 +18,7 @@ import me.aov.sellgui.SellGUIMain;
 import me.aov.sellgui.config.ConfigManager;
 import me.aov.sellgui.managers.PriceManager;
 import me.aov.sellgui.utils.ColorUtils;
+import me.aov.sellgui.utils.ItemIdentifier;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -95,6 +96,9 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
     private void updateItemAtProtocolSlot(Player player, int protocolSlot, int stateId) {
         org.bukkit.inventory.ItemStack bukkitItem = getItemFromProtocolSlot(player, protocolSlot);
         if (bukkitItem != null && bukkitItem.getType() != Material.AIR) {
+            if (ItemIdentifier.getItemType(bukkitItem) == ItemIdentifier.ItemType.NEXO) {
+                return;
+            }
             ItemStack packetEventsItem = SpigotConversionUtil.fromBukkitItemStack(bukkitItem);
             boolean[] modified = {false};
             ItemStack processedItem = processItem(packetEventsItem, player, modified);
