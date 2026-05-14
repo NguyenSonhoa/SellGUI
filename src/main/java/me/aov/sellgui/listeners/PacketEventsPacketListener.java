@@ -19,6 +19,7 @@ import me.aov.sellgui.config.ConfigManager;
 import me.aov.sellgui.managers.PriceManager;
 import me.aov.sellgui.utils.ColorUtils;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -165,14 +166,14 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
                 if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
                     BigDecimal finalTotalValue = applyPermissionBonuses(player, totalValue).multiply(BigDecimal.valueOf(bukkitItem.getAmount()));
                     String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", finalTotalValue));
-                    lore.add(LEGACY_SERIALIZER.deserialize(ColorUtils.color(worthLine)));
+                    lore.add(createWorthLoreComponent(worthLine));
                     added = true;
                 }
             } else {
                 double price = calculatePrice(bukkitItem, player) * bukkitItem.getAmount();
                 if (price > 0) {
                     String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", price));
-                    lore.add(LEGACY_SERIALIZER.deserialize(ColorUtils.color(worthLine)));
+                    lore.add(createWorthLoreComponent(worthLine));
                     added = true;
                 }
             }
@@ -190,6 +191,10 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
             return updatedItem;
         }
         return item;
+    }
+    private Component createWorthLoreComponent(String worthLine) {
+        return LEGACY_SERIALIZER.deserialize(ColorUtils.color(worthLine))
+                .decoration(TextDecoration.ITALIC, false);
     }
     private boolean shouldShowWorthLore(Player player) {
         String currentGuiTitle = openGuiTitles.getOrDefault(player, "Inventory");
@@ -245,33 +250,10 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
             }
         }
         if (itemPrice.compareTo(BigDecimal.ZERO) == 0) {
-            PriceManager priceManager = new PriceManager(main);
+            PriceManager priceManager = main.getPriceManager() != null ? main.getPriceManager() : new PriceManager(main);
             double price = priceManager.getItemPriceWithPlayer(itemToPrice, player);
             if (price > 0) {
                 itemPrice = BigDecimal.valueOf(price);
-            } else if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
-                BigDecimal essentialsPrice = this.main.getEssentialsHolder().getPrice(itemToPrice);
-                if (essentialsPrice.compareTo(BigDecimal.ZERO) > 0) {
-                    itemPrice = essentialsPrice;
-                }
-            } else {
-                String key = itemToPrice.getType().name();
-                if (isShulkerBox(itemToPrice)) {
-                    key = "SHULKER_BOX";
-                }
-                itemPrice = BigDecimal.valueOf(this.main.getItemPricesConfig().getDouble(key, 0.0));
-            }
-            if (itemPrice.compareTo(BigDecimal.ZERO) == 0 && player != null) {
-                Plugin shopGuiPlus = this.main.getServer().getPluginManager().getPlugin("ShopGuiPlus");
-                if (shopGuiPlus != null && shopGuiPlus.isEnabled()) {
-                    try {
-                        double shopGuiPrice = net.brcdev.shopgui.ShopGuiPlusApi.getItemStackPriceSell(player, itemToPrice);
-                        if (shopGuiPrice > 0) {
-                            itemPrice = BigDecimal.valueOf(shopGuiPrice);
-                        }
-                    } catch (NoClassDefFoundError | Exception e) {
-                    }
-                }
             }
         }
         if (main.getRandomPriceManager() != null && !main.getRandomPriceManager().canBeSold(itemToPrice)) {
