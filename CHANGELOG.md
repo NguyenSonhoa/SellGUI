@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.0.4 - 2026-05-13
+
+### Changed
+- Updated plugin and Maven version to `3.0.4`.
+- Stack normalization now skips Nexo items so SellGUI does not rewrite custom Nexo metadata during normalization passes.
+
+### Fixed
+- Fixed Nexo items being normalized through Bukkit item meta during stack cleanup events such as join, quit, smelt result cleanup, and plugin shutdown cleanup.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.0.4.jar`
+
 ## 3.0.3 - 2026-05-13
 
 ### Changed
