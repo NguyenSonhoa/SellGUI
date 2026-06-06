@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.0.5 - 2026-05-14
+
+### Changed
+- Updated plugin and Maven version to `3.0.5`.
+- Worth lore packet display now respects the configured `prices.calculation-method` instead of forcing extra Essentials or ShopGUI+ fallbacks after the main price lookup.
+- Worth lore packet lines are now sent with `italic: false` so tooltip formatting stays clean.
+
+### Fixed
+- Fixed worth lore still appearing for MMOItems or Nexo items without a SellGUI price when `prices.calculation-method: "config"` was intended to suppress that fallback.
+- Fixed worth lore lines being rendered italic in packet-based tooltip display.
+- Fixed synthetic Nexo slot refresh after inventory clicks, which could interfere with Nexo 1.21.2+ component-based attribute tooltip display.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.0.5.jar`
+
 ## 3.0.4 - 2026-05-13
 
 ### Changed
