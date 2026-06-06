@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.1 - 2026-06-06
+
+### Added
+- Added external SellGUI price provider API for addon plugins.
+- Added `SellGUI-DynaShop` addon support for ShopGUIPlus-DynaShop dynamic sell prices.
+- Added `plugins/SellGUI/addons/` addon loading so SellGUI can load addon jars from its own data folder.
+
+### Fixed
+- Fixed sound lookup on Youer/Paper-NeoForge hybrid servers by avoiding direct `Sound.valueOf` calls.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.1.jar`
+
 ## 3.0.5 - 2026-05-14
 
 ### Changed

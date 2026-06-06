@@ -4,11 +4,11 @@
 
 SellGUI is a Minecraft selling plugin with a configurable GUI, `/sellall`, autosell, price setting tools, price evaluation, and support for custom item plugins. Version 3 focuses on cleaner configuration, multiple sell menus, menu-specific item rules, and safer item stacking behavior.
 
-Current branch: `v3.0`
+Current branch: `v3.1`
 
 [WIKI](https://nguyensonhoa.github.io/SellGUIWiki/#home)
 
-Plugin version: `3.0.5`
+Plugin version: `3.1`
 
 ## What's New In v3
 
@@ -64,14 +64,14 @@ Plugin version: `3.0.5`
 ```bash
 git clone https://github.com/NguyenSonhoa/SellGUI.git
 cd SellGUI
-git checkout v3.0
+git checkout v3.1
 mvn -q -DskipTests package
 ```
 
 Jar output:
 
 ```text
-target/SellGUI-3.0.5.jar
+target/SellGUI-3.1.jar
 ```
 
 `libs/shopgui-api-3.1.0.jar` is committed so Maven can build immediately after cloning.
