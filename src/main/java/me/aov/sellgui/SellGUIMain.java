@@ -709,6 +709,10 @@ public class SellGUIMain extends JavaPlugin {
         return this.priceManager;
     }
 
+    public SellGUIAPI getSellGUIAPI() {
+      return this.sellGUIAPI;
+   }
+
     public PriceCache getPriceCache() {
         return this.priceCache;
     }

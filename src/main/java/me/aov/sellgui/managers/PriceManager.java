@@ -182,9 +182,22 @@ public class PriceManager {
     }
     public double getItemPriceWithPlayer(ItemStack itemStack, Player player) {
         String calculationMethod = main.getConfig().getString("prices.calculation-method", "auto");
+        if ("addon".equalsIgnoreCase(calculationMethod)
+                || "addons".equalsIgnoreCase(calculationMethod)
+                || "external".equalsIgnoreCase(calculationMethod)) {
+            double price = getAddonPrice(itemStack, player);
+            return price > 0 ? applyPlayerMultiplier(price, player) : 0.0;
+        }
         if ("shopguiplus".equalsIgnoreCase(calculationMethod)) {
-            double price = getSpecificMethodPrice(itemStack, "shopguiplus", player);
+            double price = getAddonPrice(itemStack, player);
+            if (price <= 0) {
+                price = getSpecificMethodPrice(itemStack, "shopguiplus", player);
+            }
             return price > 0 ? price : 0.0;
+        }
+        double addonPrice = getAddonPrice(itemStack, player);
+        if (addonPrice > 0) {
+            return applyPlayerMultiplier(addonPrice, player);
         }
         double basePrice = getItemPrice(itemStack);
         if (basePrice == 0 && player != null && main.getConfig().getBoolean("use-shopguiplus-price") && main.hasShopGUIPlus) {
@@ -193,11 +206,14 @@ public class PriceManager {
         if (basePrice <= 0 || player == null) {
             return basePrice;
         }
-        double multiplier = getPlayerMultiplier(player);
-        return basePrice * multiplier;
+        return applyPlayerMultiplier(basePrice, player);
     }
     private double getSpecificMethodPrice(ItemStack itemStack, String method, Player player) {
         switch (method.toLowerCase()) {
+            case "addon":
+            case "addons":
+            case "external":
+                return getAddonPrice(itemStack, player);
             case "config":
                 return getConfigPrice(itemStack);
             case "essentials":
@@ -212,6 +228,18 @@ public class PriceManager {
             default:
                 return 0.0;
         }
+    }
+    private double getAddonPrice(ItemStack itemStack, Player player) {
+        if (main.getSellGUIAPI() == null) {
+            return 0.0;
+        }
+        return main.getSellGUIAPI().getProviderPrice(itemStack, player);
+    }
+    private double applyPlayerMultiplier(double basePrice, Player player) {
+        if (basePrice <= 0 || player == null) {
+            return basePrice;
+        }
+        return basePrice * getPlayerMultiplier(player);
     }
     private double getConfigPrice(ItemStack itemStack) {
         ItemIdentifier.ItemType type = ItemIdentifier.getItemType(itemStack);

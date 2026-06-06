@@ -56,6 +56,7 @@ public class PriceCache {
         StringBuilder key = new StringBuilder();
 
         key.append(item.getType().name());
+        key.append("_amount_").append(item.getAmount());
         if (item.hasItemMeta()) {
             if (item.getItemMeta().hasDisplayName()) {
                 key.append("_").append(item.getItemMeta().getDisplayName().hashCode());

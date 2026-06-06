@@ -1,6 +1,9 @@
 package me.aov.sellgui;
 
 import me.aov.sellgui.commands.SellCommand;
+import me.aov.sellgui.api.PlayerSellItemsEvent;
+import me.aov.sellgui.api.SellGUIItemsSoldEvent;
+import me.aov.sellgui.api.SoldItem;
 import me.aov.sellgui.gui.SellMenuConfig;
 import me.aov.sellgui.handlers.SoundHandler;
 import me.aov.sellgui.managers.ItemNBTManager;
@@ -510,7 +513,6 @@ public class SellGUI implements Listener, InventoryHolder {
 
         BigDecimal itemPrice = BigDecimal.ZERO;
         ItemStack itemToPrice = itemStack.clone();
-        itemToPrice.setAmount(1);
 
         ItemMeta meta = itemToPrice.getItemMeta();
         if (meta != null) {
@@ -624,16 +626,32 @@ public class SellGUI implements Listener, InventoryHolder {
         main.getEcon().depositPlayer(player, total);
         sold = true;
 
+        List<SoldItem> soldItems = new ArrayList<>();
+        List<ItemStack> eventItems = new ArrayList<>();
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             ItemStack item = inventory.getItem(slot);
-            if (!isSellableMenuItem(slot, item) || getPrice(item, player) <= 0) {
+            double unitPrice = getPrice(item, player);
+            if (!isSellableMenuItem(slot, item) || unitPrice <= 0) {
                 continue;
             }
 
             if (main.getConfig().getBoolean("logging.enabled")) {
                 logSell(item);
             }
+            int amount = item.getAmount();
+            double lineTotal = isShulkerBox(item) ? unitPrice : unitPrice * amount;
+            ItemStack soldItem = item.clone();
+            soldItems.add(new SoldItem(soldItem, amount, unitPrice, lineTotal));
+            eventItems.add(soldItem);
             inventory.setItem(slot, null);
+        }
+
+        if (!soldItems.isEmpty()) {
+            Bukkit.getPluginManager().callEvent(new PlayerSellItemsEvent(player, this, eventItems, total));
+            Bukkit.getPluginManager().callEvent(new SellGUIItemsSoldEvent(player, total));
+            if (main.getSellGUIAPI() != null) {
+                main.getSellGUIAPI().notifyItemsSold(player, soldItems, total);
+            }
         }
 
         if (main.getConfig().getBoolean("general.close-after-sell")) {
