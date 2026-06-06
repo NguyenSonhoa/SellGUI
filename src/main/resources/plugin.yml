@@ -19,6 +19,7 @@ softdepend:
   - Nexo
   - PlaceholderAPI
   - ShopGUIPlus
+  - ShopGUIPlus-DynaShop
   - MythicLib
   - packetevents
 commands:

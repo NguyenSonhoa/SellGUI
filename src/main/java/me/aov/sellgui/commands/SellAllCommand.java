@@ -1,5 +1,7 @@
 package me.aov.sellgui.commands;
 import me.aov.sellgui.SellGUIMain;
+import me.aov.sellgui.api.SellGUIItemsSoldEvent;
+import me.aov.sellgui.api.SoldItem;
 import me.aov.sellgui.gui.SellMenuConfig;
 import org.apache.commons.lang.WordUtils;
 import org.bukkit.ChatColor;
@@ -310,7 +312,7 @@ public class SellAllCommand implements CommandExecutor {
             if (itemStack != null && itemStack.getType() != Material.AIR) {
                 double itemPrice = getPrice(itemStack, player);
                 if (itemPrice > 0) {
-                    total += itemPrice * itemStack.getAmount();
+                    total += isShulkerBox(itemStack) ? itemPrice : itemPrice * itemStack.getAmount();
                 }
             }
         }
@@ -324,13 +326,25 @@ public class SellAllCommand implements CommandExecutor {
             return;
         }
         this.main.getEcon().depositPlayer((OfflinePlayer) player, total);
-        for (ItemStack itemStack : inventory.getContents()) {
-            if (itemStack != null && getPrice(itemStack, player) > 0.0D) {
+        List<SoldItem> soldItems = new ArrayList<>();
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack itemStack = inventory.getItem(slot);
+            double unitPrice = getPrice(itemStack, player);
+            if (itemStack != null && unitPrice > 0.0D) {
                 if (this.main.getConfig().getBoolean("log-transactions")) {
                     logSellAll(itemStack, player);
                 }
-                itemsSold += itemStack.getAmount();
-                inventory.remove(itemStack);
+                int amount = itemStack.getAmount();
+                double lineTotal = isShulkerBox(itemStack) ? unitPrice : unitPrice * amount;
+                soldItems.add(new SoldItem(itemStack, amount, unitPrice, lineTotal));
+                itemsSold += amount;
+                inventory.setItem(slot, null);
+            }
+        }
+        if (!soldItems.isEmpty()) {
+            main.getServer().getPluginManager().callEvent(new SellGUIItemsSoldEvent(player, total));
+            if (main.getSellGUIAPI() != null) {
+                main.getSellGUIAPI().notifyItemsSold(player, soldItems, total);
             }
         }
         String soldMessage = "&a✅ Sold %count% items for &e$%total%!";

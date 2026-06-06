@@ -8,6 +8,8 @@ import javax.annotation.Nullable;
 import io.lumine.mythic.lib.api.item.ItemTag;
 import io.lumine.mythic.lib.api.item.NBTCompound;
 import io.lumine.mythic.lib.api.item.NBTItem;
+import me.aov.sellgui.api.SellGUIPriceProvider;
+import me.aov.sellgui.api.SoldItem;
 import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.commands.SellCommand;
 import me.aov.sellgui.managers.PriceManager;
@@ -22,10 +24,85 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.persistence.PersistentDataType;
 
 public class SellGUIAPI {
-    private SellGUIMain main;
+    private final SellGUIMain main;
+    private final List<SellGUIPriceProvider> priceProviders = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     public SellGUIAPI(SellGUIMain sellGUIMain) {
         this.main = sellGUIMain;
+    }
+
+    public void registerPriceProvider(SellGUIPriceProvider provider) {
+        if (provider == null) {
+            throw new IllegalArgumentException("Price provider cannot be null");
+        }
+
+        priceProviders.removeIf(existing -> existing == provider
+                || existing.getName().equalsIgnoreCase(provider.getName()));
+        priceProviders.add(provider);
+        priceProviders.sort(Comparator.comparingInt(SellGUIPriceProvider::getPriority).reversed());
+        clearPriceCache();
+    }
+
+    public boolean unregisterPriceProvider(SellGUIPriceProvider provider) {
+        if (provider == null) {
+            return false;
+        }
+
+        boolean removed = priceProviders.removeIf(existing -> existing == provider
+                || existing.getName().equalsIgnoreCase(provider.getName()));
+        if (removed) {
+            clearPriceCache();
+        }
+        return removed;
+    }
+
+    public List<SellGUIPriceProvider> getPriceProviders() {
+        return Collections.unmodifiableList(new ArrayList<>(priceProviders));
+    }
+
+    public double getProviderPrice(ItemStack itemStack, @Nullable Player player) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return 0.0;
+        }
+
+        for (SellGUIPriceProvider provider : priceProviders) {
+            try {
+                if (!provider.isAvailable()) {
+                    continue;
+                }
+
+                double price = provider.getSellPrice(player, itemStack.clone());
+                if (price > 0 && !Double.isNaN(price) && !Double.isInfinite(price)) {
+                    return price;
+                }
+            } catch (Throwable throwable) {
+                if (main.getConfig().getBoolean("general.debug", false)) {
+                    main.getLogger().warning("Price provider '" + provider.getName() + "' failed: " + throwable.getMessage());
+                }
+            }
+        }
+
+        return 0.0;
+    }
+
+    public void notifyItemsSold(Player player, List<SoldItem> soldItems, double totalPrice) {
+        if (soldItems == null || soldItems.isEmpty()) {
+            return;
+        }
+
+        List<SoldItem> immutableSoldItems = Collections.unmodifiableList(new ArrayList<>(soldItems));
+        for (SellGUIPriceProvider provider : priceProviders) {
+            try {
+                if (provider.isAvailable()) {
+                    provider.onItemsSold(player, immutableSoldItems, totalPrice);
+                }
+            } catch (Throwable throwable) {
+                if (main.getConfig().getBoolean("general.debug", false)) {
+                    main.getLogger().warning("Price provider '" + provider.getName() + "' sell callback failed: " + throwable.getMessage());
+                }
+            }
+        }
+        clearPriceCache();
     }
 
     public double getPrice(ItemStack itemStack, @Nullable Player player) {
@@ -46,8 +123,8 @@ public class SellGUIAPI {
         }
 
         if (price == 0) {
-            PriceManager priceManager = new PriceManager(main);
-            price = priceManager.getItemPrice(itemStack);
+            PriceManager priceManager = main.getPriceManager() != null ? main.getPriceManager() : new PriceManager(main);
+            price = priceManager.getItemPriceWithPlayer(itemStack, player);
 
             if (price == 0) {
                 if (this.main.hasEssentials() && this.main.getConfig().getBoolean("use-essentials-price")) {
@@ -128,6 +205,12 @@ public class SellGUIAPI {
             return bd.doubleValue();
         } catch (NumberFormatException e) {
             return value;
+        }
+    }
+
+    private void clearPriceCache() {
+        if (main.getPriceCache() != null) {
+            main.getPriceCache().clearCache();
         }
     }
 }

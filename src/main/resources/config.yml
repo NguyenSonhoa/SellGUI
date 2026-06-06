@@ -22,6 +22,10 @@ general:
     - "Auction House"
     - "My Chest"
 
+addons:
+  enabled: true
+  folder: "addons"
+
 economy:
   use-vault: true
   money-format: "$%.2f"
@@ -54,7 +58,7 @@ items:
 
 prices:
   nbt-pricing: true
-  calculation-method: "auto" # auto, config, essentials, nbt, shopguiplus
+  calculation-method: "auto" # auto, addon, config, essentials, nbt, shopguiplus
   default-price: 0.0
   multipliers:
     enabled: true
