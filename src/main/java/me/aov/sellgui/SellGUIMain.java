@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Map;
+import me.aov.sellgui.addons.AddonManager;
 import me.aov.sellgui.cache.PriceCache;
 import me.aov.sellgui.commands.AutosellCommand;
 import me.aov.sellgui.commands.PriceSetterCommand;
@@ -55,6 +56,7 @@ import org.bukkit.ChatColor;
 public class SellGUIMain extends JavaPlugin {
    public boolean hasShopGUIPlus;
    private SellGUIAPI sellGUIAPI;
+   private AddonManager addonManager;
    private static SellGUIMain instance;
    public boolean isShopGUIPlusEnabled() { return this.hasShopGUIPlus; }
    private static Economy econ;
@@ -228,6 +230,8 @@ public class SellGUIMain extends JavaPlugin {
          this.getServer().getPluginManager().registerEvents(this.priceEvaluationListener, this);
          this.autosellManager = new AutosellManager(this, this.priceManager);
          this.getServer().getPluginManager().registerEvents(new AutosellPlayerListener(this.autosellManager), this); // Register AutosellPlayerListener
+         this.addonManager = new AddonManager(this);
+         this.addonManager.loadAddons();
          
          if (this.getConfig().getBoolean("general.add-worth-lore", false)) {
              if (Bukkit.getPluginManager().getPlugin("PacketEvents") != null) {
@@ -311,6 +315,10 @@ public class SellGUIMain extends JavaPlugin {
       if (this.getConfig().getBoolean("stacking.enabled", true)
               && this.getConfig().getBoolean("stacking.normalize-on-plugin-disable", true)) {
          Bukkit.getOnlinePlayers().forEach(player -> ItemStackNormalizer.normalizePlayerInventory(this, player));
+      }
+
+      if (this.addonManager != null) {
+         this.addonManager.disableAddons();
       }
 
       if (this.priceCache != null) {
@@ -711,6 +719,10 @@ public class SellGUIMain extends JavaPlugin {
 
     public SellGUIAPI getSellGUIAPI() {
       return this.sellGUIAPI;
+   }
+
+   public AddonManager getAddonManager() {
+      return this.addonManager;
    }
 
     public PriceCache getPriceCache() {
