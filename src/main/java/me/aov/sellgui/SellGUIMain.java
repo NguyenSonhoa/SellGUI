@@ -396,8 +396,8 @@ public class SellGUIMain extends JavaPlugin {
    }
 
    public void reload() {
-      this.messagesConfig = YamlConfiguration.loadConfiguration(new File(this.getDataFolder(), "messages.yml"));
       configManager.reload();
+      this.messagesConfig = configManager.getMessagesConfig();
 
       this.nexoPricesFileConfig = YamlConfiguration.loadConfiguration(nexoPricesFile);
       this.mmoItemsPricesFileConfig = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "mmoitems.yml"));
@@ -461,6 +461,9 @@ public class SellGUIMain extends JavaPlugin {
    }
 
    public FileConfiguration getMessagesConfig() {
+      if (this.configManager != null && this.configManager.getMessagesConfig() != null) {
+         return this.configManager.getMessagesConfig();
+      }
       return this.messagesConfig;
    }
    public FileConfiguration getSoundsConfig() {
@@ -469,7 +472,7 @@ public class SellGUIMain extends JavaPlugin {
 
    @Deprecated
    public FileConfiguration getLangConfig() {
-      return this.messagesConfig;
+      return this.getMessagesConfig();
    }
 
    public FileConfiguration getCustomMenuItemsConfig() {
