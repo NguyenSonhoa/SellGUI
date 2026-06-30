@@ -6,7 +6,7 @@
 
     <groupId>me.aov.sellgui</groupId>
     <artifactId>SellGUI-DynaShop</artifactId>
-    <version>3.1</version>
+    <version>3.1.2</version>
     
     <name>SellGUI-DynaShop</name>
     <url>https://github.com/NguyenSonhoa/SellGUI</url>
@@ -34,9 +34,9 @@
         <dependency>
             <groupId>me.aov.sellgui</groupId>
             <artifactId>SellGUI</artifactId>
-            <version>3.1</version>
+            <version>3.1.2</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/../target/SellGUI-3.1.jar</systemPath>
+            <systemPath>${project.basedir}/../target/SellGUI-3.1.2.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>net.brcdev</groupId>

@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.2 - 2026-06-30
+
+### Fixed
+- Fixed worth lore not refreshing after players drop items from their inventory.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.1.2.jar`
+
 ## 3.1 - 2026-06-06
 
 ### Added
