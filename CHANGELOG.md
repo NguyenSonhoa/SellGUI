@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.3 - 2026-07-04
+
+### Fixed
+- Fixed packet-injected worth lore preventing identical item stacks from merging in the player inventory.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.1.3.jar`
+
 ## 3.1.2 - 2026-06-30
 
 ### Fixed
