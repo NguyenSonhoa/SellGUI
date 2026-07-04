@@ -95,17 +95,9 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
     }
     private void updateItemAtProtocolSlot(Player player, int protocolSlot, int stateId) {
         org.bukkit.inventory.ItemStack bukkitItem = getItemFromProtocolSlot(player, protocolSlot);
-        if (bukkitItem != null && bukkitItem.getType() != Material.AIR) {
-            if (ItemIdentifier.getItemType(bukkitItem) == ItemIdentifier.ItemType.NEXO) {
-                return;
-            }
-            ItemStack packetEventsItem = SpigotConversionUtil.fromBukkitItemStack(bukkitItem);
-            boolean[] modified = {false};
-            ItemStack processedItem = processItem(packetEventsItem, player, modified);
-            if (modified[0]) {
-                WrapperPlayServerSetSlot setSlotWrapper = new WrapperPlayServerSetSlot(0, stateId, protocolSlot, processedItem);
-                PacketEvents.getAPI().getPlayerManager().sendPacket(player, setSlotWrapper);
-            }
+        if (bukkitItem != null && bukkitItem.getType() != Material.AIR && ItemIdentifier.getItemType(bukkitItem) != ItemIdentifier.ItemType.NEXO) {
+            WrapperPlayServerSetSlot setSlotWrapper = new WrapperPlayServerSetSlot(0, stateId, protocolSlot, SpigotConversionUtil.fromBukkitItemStack(bukkitItem));
+            PacketEvents.getAPI().getPlayerManager().sendPacket(player, setSlotWrapper);
         }
     }
     private org.bukkit.inventory.ItemStack getItemFromProtocolSlot(Player player, int protocolSlot) {
@@ -122,8 +114,13 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         List<ItemStack> items = wrapper.getItems();
         boolean[] modified = {false};
         List<ItemStack> newItems = new ArrayList<>();
-        for (ItemStack item : items) {
-            newItems.add(processItem(item, player, modified));
+        for (int slot = 0; slot < items.size(); slot++) {
+            ItemStack item = items.get(slot);
+            if (isPlayerInventorySlot(wrapper.getWindowId(), slot)) {
+                newItems.add(processItem(item, player, modified, false));
+            } else {
+                newItems.add(processItem(item, player, modified, true));
+            }
         }
         if (modified[0]) {
             wrapper.setItems(newItems);
@@ -133,13 +130,13 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         if (!(event.getPlayer() instanceof Player player)) return;
         WrapperPlayServerSetSlot wrapper = new WrapperPlayServerSetSlot(event);
         boolean[] modified = {false};
-        ItemStack processedItem = processItem(wrapper.getItem(), player, modified);
+        ItemStack processedItem = processItem(wrapper.getItem(), player, modified, !isPlayerInventorySlot(wrapper.getWindowId(), wrapper.getSlot()));
         if (modified[0]) {
             wrapper.setItem(processedItem);
         }
     }
     @SuppressWarnings("deprecation")
-    private ItemStack processItem(ItemStack item, Player player, boolean[] modifiedFlag) {
+    private ItemStack processItem(ItemStack item, Player player, boolean[] modifiedFlag, boolean addWorthLore) {
         if (item == null || item.isEmpty()) {
             return item;
         }
@@ -162,7 +159,7 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         boolean removed = lore.removeIf(line -> !worthPrefix.isEmpty()
                 && ColorUtils.stripColor(LEGACY_SERIALIZER.serialize(line)).startsWith(worthPrefix));
         boolean added = false;
-        if (shouldShowWorthLore(player)) {
+        if (addWorthLore && shouldShowWorthLore(player)) {
             if (isShulkerBox(bukkitItem) && bukkitItem.getItemMeta() instanceof BlockStateMeta) {
                 BigDecimal itemPrice = getBaseItemPrice(bukkitItem, player);
                 BigDecimal contentsPrice = getShulkerContentsPrice(bukkitItem, player);
@@ -195,6 +192,9 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
             return updatedItem;
         }
         return item;
+    }
+    private boolean isPlayerInventorySlot(int windowId, int slot) {
+        return windowId == 0 && slot >= 5 && slot <= 45;
     }
     private Component createWorthLoreComponent(String worthLine) {
         return LEGACY_SERIALIZER.deserialize(ColorUtils.color(worthLine))

@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -145,6 +146,15 @@ public class InventoryListeners implements Listener {
         } else {
             scheduleMenuRefresh(player, sellGUI);
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        if (!main.getConfig().getBoolean("general.add-worth-lore", false)) {
+            return;
+        }
+
+        Bukkit.getScheduler().runTaskLater(main, event.getPlayer()::updateInventory, 1L);
     }
 
     private void scheduleMenuRefresh(Player player, SellGUI sellGUI) {
