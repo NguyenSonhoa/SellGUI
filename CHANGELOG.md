@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Added `SellGUI-DynamicShop` addon support for DynamicShop sell prices, stock updates, and transaction logs.
+
+## 3.1.4 - 2026-07-10
+
+### Fixed
+- Fixed worth lore disappearing from player inventory in 3.1.3.
+- Worth lore now remains visible in player inventory without using stack-size-specific packet data, so identical stacks can merge.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.1.4.jar`
+
 ## 3.1.3 - 2026-07-04
 
 ### Fixed

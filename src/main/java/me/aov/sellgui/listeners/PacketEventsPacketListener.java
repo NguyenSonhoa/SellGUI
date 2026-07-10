@@ -96,8 +96,13 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
     private void updateItemAtProtocolSlot(Player player, int protocolSlot, int stateId) {
         org.bukkit.inventory.ItemStack bukkitItem = getItemFromProtocolSlot(player, protocolSlot);
         if (bukkitItem != null && bukkitItem.getType() != Material.AIR && ItemIdentifier.getItemType(bukkitItem) != ItemIdentifier.ItemType.NEXO) {
-            WrapperPlayServerSetSlot setSlotWrapper = new WrapperPlayServerSetSlot(0, stateId, protocolSlot, SpigotConversionUtil.fromBukkitItemStack(bukkitItem));
-            PacketEvents.getAPI().getPlayerManager().sendPacket(player, setSlotWrapper);
+            ItemStack packetEventsItem = SpigotConversionUtil.fromBukkitItemStack(bukkitItem);
+            boolean[] modified = {false};
+            ItemStack processedItem = processItem(packetEventsItem, player, modified, true, false);
+            if (modified[0]) {
+                WrapperPlayServerSetSlot setSlotWrapper = new WrapperPlayServerSetSlot(0, stateId, protocolSlot, processedItem);
+                PacketEvents.getAPI().getPlayerManager().sendPacket(player, setSlotWrapper);
+            }
         }
     }
     private org.bukkit.inventory.ItemStack getItemFromProtocolSlot(Player player, int protocolSlot) {
@@ -117,9 +122,9 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         for (int slot = 0; slot < items.size(); slot++) {
             ItemStack item = items.get(slot);
             if (isPlayerInventorySlot(wrapper.getWindowId(), slot)) {
-                newItems.add(processItem(item, player, modified, false));
+                newItems.add(processItem(item, player, modified, true, false));
             } else {
-                newItems.add(processItem(item, player, modified, true));
+                newItems.add(processItem(item, player, modified, true, true));
             }
         }
         if (modified[0]) {
@@ -130,13 +135,14 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         if (!(event.getPlayer() instanceof Player player)) return;
         WrapperPlayServerSetSlot wrapper = new WrapperPlayServerSetSlot(event);
         boolean[] modified = {false};
-        ItemStack processedItem = processItem(wrapper.getItem(), player, modified, !isPlayerInventorySlot(wrapper.getWindowId(), wrapper.getSlot()));
+        boolean playerInventorySlot = isPlayerInventorySlot(wrapper.getWindowId(), wrapper.getSlot());
+        ItemStack processedItem = processItem(wrapper.getItem(), player, modified, true, !playerInventorySlot);
         if (modified[0]) {
             wrapper.setItem(processedItem);
         }
     }
     @SuppressWarnings("deprecation")
-    private ItemStack processItem(ItemStack item, Player player, boolean[] modifiedFlag, boolean addWorthLore) {
+    private ItemStack processItem(ItemStack item, Player player, boolean[] modifiedFlag, boolean addWorthLore, boolean multiplyByAmount) {
         if (item == null || item.isEmpty()) {
             return item;
         }
@@ -165,13 +171,19 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
                 BigDecimal contentsPrice = getShulkerContentsPrice(bukkitItem, player);
                 BigDecimal totalValue = itemPrice.add(contentsPrice);
                 if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal finalTotalValue = applyPermissionBonuses(player, totalValue).multiply(BigDecimal.valueOf(bukkitItem.getAmount()));
+                    BigDecimal finalTotalValue = applyPermissionBonuses(player, totalValue);
+                    if (multiplyByAmount) {
+                        finalTotalValue = finalTotalValue.multiply(BigDecimal.valueOf(bukkitItem.getAmount()));
+                    }
                     String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", finalTotalValue));
                     lore.add(createWorthLoreComponent(worthLine));
                     added = true;
                 }
             } else {
-                double price = calculatePrice(bukkitItem, player) * bukkitItem.getAmount();
+                double price = calculatePrice(bukkitItem, player);
+                if (multiplyByAmount) {
+                    price *= bukkitItem.getAmount();
+                }
                 if (price > 0) {
                     String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", price));
                     lore.add(createWorthLoreComponent(worthLine));
