@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Added `SellGUI-DynamicShop` addon support for DynamicShop sell prices, stock updates, and transaction logs.
+
 ## 3.1.4 - 2026-07-10
 
 ### Fixed
