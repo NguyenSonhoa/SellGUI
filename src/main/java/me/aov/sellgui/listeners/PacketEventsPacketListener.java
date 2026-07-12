@@ -78,6 +78,8 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
     private void handleWindowClick(PacketReceiveEvent event) {
         if (!(event.getPlayer() instanceof Player player)) return;
         WrapperPlayClientClickWindow wrapper = new WrapperPlayClientClickWindow(event);
+        wrapper.getSlots().ifPresent(slots -> slots.replaceAll((slot, item) -> removeWorthLore(item)));
+        wrapper.setCarriedItemStack(removeWorthLore(wrapper.getCarriedItemStack()));
         int windowId = wrapper.getWindowId();
         main.getServer().getScheduler().runTaskLater(main, player::updateInventory, 1L);
         int stateId = wrapper.getStateId().orElse(0);
@@ -98,7 +100,7 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         if (bukkitItem != null && bukkitItem.getType() != Material.AIR && ItemIdentifier.getItemType(bukkitItem) != ItemIdentifier.ItemType.NEXO) {
             ItemStack packetEventsItem = SpigotConversionUtil.fromBukkitItemStack(bukkitItem);
             boolean[] modified = {false};
-            ItemStack processedItem = processItem(packetEventsItem, player, modified, true, false);
+            ItemStack processedItem = processItem(packetEventsItem, player, modified);
             if (modified[0]) {
                 WrapperPlayServerSetSlot setSlotWrapper = new WrapperPlayServerSetSlot(0, stateId, protocolSlot, processedItem);
                 PacketEvents.getAPI().getPlayerManager().sendPacket(player, setSlotWrapper);
@@ -121,11 +123,7 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         List<ItemStack> newItems = new ArrayList<>();
         for (int slot = 0; slot < items.size(); slot++) {
             ItemStack item = items.get(slot);
-            if (isPlayerInventorySlot(wrapper.getWindowId(), slot)) {
-                newItems.add(processItem(item, player, modified, true, false));
-            } else {
-                newItems.add(processItem(item, player, modified, true, true));
-            }
+            newItems.add(processItem(item, player, modified));
         }
         if (modified[0]) {
             wrapper.setItems(newItems);
@@ -135,14 +133,13 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         if (!(event.getPlayer() instanceof Player player)) return;
         WrapperPlayServerSetSlot wrapper = new WrapperPlayServerSetSlot(event);
         boolean[] modified = {false};
-        boolean playerInventorySlot = isPlayerInventorySlot(wrapper.getWindowId(), wrapper.getSlot());
-        ItemStack processedItem = processItem(wrapper.getItem(), player, modified, true, !playerInventorySlot);
+        ItemStack processedItem = processItem(wrapper.getItem(), player, modified);
         if (modified[0]) {
             wrapper.setItem(processedItem);
         }
     }
     @SuppressWarnings("deprecation")
-    private ItemStack processItem(ItemStack item, Player player, boolean[] modifiedFlag, boolean addWorthLore, boolean multiplyByAmount) {
+    private ItemStack processItem(ItemStack item, Player player, boolean[] modifiedFlag) {
         if (item == null || item.isEmpty()) {
             return item;
         }
@@ -155,35 +152,23 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
                 .map(ArrayList::new)
                 .orElseGet(ArrayList::new);
         String worthLineTemplate = main.getMessagesConfig().getString("sell.lore_worth", "&7Worth: &a$%price%");
-        final String worthPrefix;
-        if (worthLineTemplate.contains("%price%")) {
-            String[] split = worthLineTemplate.split("%price%");
-            worthPrefix = (split.length > 0) ? ColorUtils.stripColor(split[0]) : "";
-        } else {
-            worthPrefix = "";
-        }
+        String worthPrefix = getWorthPrefix(worthLineTemplate);
         boolean removed = lore.removeIf(line -> !worthPrefix.isEmpty()
                 && ColorUtils.stripColor(LEGACY_SERIALIZER.serialize(line)).startsWith(worthPrefix));
         boolean added = false;
-        if (addWorthLore && shouldShowWorthLore(player)) {
+        if (shouldShowWorthLore(player)) {
             if (isShulkerBox(bukkitItem) && bukkitItem.getItemMeta() instanceof BlockStateMeta) {
                 BigDecimal itemPrice = getBaseItemPrice(bukkitItem, player);
                 BigDecimal contentsPrice = getShulkerContentsPrice(bukkitItem, player);
                 BigDecimal totalValue = itemPrice.add(contentsPrice);
                 if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal finalTotalValue = applyPermissionBonuses(player, totalValue);
-                    if (multiplyByAmount) {
-                        finalTotalValue = finalTotalValue.multiply(BigDecimal.valueOf(bukkitItem.getAmount()));
-                    }
+                    BigDecimal finalTotalValue = applyPermissionBonuses(player, totalValue).multiply(BigDecimal.valueOf(bukkitItem.getAmount()));
                     String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", finalTotalValue));
                     lore.add(createWorthLoreComponent(worthLine));
                     added = true;
                 }
             } else {
-                double price = calculatePrice(bukkitItem, player);
-                if (multiplyByAmount) {
-                    price *= bukkitItem.getAmount();
-                }
+                double price = calculatePrice(bukkitItem, player) * bukkitItem.getAmount();
                 if (price > 0) {
                     String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", price));
                     lore.add(createWorthLoreComponent(worthLine));
@@ -205,8 +190,35 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         }
         return item;
     }
-    private boolean isPlayerInventorySlot(int windowId, int slot) {
-        return windowId == 0 && slot >= 5 && slot <= 45;
+    private ItemStack removeWorthLore(ItemStack item) {
+        if (item == null || item.isEmpty()) {
+            return item;
+        }
+
+        List<Component> lore = item.getComponent(ComponentTypes.LORE)
+                .map(ItemLore::getLines)
+                .map(ArrayList::new)
+                .orElseGet(ArrayList::new);
+        String template = main.getMessagesConfig().getString("sell.lore_worth", "&7Worth: &a$%price%");
+        String prefix = getWorthPrefix(template);
+        if (prefix.isEmpty() || !lore.removeIf(line -> ColorUtils.stripColor(LEGACY_SERIALIZER.serialize(line)).startsWith(prefix))) {
+            return item;
+        }
+
+        ItemStack cleaned = item.copy();
+        if (lore.isEmpty()) {
+            cleaned.unsetComponent(ComponentTypes.LORE);
+        } else {
+            cleaned.setComponent(ComponentTypes.LORE, new ItemLore(lore));
+        }
+        return cleaned;
+    }
+    private String getWorthPrefix(String template) {
+        if (!template.contains("%price%")) {
+            return "";
+        }
+        String[] split = template.split("%price%");
+        return split.length > 0 ? ColorUtils.stripColor(split[0]) : "";
     }
     private Component createWorthLoreComponent(String worthLine) {
         return LEGACY_SERIALIZER.deserialize(ColorUtils.color(worthLine))

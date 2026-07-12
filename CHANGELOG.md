@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.5 - 2026-07-12
+
+### Fixed
+- Restored stack-total worth lore while stripping packet-only worth lore from incoming inventory clicks so identical stacks can merge.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.1.5.jar`
+
 ## Unreleased
 
 ### Added
