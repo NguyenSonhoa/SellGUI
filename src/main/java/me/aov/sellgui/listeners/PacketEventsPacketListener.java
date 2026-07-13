@@ -100,7 +100,7 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         if (bukkitItem != null && bukkitItem.getType() != Material.AIR && ItemIdentifier.getItemType(bukkitItem) != ItemIdentifier.ItemType.NEXO) {
             ItemStack packetEventsItem = SpigotConversionUtil.fromBukkitItemStack(bukkitItem);
             boolean[] modified = {false};
-            ItemStack processedItem = processItem(packetEventsItem, player, modified);
+            ItemStack processedItem = processItem(packetEventsItem, player, modified, true);
             if (modified[0]) {
                 WrapperPlayServerSetSlot setSlotWrapper = new WrapperPlayServerSetSlot(0, stateId, protocolSlot, processedItem);
                 PacketEvents.getAPI().getPlayerManager().sendPacket(player, setSlotWrapper);
@@ -123,7 +123,7 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         List<ItemStack> newItems = new ArrayList<>();
         for (int slot = 0; slot < items.size(); slot++) {
             ItemStack item = items.get(slot);
-            newItems.add(processItem(item, player, modified));
+            newItems.add(processItem(item, player, modified, true));
         }
         if (modified[0]) {
             wrapper.setItems(newItems);
@@ -133,13 +133,13 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         if (!(event.getPlayer() instanceof Player player)) return;
         WrapperPlayServerSetSlot wrapper = new WrapperPlayServerSetSlot(event);
         boolean[] modified = {false};
-        ItemStack processedItem = processItem(wrapper.getItem(), player, modified);
+        ItemStack processedItem = processItem(wrapper.getItem(), player, modified, true);
         if (modified[0]) {
             wrapper.setItem(processedItem);
         }
     }
     @SuppressWarnings("deprecation")
-    private ItemStack processItem(ItemStack item, Player player, boolean[] modifiedFlag) {
+    private ItemStack processItem(ItemStack item, Player player, boolean[] modifiedFlag, boolean unitPrice) {
         if (item == null || item.isEmpty()) {
             return item;
         }
@@ -162,15 +162,21 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
                 BigDecimal contentsPrice = getShulkerContentsPrice(bukkitItem, player);
                 BigDecimal totalValue = itemPrice.add(contentsPrice);
                 if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal finalTotalValue = applyPermissionBonuses(player, totalValue).multiply(BigDecimal.valueOf(bukkitItem.getAmount()));
-                    String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", finalTotalValue));
+                    BigDecimal finalTotalValue = applyPermissionBonuses(player, totalValue);
+                    if (!unitPrice) {
+                        finalTotalValue = finalTotalValue.multiply(BigDecimal.valueOf(bukkitItem.getAmount()));
+                    }
+                    String worthLine = formatWorthLine(worthLineTemplate, finalTotalValue.doubleValue(), unitPrice);
                     lore.add(createWorthLoreComponent(worthLine));
                     added = true;
                 }
             } else {
-                double price = calculatePrice(bukkitItem, player) * bukkitItem.getAmount();
+                double price = calculatePrice(bukkitItem, player);
+                if (!unitPrice) {
+                    price *= bukkitItem.getAmount();
+                }
                 if (price > 0) {
-                    String worthLine = worthLineTemplate.replace("%price%", String.format("%.2f", price));
+                    String worthLine = formatWorthLine(worthLineTemplate, price, unitPrice);
                     lore.add(createWorthLoreComponent(worthLine));
                     added = true;
                 }
@@ -219,6 +225,9 @@ public class PacketEventsPacketListener extends PacketListenerAbstract {
         }
         String[] split = template.split("%price%");
         return split.length > 0 ? ColorUtils.stripColor(split[0]) : "";
+    }
+    private String formatWorthLine(String template, double price, boolean unitPrice) {
+        return template.replace("%price%", String.format("%.2f", price) + (unitPrice ? "/u" : ""));
     }
     private Component createWorthLoreComponent(String worthLine) {
         return LEGACY_SERIALIZER.deserialize(ColorUtils.color(worthLine))

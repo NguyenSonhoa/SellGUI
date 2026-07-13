@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.6 - 2026-07-12
+
+### Changed
+- Worth lore now displays price per unit (`$x.xx/u`) so all equivalent stacks have matching packet components and merge correctly.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.1.6.jar`
+
 ## 3.1.5 - 2026-07-12
 
 ### Fixed
