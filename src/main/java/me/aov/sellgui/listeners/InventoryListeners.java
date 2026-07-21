@@ -175,14 +175,28 @@ public class InventoryListeners implements Listener {
 
     private void handleCustomMenuItemClick(Player player, ItemStack item) {
         NamespacedKey key = new NamespacedKey(main, "custom-menu-item");
+        NamespacedKey senderKey = new NamespacedKey(main, "custom-menu-item-sender");
         String commands = item.getItemMeta().getPersistentDataContainer().get(key, PersistentDataType.STRING);
+        String sender = item.getItemMeta().getPersistentDataContainer().get(senderKey, PersistentDataType.STRING);
 
         if (commands != null && !commands.isEmpty()) {
             String[] commandArray = commands.split(";");
             for (String command : commandArray) {
                 if (!command.trim().isEmpty()) {
-                    String finalCommand = command.trim().replace("%player%", player.getName());
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
+                    String finalCommand = command.trim().replaceFirst("^/", "");
+                    switch (sender == null ? "console" : sender.toLowerCase()) {
+                        case "player" -> player.performCommand(finalCommand);
+                        case "op" -> {
+                            boolean wasOp = player.isOp();
+                            try {
+                                player.setOp(true);
+                                player.performCommand(finalCommand);
+                            } finally {
+                                player.setOp(wasOp);
+                            }
+                        }
+                        default -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand);
+                    }
                 }
             }
         }

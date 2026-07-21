@@ -11,6 +11,7 @@ example-item:
     - "default"
     - "fishing"
   disabled: false
+  sender: "console"
   lore:
     - "Example Lore"
   commands:
@@ -44,8 +45,9 @@ fishing-info:
 #     - "default"
 #     - "fishing"
 #   disabled: [boolean] = if true, the item will be replaced by the fill-item
+#   sender: "console|player|op" = Command sender. Default: console. op temporarily grants OP to clicking player.
 #   lore: = lore list of the item, can be empty. For no lore do "lore: " with no trailing lines of strings
 #     - "[Line]"
-#   commands: = Commands to be executed by console when item is clicked
+#   commands: = Commands run using sender. Leading / is optional.
 #     - "[command]"
 #
