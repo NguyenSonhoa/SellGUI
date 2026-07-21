@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.1.7 - 2026-07-12
+
+### Added
+- Added `SellGUI-DynamicShop` addon support for DynamicShop sell prices, stock updates, and transaction logs.
+- Added `sender: console|player|op` for custom menu item commands.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built jar: `target/SellGUI-3.1.7.jar`
+
 ## 3.1.6 - 2026-07-12
 
 ### Changed
@@ -17,11 +27,6 @@
 ### Verified
 - `mvn -q -DskipTests package`
 - Built jar: `target/SellGUI-3.1.5.jar`
-
-## Unreleased
-
-### Added
-- Added `SellGUI-DynamicShop` addon support for DynamicShop sell prices, stock updates, and transaction logs.
 
 ## 3.1.4 - 2026-07-10
 
