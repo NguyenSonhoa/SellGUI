@@ -252,12 +252,15 @@ public class SellGUI implements Listener, InventoryHolder {
 
             NamespacedKey key = new NamespacedKey(main, "custom-menu-item");
             NamespacedKey senderKey = new NamespacedKey(main, "custom-menu-item-sender");
+            NamespacedKey closeMenuKey = new NamespacedKey(main, "custom-menu-item-close-menu");
             String commands = main.getCustomMenuItemsConfig().getStringList(itemPath + ".commands").stream()
                     .map(command -> command.replace("%player%", player.getName()))
                     .collect(Collectors.joining(";"));
             itemMeta.getPersistentDataContainer().set(key, PersistentDataType.STRING, commands);
             itemMeta.getPersistentDataContainer().set(senderKey, PersistentDataType.STRING,
                     main.getCustomMenuItemsConfig().getString(itemPath + ".sender", "console").toLowerCase());
+            itemMeta.getPersistentDataContainer().set(closeMenuKey, PersistentDataType.BYTE,
+                    (byte) (main.getCustomMenuItemsConfig().getBoolean(itemPath + ".close-menu", false) ? 1 : 0));
             customItem.setItemMeta(itemMeta);
             menu.setItem(slot, customItem);
         }

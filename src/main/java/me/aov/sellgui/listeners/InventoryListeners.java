@@ -176,10 +176,22 @@ public class InventoryListeners implements Listener {
     private void handleCustomMenuItemClick(Player player, ItemStack item) {
         NamespacedKey key = new NamespacedKey(main, "custom-menu-item");
         NamespacedKey senderKey = new NamespacedKey(main, "custom-menu-item-sender");
+        NamespacedKey closeMenuKey = new NamespacedKey(main, "custom-menu-item-close-menu");
         String commands = item.getItemMeta().getPersistentDataContainer().get(key, PersistentDataType.STRING);
         String sender = item.getItemMeta().getPersistentDataContainer().get(senderKey, PersistentDataType.STRING);
+        Byte closeMenu = item.getItemMeta().getPersistentDataContainer().get(closeMenuKey, PersistentDataType.BYTE);
 
         if (commands != null && !commands.isEmpty()) {
+            if (closeMenu != null && closeMenu == 1) {
+                player.closeInventory();
+                Bukkit.getScheduler().runTask(main, () -> executeCustomMenuCommands(player, commands, sender));
+                return;
+            }
+            executeCustomMenuCommands(player, commands, sender);
+        }
+    }
+
+    private void executeCustomMenuCommands(Player player, String commands, String sender) {
             String[] commandArray = commands.split(";");
             for (String command : commandArray) {
                 if (!command.trim().isEmpty()) {
@@ -199,7 +211,6 @@ public class InventoryListeners implements Listener {
                     }
                 }
             }
-        }
     }
 
     private void dropItems(Inventory inventory, Player player) {

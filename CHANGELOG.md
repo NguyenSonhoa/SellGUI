@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.1.8 - 2026-08-05
+
+### Added
+- Added `close-menu: true` for custom menu items so player-run commands can open their own GUI after SellGUI closes.
+
+### Changed
+- Set the plugin API baseline to Paper `1.21` while retaining Java 17 bytecode compatibility for the Paper `1.21.x` through `26.3` range.
+
+### Verified
+- Built against Paper `1.21.11-R0.1-SNAPSHOT` with Java 17 bytecode output.
+
 ## 3.1.7 - 2026-07-12
 
 ### Added

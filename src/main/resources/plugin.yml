@@ -1,7 +1,7 @@
 name: SellGUI
-version: '3.1.7'
+version: '3.1.8'
 main: me.aov.sellgui.SellGUIMain
-api-version: '1.20.6'
+api-version: '1.21'
 description: SellGUI plugin
 author: AOOV,SaneNuyan
 website: https://www.spigotmc.org/resources/sellgui.127355/
