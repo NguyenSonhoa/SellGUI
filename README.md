@@ -413,7 +413,7 @@ It does not intentionally remove custom NBT or metadata from other plugins, so c
 
 ## PlaceholderAPI
 
-When PlaceholderAPI is installed, SellGUI registers the `sellgui` identifier and processes PlaceholderAPI placeholders in supported GUI text.
+When PlaceholderAPI is installed, SellGUI registers the `sellgui` identifier and processes PlaceholderAPI placeholders in supported GUI text. GUI titles also support placeholders, including the sell-menu, autosell, price-evaluation, and price-setter titles. For example: `title: "&8Sell Menu | %player_name%"`.
 
 ### SellGUI PlaceholderAPI Placeholders
 

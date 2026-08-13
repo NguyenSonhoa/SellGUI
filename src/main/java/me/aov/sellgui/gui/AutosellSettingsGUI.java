@@ -84,7 +84,8 @@ public class AutosellSettingsGUI implements InventoryHolder, Listener {
             }
         }
 
-        String title = ColorUtils.color(plugin.getConfigManager().getAutosellGuiTitle());
+        String title = ColorUtils.color(plugin.setPlaceholders(player,
+                plugin.getConfigManager().getAutosellGuiTitle()));
         int size = plugin.getConfigManager().getAutosellGuiSize();
         this.inventory = Bukkit.createInventory(this, size, title);
         setupGUI();

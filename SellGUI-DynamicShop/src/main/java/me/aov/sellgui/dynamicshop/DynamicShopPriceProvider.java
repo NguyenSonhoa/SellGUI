@@ -10,6 +10,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 final class DynamicShopPriceProvider implements SellGUIPriceProvider {

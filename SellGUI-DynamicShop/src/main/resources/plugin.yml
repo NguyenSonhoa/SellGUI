@@ -1,6 +1,6 @@
 main: me.aov.sellgui.dynamicshop.SellGUIDynamicShop
-version: 3.1.8
+version: 3.1
 name: SellGUI-DynamicShop
 author: AOOV,SaneNuyan
-api-version: '1.21'
+api-version: '1.20.6'
 depend: [SellGUI, DynamicShop]

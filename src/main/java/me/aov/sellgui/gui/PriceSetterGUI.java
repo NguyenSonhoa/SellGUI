@@ -36,7 +36,8 @@ public class PriceSetterGUI implements InventoryHolder {
         this.main = main;
         this.player = player;
         this.priceManager = new PriceManager(main);
-        this.inventory = Bukkit.createInventory(this, 45, ColorUtils.color("&6&lPrice Setter"));
+        String title = main.getConfigManager().getGUIConfig().getString("price_setter_gui.title", "&6&lPrice Setter");
+        this.inventory = Bukkit.createInventory(this, 45, ColorUtils.color(main.setPlaceholders(player, title)));
 
         setupGUI();
         player.openInventory(inventory);

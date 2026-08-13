@@ -3,6 +3,7 @@ sell_menus:
   default:
     name: "Default"
     permission: "sellgui.menu.default"
+    # Titles support built-in and PlaceholderAPI placeholders, for example %player_name%.
     title: "&8/sellgui > Sell"
     size: 54
     item-filter:

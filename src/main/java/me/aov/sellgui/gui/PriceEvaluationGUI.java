@@ -58,7 +58,8 @@ public class PriceEvaluationGUI implements InventoryHolder {
         this.random = new Random();
 
         FileConfiguration guiConfig = main.getConfigManager().getGUIConfig();
-        String title = ColorUtils.color(guiConfig.getString("price_evaluation_gui.title", "&6&lPrice Evaluation"));
+        String title = ColorUtils.color(main.setPlaceholders(player,
+                guiConfig.getString("price_evaluation_gui.title", "&6&lPrice Evaluation")));
         int size = guiConfig.getInt("price_evaluation_gui.size", 54);
 
         loadLayoutFromConfig(guiConfig);

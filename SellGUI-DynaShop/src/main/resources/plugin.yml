@@ -1,6 +1,6 @@
 main: me.aov.sellgui.dynashop.SellGUIDynaShop
-version: 3.1.8
+version: 3.1
 name: SellGUI-DynaShop
 author: Rozen
-api-version: '1.21'
+api-version: '1.20.6'
 depend: [SellGUI, ShopGUIPlus, ShopGUIPlus-DynaShop]

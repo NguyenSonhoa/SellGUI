@@ -1,4 +1,5 @@
 autosell_settings_gui:
+  # Titles support built-in and PlaceholderAPI placeholders, for example %player_name%.
   title: "&6&lAutosell Settings"
   size: 54
   positions:

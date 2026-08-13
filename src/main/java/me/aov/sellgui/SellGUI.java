@@ -837,10 +837,7 @@ public class SellGUI implements Listener, InventoryHolder {
         if (value == null) {
             return "";
         }
-        if (main.isPlaceholderAPIAvailable()) {
-            value = main.setPlaceholders(player, value);
-        }
-        return ColorUtils.color(value);
+        return ColorUtils.color(main.setPlaceholders(player, value));
     }
 
     public List<String> color(List<String> lore) {
