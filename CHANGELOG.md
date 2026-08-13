@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.1.9 - 2026-08-13
+
+### Added
+- Added built-in and PlaceholderAPI placeholder support for sell-menu, autosell, price-evaluation, and price-setter GUI titles.
+
+### Verified
+- `mvn -q -DskipTests package`
+- Built main plugin and both addon jars.
+
 ## 3.1 - 2026-06-06
 
 ### Added

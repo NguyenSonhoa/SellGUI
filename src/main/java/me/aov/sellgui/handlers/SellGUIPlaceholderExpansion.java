@@ -35,7 +35,7 @@ public class SellGUIPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public String getVersion() {
-        return "2.5.11"; // Keep the version consistent
+        return "3.1.9";
     }
 
     @Override
