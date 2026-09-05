@@ -25,7 +25,9 @@ class ItemStackNormalizeListener(private val plugin: SellGUIMain) : Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     fun onFurnaceSmelt(event: FurnaceSmeltEvent) {
         event.result?.let { result ->
-            if (isEnabled("stacking.normalize-smelt-results", true)) event.result = ItemStackNormalizer.normalizedCopy(plugin, result)
+            if (isEnabled("stacking.normalize-smelt-results", true)) {
+                ItemStackNormalizer.normalizedCopy(plugin, result)?.let { event.result = it }
+            }
         }
     }
 

@@ -43,7 +43,7 @@ object ItemUtils {
         } catch (_: NoSuchMethodException) {
             // The component is unavailable on older server APIs.
         } catch (exception: Exception) {
-            SellGUIMain.getInstance().logger.warning("Failed to invoke $methodName: ${exception.message}")
+            SellGUIMain.getInstance()?.logger?.warning("Failed to invoke $methodName: ${exception.message}")
         }
     }
 

@@ -15,7 +15,7 @@ class SellGUIDynamicShop : JavaPlugin() {
             return
         }
         priceProvider = DynamicShopPriceProvider(this)
-        sellGUI.getSellGUIAPI().registerPriceProvider(priceProvider)
+        priceProvider?.let { sellGUI.getSellGUIAPI().registerPriceProvider(it) }
         logger.info("Registered DynamicShop price provider with SellGUI.")
     }
 
