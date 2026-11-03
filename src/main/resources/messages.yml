@@ -28,6 +28,7 @@ sell:
   sold_summary: "&7📦 ѕᴏʟᴅ %count% ɪᴛᴇᴍѕ"
   transaction_failed: "&c❌ ᴛʀᴀɴѕᴀᴄᴛɪᴏɴ ꜰᴀɪʟᴇᴅ! ᴘʟᴇᴀѕᴇ ᴛʀʏ ᴀɢᴀɪɴ."
   evaluation_required: "&c⚠️ ᴛʜɪѕ ɪᴛᴇᴍ ʀᴇǫᴜɪʀᴇѕ ᴇᴠᴀʟᴜᴀᴛɪᴏɴ ʙᴇꜰᴏʀᴇ ѕᴇʟʟɪɴɢ! ᴜѕᴇ &f/ѕᴇʟʟɢᴜɪ ᴇᴠᴀʟᴜᴀᴛᴇ"
+  # Worth lore: %price% = unit price (/u), %total% = stack total, %amount% = stack size.
   lore_worth: "&7ᴡᴏʀᴛʜ: &a$%price%"
 
 # ┌─────────────────────────────────────────────────────────────────────────────┐

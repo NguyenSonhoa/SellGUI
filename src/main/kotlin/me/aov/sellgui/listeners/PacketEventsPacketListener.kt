@@ -16,12 +16,8 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWi
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import me.aov.sellgui.SellGUIMain
 import me.aov.sellgui.config.ConfigManager
-import me.aov.sellgui.managers.PriceManager
-import me.aov.sellgui.utils.ColorUtils
 import me.aov.sellgui.utils.ItemIdentifier
-import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+import me.aov.sellgui.utils.WorthLore
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -35,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class PacketEventsPacketListener(private val main: SellGUIMain) : PacketListenerAbstract(PacketListenerPriority.HIGH) {
     private val openGuiTitles = ConcurrentHashMap<Player, String>()
+    @Volatile private var cachedWorthLore: WorthLore? = null
     override fun onPacketSend(event: PacketSendEvent) = when (event.packetType) {
         PacketType.Play.Server.WINDOW_ITEMS -> handleWindowItems(event)
         PacketType.Play.Server.SET_SLOT -> handleSetSlot(event)
@@ -70,52 +67,47 @@ class PacketEventsPacketListener(private val main: SellGUIMain) : PacketListener
     private fun updateItemAtProtocolSlot(player: Player, slot: Int, state: Int) {
         val item = getItemFromProtocolSlot(player, slot) ?: return
         if (item.type == Material.AIR || ItemIdentifier.getItemType(item) == ItemIdentifier.ItemType.NEXO) return
-        val modified = booleanArrayOf(false); val processed = processItem(SpigotConversionUtil.fromBukkitItemStack(item), player, modified, true)
+        val modified = booleanArrayOf(false); val processed = processItem(SpigotConversionUtil.fromBukkitItemStack(item), player, modified)
         if (modified[0]) PacketEvents.getAPI().playerManager.sendPacket(player, WrapperPlayServerSetSlot(0, state, slot, processed))
     }
 
     private fun getItemFromProtocolSlot(player: Player, slot: Int): org.bukkit.inventory.ItemStack? = when (slot) { in 9..35 -> player.inventory.getItem(slot); in 36..44 -> player.inventory.getItem(slot - 36); else -> null }
     private fun handleWindowItems(event: PacketSendEvent) {
         val player = event.getPlayer() as? Player ?: return; val wrapper = WrapperPlayServerWindowItems(event); val modified = booleanArrayOf(false)
-        val items = wrapper.items.map { processItem(it, player, modified, true) }
+        val items = wrapper.items.map { processItem(it, player, modified) }
         if (modified[0]) wrapper.items = items
     }
     private fun handleSetSlot(event: PacketSendEvent) {
         val player = event.getPlayer() as? Player ?: return; val wrapper = WrapperPlayServerSetSlot(event); val modified = booleanArrayOf(false)
-        val item = processItem(wrapper.item, player, modified, true); if (modified[0]) wrapper.item = item
+        val item = processItem(wrapper.item, player, modified); if (modified[0]) wrapper.item = item
     }
 
-    private fun processItem(item: ItemStack?, player: Player, modified: BooleanArray, unitPrice: Boolean): ItemStack? {
+    private fun processItem(item: ItemStack?, player: Player, modified: BooleanArray): ItemStack? {
         if (item == null || item.isEmpty) return item
         val bukkit = SpigotConversionUtil.toBukkitItemStack(item)
         if (isGuiItem(bukkit)) return item
-        val lore = item.getComponent(ComponentTypes.LORE).map { ArrayList(it.lines) }.orElseGet { arrayListOf() }
-        val template = main.getMessagesConfig().getString("sell.lore_worth", "&7Worth: &a$%price%").orEmpty(); val prefix = worthPrefix(template)
-        val removed = lore.removeIf { line -> prefix.isNotEmpty() && ColorUtils.stripColor(legacy.serialize(line)).orEmpty().startsWith(prefix) }
-        var added = false
-        if (shouldShowWorthLore(player)) {
-            val price = if (isShulkerBox(bukkit)) calculatePrice(bukkit, player) else calculatePrice(bukkit, player)
-            val displayPrice = if (unitPrice) price else price * bukkit.amount
-            if (displayPrice > 0) { lore += worthComponent(formatWorthLine(template, displayPrice, unitPrice)); added = true }
-        }
-        if (!removed && !added) return item
+        val originalLore = item.getComponent(ComponentTypes.LORE).map { it.lines }.orElse(emptyList())
+        val show = shouldShowWorthLore(player)
+        val lore = worthLore().update(originalLore, if (show) calculatePrice(bukkit, player) else 0.0, bukkit.amount, show)
+        if (lore == originalLore) return item
         return item.copy().also { updated -> if (lore.isEmpty()) updated.unsetComponent(ComponentTypes.LORE) else updated.setComponent(ComponentTypes.LORE, ItemLore(lore)); modified[0] = true }
     }
 
     private fun removeWorthLore(item: ItemStack?): ItemStack? {
         if (item == null || item.isEmpty) return item
-        val lore = item.getComponent(ComponentTypes.LORE).map { ArrayList(it.lines) }.orElseGet { arrayListOf() }
-        val prefix = worthPrefix(main.getMessagesConfig().getString("sell.lore_worth", "&7Worth: &a$%price%").orEmpty())
-        if (prefix.isEmpty() || !lore.removeIf { ColorUtils.stripColor(legacy.serialize(it)).orEmpty().startsWith(prefix) }) return item
+        val originalLore = item.getComponent(ComponentTypes.LORE).map { it.lines }.orElse(emptyList())
+        val lore = worthLore().remove(originalLore)
+        if (lore == originalLore) return item
         return item.copy().also { if (lore.isEmpty()) it.unsetComponent(ComponentTypes.LORE) else it.setComponent(ComponentTypes.LORE, ItemLore(lore)) }
     }
 
-    private fun worthPrefix(template: String): String = if (template.contains("%price%")) ColorUtils.stripColor(template.substringBefore("%price%")).orEmpty() else ""
-    private fun formatWorthLine(template: String, price: Double, unitPrice: Boolean): String = template.replace("%price%", "%.2f".format(price) + if (unitPrice) "/u" else "")
-    private fun worthComponent(line: String): Component = legacy.deserialize(ColorUtils.color(line).orEmpty()).decoration(TextDecoration.ITALIC, false)
+    private fun worthLore(): WorthLore {
+        val template = main.getMessagesConfig().getString("sell.lore_worth", "&7Worth: &a$%price%").orEmpty()
+        return cachedWorthLore?.takeIf { it.template == template }
+            ?: WorthLore(template).also { cachedWorthLore = it }
+    }
     private fun shouldShowWorthLore(player: Player): Boolean = if (main.configManager.isWorthLoreWhitelistGuiEnabled()) main.configManager.getWorthLoreWhitelistGuiTitles().contains(openGuiTitles[player] ?: "Inventory") else !main.configManager.getWorthLoreBlacklistGuiTitles().contains(openGuiTitles[player] ?: "Inventory")
     private fun isGuiItem(item: org.bukkit.inventory.ItemStack?): Boolean = item?.takeIf { it.hasItemMeta() }?.itemMeta?.persistentDataContainer?.has(NamespacedKey(main, "sellgui"), PersistentDataType.BYTE) == true
-    private fun isShulkerBox(item: org.bukkit.inventory.ItemStack?): Boolean = item?.type?.name?.endsWith("SHULKER_BOX") == true
 
     private fun baseItemPrice(item: org.bukkit.inventory.ItemStack?, player: Player): BigDecimal {
         if (item == null || item.type == Material.AIR) return BigDecimal.ZERO
@@ -141,5 +133,4 @@ class PacketEventsPacketListener(private val main: SellGUIMain) : PacketListener
         return if (bonus > BigDecimal.ZERO) price * (BigDecimal.ONE + bonus.divide(BigDecimal("100"), 2, RoundingMode.HALF_UP)) else price
     }
 
-    private companion object { val legacy: LegacyComponentSerializer = LegacyComponentSerializer.legacySection() }
 }

@@ -49,7 +49,7 @@ import java.io.File
 import java.io.FileWriter
 import java.io.IOException
 
-class SellGUIMain : JavaPlugin() {
+open class SellGUIMain : JavaPlugin() {
     @JvmField var hasShopGUIPlus = false
     @JvmField var hasMMOItems = false
     @JvmField var hasNexo = false

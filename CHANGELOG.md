@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.1.11 - 2026-11-03
+
+### Fixed
+- Fixed `%total%` remaining unresolved in item worth lore instead of displaying the total sell price of the stack (issue #47).
+- Fixed generated worth lore accumulating when stacks are split, merged, or refreshed. Original item lore is preserved.
+- Kept `%price%` compatible with the existing unit-price display and `/u` suffix. `%amount%` can be used to display stack size.
+
+### Verification
+- Added MockBukkit and JUnit tests to the normal Maven build.
+- `mvn -B -o verify`: 10 tests passed, 0 failures, 0 errors, 0 skipped.
+- Verified main plugin startup/shutdown, stack totals, unit-price compatibility, lore cleanup, and decimal-comma formatting.
+- MockBukkit targets the existing Paper 1.21.11 API; live-server verification on Minecraft 26.2 is still pending.
+
 ## 3.1.9 - 2026-08-13
 
 ### Added

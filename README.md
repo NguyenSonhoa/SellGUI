@@ -4,11 +4,11 @@
 
 SellGUI is a Minecraft selling plugin with a configurable GUI, `/sellall`, autosell, price setting tools, price evaluation, and support for custom item plugins. Version 3 focuses on cleaner configuration, multiple sell menus, menu-specific item rules, and safer item stacking behavior.
 
-Current branch: `v3.1`
+Current branch: `main`
 
 [WIKI](https://nguyensonhoa.github.io/SellGUIWiki/#home)
 
-Plugin version: `3.1.9`
+Plugin version: `3.1.11`
 
 ## What's New In v3
 
@@ -64,14 +64,14 @@ Plugin version: `3.1.9`
 ```bash
 git clone https://github.com/NguyenSonhoa/SellGUI.git
 cd SellGUI
-git checkout v3.1
-mvn -q -DskipTests package
+git checkout main
+mvn -B verify
 ```
 
 Jar output:
 
 ```text
-target/SellGUI-3.1.9.jar
+target/SellGUI-3.1.11.jar
 ```
 
 `libs/shopgui-api-3.1.0.jar` is committed so Maven can build immediately after cloning.
@@ -464,6 +464,25 @@ general:
 ```
 
 PacketEvents is required. SellGUI displays worth lore through packets so the real inventory item is not constantly rewritten with lore.
+
+Set `sell.lore_worth` in `messages.yml` to choose which price is displayed:
+
+| Placeholder | Value |
+| --- | --- |
+| `%price%` | Price of one item, with the existing `/u` suffix |
+| `%total%` | Price of the complete stack: unit price multiplied by stack size |
+| `%amount%` | Number of items in the stack |
+
+For example, to show the stack total:
+
+```yml
+sell:
+  lore_worth: "&7Worth (%amount%x): &a$%total%"
+```
+
+A stack of 64 items priced at $1.25 each displays `Worth (64x): $80.00`.
+Run `/sellgui reload` after editing `messages.yml`. Enabling `general.add-worth-lore`
+for the first time requires a server restart so the PacketEvents listener is registered.
 
 GUI titles where worth lore should not be shown:
 

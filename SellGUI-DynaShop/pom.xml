@@ -14,6 +14,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.version>2.3.0</kotlin.version>
+        <sellgui.version>3.1.11</sellgui.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
@@ -40,9 +41,9 @@
         <dependency>
             <groupId>me.aov.sellgui</groupId>
             <artifactId>SellGUI</artifactId>
-            <version>3.1.10</version>
+            <version>${sellgui.version}</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/../target/SellGUI-${project.version}.jar</systemPath>
+            <systemPath>${project.basedir}/../target/SellGUI-${sellgui.version}.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>net.brcdev</groupId>
