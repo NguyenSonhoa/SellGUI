@@ -89,6 +89,8 @@ performance:
   price-update-interval: 100
 
 logging:
+  # Records completed GUI, /sellall, and autosell transactions in log.txt.
+  # Setting this or the legacy log-transactions option to false disables logging.
   enabled: true
 
 integrations:

@@ -1,9 +1,12 @@
 package me.aov.sellgui.managers
 
 import me.aov.sellgui.SellGUIMain
+import me.aov.sellgui.api.SellGUIItemsSoldEvent
+import me.aov.sellgui.api.SoldItem
 import me.aov.sellgui.gui.SellMenuConfig
 import me.aov.sellgui.utils.ColorUtils
 import me.aov.sellgui.utils.ItemIdentifier
+import me.aov.sellgui.utils.TransactionLogger
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.scheduler.BukkitTask
@@ -44,7 +47,8 @@ class AutosellManager(private val plugin: SellGUIMain, private val priceManager:
     fun processAutosell(player: Player) {
         if (!isGlobalAutosellEnabled(player.uniqueId)) return
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            var totalEarned = 0.0
+            if (!player.isOnline || !isGlobalAutosellEnabled(player.uniqueId)) return@Runnable
+            val pendingSales = arrayListOf<Pair<Int, SoldItem>>()
             var rawTotal = 0.0
             val soldSummary = HashMap<String, Int>()
             val configOnly = plugin.config.getString("prices.calculation-method", "auto").equals("config", true)
@@ -54,15 +58,26 @@ class AutosellManager(private val plugin: SellGUIMain, private val priceManager:
                 val identifier = ItemIdentifier.getItemIdentifier(item) ?: continue
                 if ((configOnly && !priceManager.hasPrice(identifier)) || !isAutosellEnabled(player.uniqueId, identifier)) continue
                 val pricePerItem = priceManager.getItemPriceWithPlayer(item, player)
-                if (pricePerItem <= 0) continue
+                if (!pricePerItem.isFinite() || pricePerItem <= 0) continue
                 val amount = item.amount
-                totalEarned += pricePerItem * amount
+                pendingSales += slot to SoldItem(item, amount, pricePerItem, pricePerItem * amount)
                 rawTotal += priceManager.getItemPrice(item) * amount
                 soldSummary.merge(ItemIdentifier.getItemDisplayName(item), amount, Int::plus)
-                player.inventory.setItem(slot, null)
             }
-            if (totalEarned <= 0) return@Runnable
-            plugin.getEcon()?.depositPlayer(player, totalEarned)
+            val soldItems = pendingSales.map { it.second }
+            val totalEarned = soldItems.sumOf { it.getTotalPrice() }
+            if (!totalEarned.isFinite() || totalEarned <= 0) return@Runnable
+            val response = plugin.getEcon()?.depositPlayer(player, totalEarned)
+            if (response?.transactionSuccess() != true) {
+                player.sendMessage(ColorUtils.color(plugin.getMessagesConfig().getString(
+                    "sell.transaction_failed", "&cTransaction failed. Please try again.",
+                )).orEmpty())
+                return@Runnable
+            }
+            pendingSales.forEach { (slot, _) -> player.inventory.setItem(slot, null) }
+            TransactionLogger.log(plugin, "AUTOSELL", player, soldItems)
+            Bukkit.getPluginManager().callEvent(SellGUIItemsSoldEvent(player, totalEarned))
+            plugin.getSellGUIAPI().notifyItemsSold(player, soldItems, totalEarned)
             val multiplier = if (rawTotal > 0) totalEarned / rawTotal else 1.0
             val bonusText = if (multiplier > 1.0001) " &7(x&a${"%.2f".format(multiplier)}&7)" else ""
             val message = plugin.configManager.messagesConfig.getString("autosell.sold", "Autosell: +$%amount%%bonus%") ?: "Autosell: +$%amount%%bonus%"

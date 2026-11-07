@@ -11,6 +11,7 @@ import me.aov.sellgui.managers.PriceManager
 import me.aov.sellgui.utils.ColorUtils
 import me.aov.sellgui.utils.ItemIdentifier
 import me.aov.sellgui.utils.ItemUtils
+import me.aov.sellgui.utils.TransactionLogger
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.Material
@@ -25,12 +26,7 @@ import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.BlockStateMeta
 import org.bukkit.persistence.PersistentDataType
-import java.io.BufferedWriter
-import java.io.FileWriter
-import java.io.IOException
 import java.math.BigDecimal
-import java.text.SimpleDateFormat
-import java.util.Date
 
 class SellGUI @JvmOverloads constructor(private val main: SellGUIMain, private val player: Player, itemNBTManager: ItemNBTManager, menuId: String = SellMenuConfig.DEFAULT_MENU_ID) : Listener, InventoryHolder {
     private val menuConfig = SellMenuConfig.load(main, menuId) ?: throw IllegalArgumentException("Unknown sell menu: $menuId")
@@ -64,7 +60,47 @@ class SellGUI @JvmOverloads constructor(private val main: SellGUIMain, private v
     fun getPrice(item: ItemStack?, player: Player?): Double { if (item == null || item.type == Material.AIR || !canAcceptItem(item)) return 0.0; val single = item.clone(); var price = single.itemMeta?.persistentDataContainer?.get(NamespacedKey(main, "current_price"), PersistentDataType.DOUBLE) ?: 0.0; if (price == 0.0) price = (main.getPriceManager() ?: PriceManager(main)).getItemPriceWithPlayer(single, player); if (main.getRandomPriceManager()?.canBeSold(single) == false) return 0.0; val contents = ((item.itemMeta as? BlockStateMeta)?.blockState as? ShulkerBox)?.inventory?.contents?.filterNotNull()?.filter { !it.type.isAir }?.sumOf { getPrice(it, player) * it.amount } ?: 0.0; return applyBonuses(player, BigDecimal.valueOf(price + contents)).toDouble() }
     private fun applyBonuses(player: Player?, price: BigDecimal): BigDecimal { player ?: return price; if (price <= BigDecimal.ZERO) return price; val bonus = player.effectivePermissions.filter { it.value && it.permission.startsWith("sellgui.bonus.") && (!player.isOp || it.attachment != null) }.fold(BigDecimal.ZERO) { total, info -> total + (info.permission.removePrefix("sellgui.bonus.").toBigDecimalOrNull() ?: BigDecimal.ZERO) }; return if (bonus > BigDecimal.ZERO) price * (BigDecimal.ONE + bonus.divide(BigDecimal("100"))) else price }
     fun getTotal(inventory: Inventory): Double = (0 until inventory.size).sumOf { slot -> val item = inventory.getItem(slot); if (item == null || !isSellable(slot, item) || main.getRandomPriceManager()?.canBeSold(item) == false || (main.getRandomPriceManager()?.hasRandomPrice(item) == true && main.getRandomPriceManager()?.isEvaluated(item) == false)) 0.0 else getPrice(item, player).let { if (isShulker(item)) it else it * item.amount } }
-    fun sellItems(inventory: Inventory) { returnInvalidItems(); if (hasUnevaluatedItems()) { player.sendMessage(color(main.getMessagesConfig().getString("sell.evaluation_required", "&cSome items must be evaluated before selling.").orEmpty())); setSellItem(); return }; val total = getTotal(inventory); if (total <= 0) { player.sendMessage(color(main.getMessagesConfig().getString("sell.no_items", "&cNothing to sell!").orEmpty())); setSellItem(); return }; main.getEcon()?.depositPlayer(player, total); sold = true; val soldItems = arrayListOf<SoldItem>(); val eventItems = arrayListOf<ItemStack>(); for (slot in 0 until inventory.size) { val item = inventory.getItem(slot) ?: continue; val price = getPrice(item, player); if (!isSellable(slot, item) || price <= 0) continue; if (main.config.getBoolean("logging.enabled")) logSell(item); val amount = item.amount; val clone = item.clone(); soldItems += SoldItem(clone, amount, price, if (isShulker(item)) price else price * amount); eventItems += clone; inventory.setItem(slot, null) }; if (soldItems.isNotEmpty()) { Bukkit.getPluginManager().callEvent(PlayerSellItemsEvent(player, this, eventItems, total)); Bukkit.getPluginManager().callEvent(SellGUIItemsSoldEvent(player, total)); main.getSellGUIAPI()?.notifyItemsSold(player, soldItems, total) }; if (main.config.getBoolean("general.close-after-sell")) { player.closeInventory(); SellCommand.getSellGUIs().remove(this) } else setSellItem(); player.sendMessage(color(main.getMessagesConfig().getString("sell.sold_success", "&aSold items for &e$%total%!").orEmpty().replace("%total%", total.format()).replace("%menu%", menuConfig.getDisplayName()))); SoundHandler.playConfigSound(player, "sounds.feedback.success") }
+    fun sellItems(inventory: Inventory) {
+        returnInvalidItems()
+        if (hasUnevaluatedItems()) {
+            player.sendMessage(color(main.getMessagesConfig().getString("sell.evaluation_required", "&cSome items must be evaluated before selling.").orEmpty()))
+            setSellItem()
+            return
+        }
+        val pendingSales = arrayListOf<Pair<Int, SoldItem>>()
+        for (slot in 0 until inventory.size) {
+            val item = inventory.getItem(slot) ?: continue
+            if (!isSellable(slot, item)) continue
+            val unitPrice = getPrice(item, player)
+            if (!unitPrice.isFinite() || unitPrice <= 0) continue
+            pendingSales += slot to SoldItem(item, item.amount, unitPrice, if (isShulker(item)) unitPrice else unitPrice * item.amount)
+        }
+        val soldItems = pendingSales.map { it.second }
+        val total = soldItems.sumOf { it.getTotalPrice() }
+        if (!total.isFinite() || total <= 0) {
+            player.sendMessage(color(main.getMessagesConfig().getString("sell.no_items", "&cNothing to sell!").orEmpty()))
+            setSellItem()
+            return
+        }
+        val response = main.getEcon()?.depositPlayer(player, total)
+        if (response?.transactionSuccess() != true) {
+            player.sendMessage(color(main.getMessagesConfig().getString("sell.transaction_failed", "&cTransaction failed. Please try again.").orEmpty()))
+            return
+        }
+        sold = true
+        pendingSales.forEach { (slot, _) -> inventory.setItem(slot, null) }
+        TransactionLogger.log(main, "SELLGUI:${menuConfig.getId()}", player, soldItems)
+        val eventItems = soldItems.mapNotNull { it.getItemStack() }
+        Bukkit.getPluginManager().callEvent(PlayerSellItemsEvent(player, this, eventItems, total))
+        Bukkit.getPluginManager().callEvent(SellGUIItemsSoldEvent(player, total))
+        main.getSellGUIAPI().notifyItemsSold(player, soldItems, total)
+        if (main.config.getBoolean("general.close-after-sell")) {
+            player.closeInventory()
+            SellCommand.getSellGUIs().remove(this)
+        } else setSellItem()
+        player.sendMessage(color(main.getMessagesConfig().getString("sell.sold_success", "&aSold items for &e$%total%!").orEmpty().replace("%total%", total.format()).replace("%menu%", menuConfig.getDisplayName())))
+        SoundHandler.playConfigSound(player, "sounds.feedback.success")
+    }
     fun returnInvalidItems() { var returned = 0; for (slot in 0 until menu.size) { val item = menu.getItem(slot) ?: continue; if (item.type == Material.AIR || isGuiItem(item) || isCustomItem(item) || (isItemSlot(slot) && canAcceptItem(item))) continue; menu.setItem(slot, null); returned += item.amount; player.inventory.addItem(item).values.forEach { player.world.dropItem(player.location, it) } }; if (returned > 0) player.sendMessage(color(main.getMessagesConfig().getString("sell.item_not_allowed_in_menu", "&cSome items cannot be sold in %menu% and were returned.").orEmpty().replace("%count%", returned.toString()).replace("%menu%", menuConfig.getDisplayName()))) }
     fun canAcceptItem(item: ItemStack): Boolean = menuConfig.allowsItem(item)
     private fun isSellable(slot: Int, item: ItemStack): Boolean = item.type != Material.AIR && isItemSlot(slot) && !isGuiItem(item) && !isCustomItem(item) && canAcceptItem(item)
@@ -73,6 +109,12 @@ class SellGUI @JvmOverloads constructor(private val main: SellGUIMain, private v
     private fun isGuiItem(item: ItemStack): Boolean = item.hasItemMeta() && item.itemMeta.persistentDataContainer.has(NamespacedKey(main, "sellgui"), PersistentDataType.BYTE)
     private fun isCustomItem(item: ItemStack): Boolean = item.hasItemMeta() && item.itemMeta.persistentDataContainer.has(NamespacedKey(main, "custom-menu-item"), PersistentDataType.STRING)
     private fun isShulker(item: ItemStack): Boolean = item.type.name.endsWith("SHULKER_BOX")
-    fun logSell(item: ItemStack?) { item ?: return; try { BufferedWriter(FileWriter(main.getLog(), true)).use { it.append("[SELLGUI:${menuConfig.getId()}] ${ItemIdentifier.getItemType(item).name}|${ItemIdentifier.getItemIdentifier(item)}|${ChatColor.stripColor(ItemIdentifier.getItemDisplayName(item))}|${item.amount}|${getPrice(item, player).format()}|${(if (isShulker(item)) getPrice(item, player) else getPrice(item, player) * item.amount).format()}|${player.name}|${SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())}").appendLine() } } catch (exception: IOException) { main.logger.severe("Failed to write to sell log: ${exception.message}") } }
+    fun logSell(item: ItemStack?) {
+        item ?: return
+        val unitPrice = getPrice(item, player)
+        TransactionLogger.log(main, "SELLGUI:${menuConfig.getId()}", player, listOf(
+            SoldItem(item, item.amount, unitPrice, if (isShulker(item)) unitPrice else unitPrice * item.amount),
+        ))
+    }
     fun getConfirmItem(): ItemStack = confirmItem; fun getPlayer(): Player = player; fun getSellItem(): ItemStack = sellItem; fun getMenu(): Inventory = menu; override fun getInventory(): Inventory = menu; fun getMain(): SellGUIMain = main; fun getMenuId(): String = menuConfig.getId(); fun getMenuConfig(): SellMenuConfig = menuConfig; fun isConfirmMode(): Boolean = confirmMode; fun isSold(): Boolean = sold; fun setSold(value: Boolean) { sold = value }; fun color(value: String?): String = ColorUtils.color(main.setPlaceholders(player, value.orEmpty())).orEmpty(); fun color(lore: List<String>?): List<String> = lore?.map(::color) ?: emptyList(); private fun Double.format() = "%.2f".format(this)
 }

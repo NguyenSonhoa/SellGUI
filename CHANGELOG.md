@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.1.12 - 2026-11-08
+
+### Fixed
+- Fixed recursive event handler lookup causing a stack overflow after sales and preventing addon callbacks (issue #49).
+- Added missing autosell transaction records, including item details, quantity, paid price, player, and timestamp (issue #48).
+- Unified transaction logging for GUI sales, `/sellall`, and autosell. Either logging switch can disable records, and each stack is written on a separate line.
+- Log entries and addon callbacks now use the same captured prices as the economy payout, including dynamic prices.
+- Failed economy payouts keep the items and do not generate successful sale events, addon callbacks, or transaction records.
+- Autosell now dispatches the sold event and notifies price providers after successful transactions.
+
+### Verification
+- `mvn -B -o verify`: 29 tests passed, 0 failures, 0 errors, 0 skipped.
+- Covered event dispatch, GUI confirmation, autosell logging, both logging switches, dynamic price snapshots, and rejected payout retries.
+- MockBukkit uses the existing Paper 1.21.11 API target. Live Minecraft 26.2 and third-party ShopGUI+/DynaShop runtime verification are still pending.
+
 ## 3.1.11 - 2026-11-03
 
 ### Fixed

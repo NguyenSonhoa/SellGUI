@@ -6,6 +6,7 @@ import me.aov.sellgui.api.SoldItem
 import me.aov.sellgui.gui.SellMenuConfig
 import me.aov.sellgui.handlers.SoundHandler
 import me.aov.sellgui.utils.ItemIdentifier
+import me.aov.sellgui.utils.TransactionLogger
 import org.bukkit.ChatColor
 import org.bukkit.Material
 import org.bukkit.command.Command
@@ -15,11 +16,6 @@ import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
-import java.io.BufferedWriter
-import java.io.FileWriter
-import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.Date
 
 class SellAllCommand(private val main: SellGUIMain) : CommandExecutor {
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
@@ -99,24 +95,36 @@ class SellAllCommand(private val main: SellGUIMain) : CommandExecutor {
     fun getTotal(inventory: Inventory, player: Player): Double = inventory.contents.filterNotNull().filter { it.type != Material.AIR }.sumOf { item -> getPrice(item, player).let { if (it > 0) if (isShulkerBox(item)) it else it * item.amount else 0.0 } }
 
     fun sellItems(inventory: Inventory, player: Player) {
-        val total = getTotal(inventory, player); if (total <= 0) { player.sendMessage(color("&cNo items to sell!")); return }
-        main.getEcon()?.depositPlayer(player, total)
-        var count = 0; val sold = arrayListOf<SoldItem>()
+        val pendingSales = arrayListOf<Pair<Int, SoldItem>>()
         for (slot in 0 until inventory.size) {
-            val item = inventory.getItem(slot) ?: continue; val unit = getPrice(item, player); if (unit <= 0) continue
-            if (main.config.getBoolean("log-transactions")) logSellAll(item, player)
-            val amount = item.amount; sold += SoldItem(item, amount, unit, if (isShulkerBox(item)) unit else unit * amount); count += amount; inventory.setItem(slot, null)
+            val item = inventory.getItem(slot) ?: continue
+            val unitPrice = getPrice(item, player)
+            if (!unitPrice.isFinite() || unitPrice <= 0) continue
+            pendingSales += slot to SoldItem(item, item.amount, unitPrice, if (isShulkerBox(item)) unitPrice else unitPrice * item.amount)
         }
-        if (sold.isNotEmpty()) { main.server.pluginManager.callEvent(SellGUIItemsSoldEvent(player, total)); main.getSellGUIAPI()?.notifyItemsSold(player, sold, total) }
+        val sold = pendingSales.map { it.second }
+        val total = sold.sumOf { it.getTotalPrice() }
+        if (!total.isFinite() || total <= 0) { player.sendMessage(color("&cNo items to sell!")); return }
+        val response = main.getEcon()?.depositPlayer(player, total)
+        if (response?.transactionSuccess() != true) {
+            player.sendMessage(color(main.getMessagesConfig().getString("sell.transaction_failed", "&cTransaction failed. Please try again.").orEmpty()))
+            return
+        }
+        pendingSales.forEach { (slot, _) -> inventory.setItem(slot, null) }
+        TransactionLogger.log(main, "SELLALL", player, sold)
+        main.server.pluginManager.callEvent(SellGUIItemsSoldEvent(player, total))
+        main.getSellGUIAPI().notifyItemsSold(player, sold, total)
+        val count = sold.sumOf { it.getAmount() }
         player.sendMessage(color(main.getMessagesConfig().getString("sellall.sold-message", "&a✅ Sold %count% items for &e$%total%!").orEmpty().replace("%total%", total.format()).replace("%count%", count.toString())))
         try { SoundHandler.playSuccess(player) } catch (_: Exception) { }
     }
 
     fun logSellAll(item: ItemStack?, player: Player) {
         item ?: return
-        try { BufferedWriter(FileWriter(main.getLog(), true)).use { writer ->
-            writer.append("[SELLALL] %s|%s|%s|%d|%.2f|%.2f|%s|%s".format(ItemIdentifier.getItemType(item).name, ItemIdentifier.getItemIdentifier(item), ChatColor.stripColor(ItemIdentifier.getItemDisplayName(item)), item.amount, getPrice(item, player), getPrice(item, player) * item.amount, player.name, SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())))
-        } } catch (exception: IOException) { main.logger.severe("Failed to write to sell log: ${exception.message}") }
+        val unitPrice = getPrice(item, player)
+        TransactionLogger.log(main, "SELLALL", player, listOf(
+            SoldItem(item, item.amount, unitPrice, if (isShulkerBox(item)) unitPrice else unitPrice * item.amount),
+        ))
     }
 
     private fun color(value: String): String = ChatColor.translateAlternateColorCodes('&', value)

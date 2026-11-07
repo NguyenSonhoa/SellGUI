@@ -8,7 +8,7 @@ Current branch: `main`
 
 [WIKI](https://nguyensonhoa.github.io/SellGUIWiki/#home)
 
-Plugin version: `3.1.11`
+Plugin version: `3.1.12`
 
 ## What's New In v3
 
@@ -71,7 +71,7 @@ mvn -B verify
 Jar output:
 
 ```text
-target/SellGUI-3.1.11.jar
+target/SellGUI-3.1.12.jar
 ```
 
 `libs/shopgui-api-3.1.0.jar` is committed so Maven can build immediately after cloning.
@@ -453,6 +453,17 @@ These placeholders can be used in SellGUI text/config values. If PlaceholderAPI 
 | `%time%` | Current server local time |
 | `%date%` | Current server local date |
 | `%timestamp%` | Current server local date and time |
+
+## Transaction Logs
+
+GUI sales, `/sellall`, and autosell record completed transactions in `plugins/SellGUI/log.txt`.
+Keep both `logging.enabled` and the legacy `log-transactions` option set to `true` to enable logging;
+setting either option to `false` disables it for all three sale methods.
+
+Each sold stack is written on its own line, prefixed with `[SELLGUI:<menu>]`, `[SELLALL]`, or `[AUTOSELL]`.
+The fields are item type, item identifier, display name, quantity, unit price, total price, player name,
+and timestamp. Prices are taken from the same sale snapshot used for the economy payout and addon callback.
+Unsuccessful payouts keep the items and do not produce a successful transaction record.
 
 ## Worth Lore Through PacketEvents
 

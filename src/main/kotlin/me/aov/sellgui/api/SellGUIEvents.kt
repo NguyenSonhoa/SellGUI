@@ -10,12 +10,12 @@ open class SellGUIEvents(private val player: Player, private val sellGUI: SellGU
 
     fun getSellGUI(): SellGUI = sellGUI
 
-    override fun getHandlers(): HandlerList = handlers
+    override fun getHandlers(): HandlerList = HANDLERS
 
     companion object {
-        private val handlers = HandlerList()
+        private val HANDLERS = HandlerList()
 
         @JvmStatic
-        fun getHandlerList(): HandlerList = handlers
+        fun getHandlerList(): HandlerList = HANDLERS
     }
 }
