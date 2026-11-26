@@ -6,7 +6,7 @@
 
     <groupId>me.aov.sellgui</groupId>
     <artifactId>SellGUI</artifactId>
-    <version>3.1.12</version>
+    <version>3.1.13</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -104,6 +104,10 @@
 
     <repositories>
         <repository>
+            <id>opencollab</id>
+            <url>https://repo.opencollab.dev/main/</url>
+        </repository>
+        <repository>
             <id>central</id>
             <url>https://repo.maven.apache.org/maven2</url>
         </repository>
@@ -169,6 +173,27 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.geysermc.floodgate</groupId>
+            <artifactId>api</artifactId>
+            <version>2.2.5-20260917.145236-21</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+            <exclusions>
+                <!-- Not used by this hook; contains an older bundled Gson. -->
+                <exclusion>
+                    <groupId>org.geysermc.geyser</groupId>
+                    <artifactId>common</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.geysermc.geyser</groupId>
+            <artifactId>api</artifactId>
+            <version>2.11.2-20260910.131131-9</version>
+            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>

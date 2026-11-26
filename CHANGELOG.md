@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.1.13 - 2026-11-26
+
+### Added
+- Added optional Floodgate 2 and Geyser API integration with native Bedrock Sell/Cancel confirmation forms. Place items in `/sell`, then close the chest to confirm on mobile.
+- Added configurable Bedrock instructions, inventory title, form text, and a 60-second confirmation timeout.
+- Cancelled, expired, disconnected, or failed confirmations return held items. Opening another inventory or disabling SellGUI also returns pending items.
+- Form responses run on the server thread, ignore stale or duplicate replies, and recheck permissions and changing price quotes.
+
+### Fixed
+- Allow control buttons to handle collect-to-cursor clicks while keeping ordinary item collection blocked.
+- Preserve the transaction logging, captured sale prices, payout failure handling, and event fixes from 3.1.12.
+
+### Verification
+- `mvn -B verify`: 48 tests passed, 0 failures, 0 errors, 0 skipped.
+- Added Bedrock sale lifecycle tests, Geyser/Floodgate API and native form response tests, and a separate JVM startup/sale check without optional integration classes.
+- Real mobile-client and live-server testing remain pending.
+
 ## 3.1.12 - 2026-11-08
 
 ### Fixed

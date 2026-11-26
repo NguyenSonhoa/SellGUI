@@ -14,7 +14,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.version>2.3.0</kotlin.version>
-        <sellgui.version>3.1.12</sellgui.version>
+        <sellgui.version>3.1.13</sellgui.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
     </properties>

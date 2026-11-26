@@ -23,6 +23,7 @@ import me.aov.sellgui.listeners.SignListener
 import me.aov.sellgui.listeners.UpdateWarning
 import me.aov.sellgui.managers.AsyncPriceCalculator
 import me.aov.sellgui.managers.AutosellManager
+import me.aov.sellgui.managers.BedrockSupport
 import me.aov.sellgui.managers.ItemNBTManager
 import me.aov.sellgui.managers.MythicLibNBTManager
 import me.aov.sellgui.managers.NBTPriceManager
@@ -58,6 +59,8 @@ open class SellGUIMain : JavaPlugin() {
     lateinit var langConfig: FileConfiguration
     lateinit var essentialsHolder: EssentialsHolder
     lateinit var itemNBTManager: ItemNBTManager
+    lateinit var bedrockSupport: BedrockSupport
+        private set
     private lateinit var guiManager: me.aov.sellgui.gui.GUIManager
     private lateinit var sellGUIAPI: SellGUIAPI
     private lateinit var addonManager: AddonManager
@@ -100,6 +103,8 @@ open class SellGUIMain : JavaPlugin() {
         itemNBTManager = if (Bukkit.getPluginManager().getPlugin("MythicLib") != null) MythicLibNBTManager() else PersistentDataNBTManager(this)
         if (!setupEconomy()) { logger.severe("Disabled due to no Vault economy provider."); server.pluginManager.disablePlugin(this); return }
         useEssentials = essentials()
+        bedrockSupport = BedrockSupport(this)
+        server.pluginManager.registerEvents(bedrockSupport, this)
         registerCommandsAndListeners()
         priceManager = PriceManager(this); nbtPriceManager = NBTPriceManager(this); randomPriceManager = RandomPriceManager(this); priceCache = PriceCache(this); asyncCalculator = AsyncPriceCalculator(this); priceEvaluationListener = PriceEvaluationListener(this); server.pluginManager.registerEvents(priceEvaluationListener, this); autosellManager = AutosellManager(this, priceManager); server.pluginManager.registerEvents(AutosellPlayerListener(autosellManager), this); addonManager = AddonManager(this).also(AddonManager::loadAddons)
         registerWorthLoreHook(); createPrices(); cleanLegacyItems(); Bukkit.getScheduler().runTaskLater(this, Runnable { Bukkit.getOnlinePlayers().forEach { ItemStackNormalizer.normalizePlayerInventory(this, it) } }, 1L)
@@ -115,7 +120,7 @@ open class SellGUIMain : JavaPlugin() {
     private fun registerWorthLoreHook() { if (!config.getBoolean("general.add-worth-lore", false)) return; if (Bukkit.getPluginManager().getPlugin("PacketEvents") == null) { logger.warning("add-worth-lore requires PacketEvents."); return }; try { Class.forName("me.aov.sellgui.hooks.PacketEventsHook").getMethod("register", SellGUIMain::class.java).invoke(null, this) } catch (exception: Exception) { logger.severe("Failed to register PacketEvents listener: ${exception.message}") } }
     private fun cleanLegacyItems() { Bukkit.getScheduler().runTaskTimer(this, Runnable { server.onlinePlayers.forEach { player -> player.inventory.contents.filterNotNull().filter { it.hasItemMeta() && it.itemMeta.persistentDataContainer.has(NamespacedKey(this, "sellgui-item"), PersistentDataType.STRING) }.forEach { player.inventory.remove(it) } } }, 100L, 80L) }
     fun checkConfigVersion() { val current = config.getString("general.config-version") ?: config.getInt("config-version").toString(); if (current != "5" && current != "5.0" && !current.startsWith("5")) { val old = File(dataFolder, "config_old_${System.currentTimeMillis()}.yml"); val source = File(dataFolder, "config.yml"); if (source.exists()) source.renameTo(old); saveResource("config.yml", true); reloadConfig(); logger.warning("Generated a new config.yml after a version mismatch.") } }
-    override fun onDisable() { if (config.getBoolean("stacking.enabled", true) && config.getBoolean("stacking.normalize-on-plugin-disable", true)) Bukkit.getOnlinePlayers().forEach { ItemStackNormalizer.normalizePlayerInventory(this, it) }; if (::addonManager.isInitialized) addonManager.disableAddons(); if (::priceCache.isInitialized) priceCache.shutdown(); if (::asyncCalculator.isInitialized) asyncCalculator.shutdown(); if (::autosellManager.isInitialized) autosellManager.shutdown(); logger.info("SellGUI has been disabled.") }
+    override fun onDisable() { if (::bedrockSupport.isInitialized) bedrockSupport.shutdown(); if (config.getBoolean("stacking.enabled", true) && config.getBoolean("stacking.normalize-on-plugin-disable", true)) Bukkit.getOnlinePlayers().forEach { ItemStackNormalizer.normalizePlayerInventory(this, it) }; if (::addonManager.isInitialized) addonManager.disableAddons(); if (::priceCache.isInitialized) priceCache.shutdown(); if (::asyncCalculator.isInitialized) asyncCalculator.shutdown(); if (::autosellManager.isInitialized) autosellManager.shutdown(); logger.info("SellGUI has been disabled.") }
     fun saveCustom() { try { customMenuItemsConfig.save(customMenuItemsFile) } catch (exception: IOException) { logger.warning("Failed to save custom menu items: ${exception.message}") } }
     fun registerConfig() { config.options().copyDefaults(true); saveDefaultConfig() }
     fun createPrices() { Material.entries.filter { it.isItem && !itemPricesConfig.contains(it.name) }.forEach { itemPricesConfig.set(it.name, 0.0) }; try { itemPricesConfig.save(itemPricesFile) } catch (exception: IOException) { logger.warning("Failed to save item prices: ${exception.message}") } }

@@ -5,8 +5,7 @@ import me.aov.sellgui.SellGUIMain
 import me.aov.sellgui.commands.SellCommand
 import me.aov.sellgui.handlers.SoundHandler
 import org.bukkit.Bukkit
-import org.bukkit.ChatColor
-import org.bukkit.Material
+import me.aov.sellgui.utils.ColorUtils
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -16,7 +15,6 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.player.PlayerDropItemEvent
-import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 
@@ -26,9 +24,11 @@ class InventoryListeners(private val main: SellGUIMain) : Listener {
         val player = event.player as? Player ?: return
         val sellGUI = SellCommand.getSellGUI(player) ?: return
         if (event.inventory != sellGUI.getMenu()) return
-        dropItems(event.inventory, player)
         sellGUI.cleanup()
         SellCommand.getSellGUIs().remove(sellGUI)
+        if (!main.bedrockSupport.confirmOnClose(sellGUI)) {
+            sellGUI.returnItems(main.config.getBoolean("drop-items-on-close", false))
+        }
     }
 
     @EventHandler
@@ -54,7 +54,8 @@ class InventoryListeners(private val main: SellGUIMain) : Listener {
         val currentItem = event.currentItem
         val sellGUI = SellCommand.getSellGUI(player) ?: return
         if (event.view.topInventory != sellGUI.getMenu()) return
-        if (event.action == InventoryAction.COLLECT_TO_CURSOR) {
+        if (event.action == InventoryAction.COLLECT_TO_CURSOR &&
+            !(event.rawSlot in 0 until sellGUI.getMenu().size && (isGUIControlItem(currentItem) || isCustomMenuItem(currentItem)))) {
             event.isCancelled = true
             return
         }
@@ -76,8 +77,8 @@ class InventoryListeners(private val main: SellGUIMain) : Listener {
                     "confirm" -> {
                         if (sellGUI.hasUnevaluatedItems()) {
                             player.closeInventory()
-                            val message = main.getMessagesConfig().getString("messages.evaluation-required", "&cYou have items that need to be evaluated before selling.")
-                            player.sendMessage(ChatColor.translateAlternateColorCodes('&', message.orEmpty()))
+                            val message = main.getMessagesConfig().getString("sell.evaluation_required", "&cYou have items that need to be evaluated before selling.")
+                            player.sendMessage(ColorUtils.color(message).orEmpty())
                             return
                         }
                         SoundHandler.playConfigSound(player, "sounds.ui.confirm")
@@ -149,17 +150,6 @@ class InventoryListeners(private val main: SellGUIMain) : Listener {
                     }
                 }
                 else -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCommand)
-            }
-        }
-    }
-
-    private fun dropItems(inventory: Inventory, player: Player) {
-        inventory.contents.forEach { item ->
-            if (item == null || item.type == Material.AIR || isGUIControlItem(item) || isCustomMenuItem(item)) return@forEach
-            if (main.config.getBoolean("drop-items-on-close", false)) {
-                player.world.dropItem(player.location, item)
-            } else {
-                player.inventory.addItem(item).values.forEach { player.world.dropItem(player.location, it) }
             }
         }
     }

@@ -33,7 +33,19 @@ class SellGUI @JvmOverloads constructor(private val main: SellGUIMain, private v
     private lateinit var sellItem: ItemStack; private lateinit var filler: ItemStack; private lateinit var confirmItem: ItemStack; private lateinit var noItemsItem: ItemStack
     private lateinit var menu: Inventory; private var sellSlots = listOf<Int>(); private var confirmSlots = listOf<Int>(); private var itemSlots = listOf<Int>(); private var updateTaskId = -1; private var confirmMode = false; private var sold = false
     init { createItems(); createMenu(); addCustomItems(); player.openInventory(menu); startAutoUpdateTask() }
-    private fun createMenu() { val size = menuConfig.getInt("size", 54).coerceIn(9, 54).let { ((it + 8) / 9) * 9 }; sellSlots = menuConfig.getIntegerList("positions.sell_button").ifEmpty { listOf(minOf(49, size - 1)) }; confirmSlots = menuConfig.getIntegerList("positions.confirm_button").ifEmpty { sellSlots }; itemSlots = menuConfig.getIntegerList("positions.item_slots"); menu = Bukkit.createInventory(this, size, color(menuConfig.getString("title", "&6&lSell GUI").orEmpty())); menuConfig.getIntegerList("positions.filler_slots").filter(::isValidSlot).forEach { menu.setItem(it, filler) }; addSellButton() }
+    private fun createMenu() {
+        val size = menuConfig.getInt("size", 54).coerceIn(9, 54).let { ((it + 8) / 9) * 9 }
+        sellSlots = menuConfig.getIntegerList("positions.sell_button").ifEmpty { listOf(minOf(49, size - 1)) }
+        confirmSlots = menuConfig.getIntegerList("positions.confirm_button").ifEmpty { sellSlots }
+        itemSlots = menuConfig.getIntegerList("positions.item_slots")
+        val title = if (main.bedrockSupport.isBedrockPlayer(player)) {
+            main.getMessagesConfig().getString("bedrock.inventory_title", "Place items, then close to sell").orEmpty()
+                .replace("%menu%", menuConfig.getDisplayName())
+        } else menuConfig.getString("title", "&6&lSell GUI")
+        menu = Bukkit.createInventory(this, size, color(title))
+        menuConfig.getIntegerList("positions.filler_slots").filter(::isValidSlot).forEach { menu.setItem(it, filler) }
+        addSellButton()
+    }
     private fun createItems() {
         sellItem = guiItem("items.sell_button", Material.EMERALD, "&a&lSell Items").also { tagGui(it, "sell"); if (menuConfig.getBoolean("items.sell_button.glow", true)) glow(it) }
         filler = guiItem("items.filler", Material.GRAY_STAINED_GLASS_PANE, " ").also(::tagGui)
@@ -102,6 +114,15 @@ class SellGUI @JvmOverloads constructor(private val main: SellGUIMain, private v
         SoundHandler.playConfigSound(player, "sounds.feedback.success")
     }
     fun returnInvalidItems() { var returned = 0; for (slot in 0 until menu.size) { val item = menu.getItem(slot) ?: continue; if (item.type == Material.AIR || isGuiItem(item) || isCustomItem(item) || (isItemSlot(slot) && canAcceptItem(item))) continue; menu.setItem(slot, null); returned += item.amount; player.inventory.addItem(item).values.forEach { player.world.dropItem(player.location, it) } }; if (returned > 0) player.sendMessage(color(main.getMessagesConfig().getString("sell.item_not_allowed_in_menu", "&cSome items cannot be sold in %menu% and were returned.").orEmpty().replace("%count%", returned.toString()).replace("%menu%", menuConfig.getDisplayName()))) }
+    fun returnItems(drop: Boolean = false) {
+        for (slot in 0 until menu.size) {
+            val item = menu.getItem(slot) ?: continue
+            if (item.type.isAir || isGuiItem(item) || isCustomItem(item)) continue
+            menu.setItem(slot, null)
+            if (drop) player.world.dropItem(player.location, item)
+            else player.inventory.addItem(item).values.forEach { player.world.dropItem(player.location, it) }
+        }
+    }
     fun canAcceptItem(item: ItemStack): Boolean = menuConfig.allowsItem(item)
     private fun isSellable(slot: Int, item: ItemStack): Boolean = item.type != Material.AIR && isItemSlot(slot) && !isGuiItem(item) && !isCustomItem(item) && canAcceptItem(item)
     private fun isItemSlot(slot: Int): Boolean = itemSlots.isEmpty() || slot in itemSlots

@@ -22,6 +22,12 @@ general:
     - "Auction House"
     - "My Chest"
 
+# Native Sell/Cancel buttons for Geyser and Floodgate players.
+# Place items in the chest, then close it to show the confirmation form.
+bedrock:
+  enabled: true
+  confirmation-timeout-seconds: 60
+
 addons:
   enabled: true
   folder: "addons"

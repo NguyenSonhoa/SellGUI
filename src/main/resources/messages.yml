@@ -34,6 +34,15 @@ sell:
 # ┌─────────────────────────────────────────────────────────────────────────────┐
 # │                            💰 SELLALL NOTIFICATIONS                         │
 # └─────────────────────────────────────────────────────────────────────────────┘
+bedrock:
+  inventory_title: "Place items, then close to sell"
+  instructions: "&ePlace items in the menu, then close it to open the Sell confirmation."
+  title: "Confirm sale"
+  content: "Sell the items you placed in %menu% for $%total%?"
+  sell-button: "Sell"
+  cancel-button: "Cancel and return items"
+  form_failed: "&cCould not open the Bedrock form. Your items were returned."
+
 sellall:
   section_confirm: "&fѕᴇʟʟᴀʟʟ ᴄᴏɴꜰɪʀᴍᴀᴛɪᴏɴ"
   confirm_message: "&eʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ &a$%total% &eꜰꜰᴏʀ ѕᴇʟʟɪɴɢ ᴀʟʟ ɪᴛᴇᴍѕ."

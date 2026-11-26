@@ -91,7 +91,9 @@ class SellCommand(private val main: SellGUIMain) : CommandExecutor, TabCompleter
             sender.sendMessage(color("&cYou do not have permission to open SellGUI for other players.")); return true
         }
         getSellGUI(target)?.let { existing -> target.closeInventory(); existing.cleanup(); sellGUIS.remove(existing) }
+        main.bedrockSupport.cancelPending(target.uniqueId)
         sellGUIS += SellGUI(main, target, main.itemNBTManager, menuConfig.getId())
+        if (main.bedrockSupport.isBedrockPlayer(target)) target.sendMessage(color(main.getMessagesConfig().getString("bedrock.instructions", "&ePlace items in the menu, then close it to open the Sell confirmation.").orEmpty()))
         if (!openingSelf) sender.sendMessage(color("&aOpened SellGUI menu &f${menuConfig.getId()} &afor ${target.name}."))
         return true
     }

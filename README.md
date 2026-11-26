@@ -8,7 +8,7 @@ Current branch: `main`
 
 [WIKI](https://nguyensonhoa.github.io/SellGUIWiki/#home)
 
-Plugin version: `3.1.12`
+Plugin version: `3.1.13`
 
 ## What's New In v3
 
@@ -49,6 +49,19 @@ Plugin version: `3.1.12`
 | MythicLib | Extra item/NBT metadata support |
 | PlaceholderAPI | Registers `%sellgui_*%` placeholders |
 | PacketEvents | Displays item worth lore through packets when enabled |
+| Geyser-Spigot / Floodgate 2 | Native Bedrock sale confirmation buttons, including mobile touch controls |
+
+## Geyser / Floodgate support
+
+Bedrock players use `/sell` (or a named sell menu), place the items they want to sell in the chest, then close the chest. A native Bedrock form opens with **Sell** and **Cancel** buttons. Java players keep the chest's Sell/Confirm buttons.
+
+SellGUI detects players through the Floodgate 2 or Geyser API, without relying on username prefixes. Install either Geyser-Spigot or Floodgate on the same backend server as SellGUI. If Geyser runs on a proxy or standalone, install Floodgate on the backend; enable `send-floodgate-data` on the proxy Floodgate and use the matching `key.pem`. A proxy-only installation without a backend API cannot be detected.
+
+Support defaults to `bedrock.enabled: true`. Set `bedrock.confirmation-timeout-seconds` to change the 60-second confirmation timeout. Edit `bedrock.*` in `messages.yml` for instructions and form text; `%menu%` and `%total%` are supported in the form. These keys have built-in fallbacks for existing configuration files.
+
+Cancelling, closing the form, timing out, disconnecting, opening another inventory, or disabling SellGUI returns the held items. Full inventories drop overflow at the player's location. Confirmed sales use the same menu filters, evaluation checks, prices, bonuses, and sale events as Java sales. Prices that change while the form is open require a new confirmation.
+
+API references: [Floodgate backend setup](https://geysermc.org/wiki/floodgate/api/), [Geyser forms](https://geysermc.org/wiki/geyser/forms/).
 
 ## Installation
 
@@ -71,7 +84,7 @@ mvn -B verify
 Jar output:
 
 ```text
-target/SellGUI-3.1.12.jar
+target/SellGUI-3.1.13.jar
 ```
 
 `libs/shopgui-api-3.1.0.jar` is committed so Maven can build immediately after cloning.
